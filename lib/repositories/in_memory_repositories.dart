@@ -6,6 +6,7 @@ import '../models/models.dart';
 import 'book_repository.dart';
 import 'note_repository.dart';
 import 'repository_exceptions.dart';
+import 'watch_stream.dart';
 
 /// Gemeinsamer Zustand der In-Memory-Implementierung, damit
 /// `BookRepository.delete` die Notizen mitlöschen kann.
@@ -39,26 +40,6 @@ class InMemoryStore {
     await _booksChanged.close();
     await _notesChanged.close();
   }
-}
-
-/// Baut einen „Startwert + bei jeder Änderung neu laden"-Stream.
-///
-/// Bewusst kein `async*`: Ein `async*`-Generator verarbeitet `cancel()` erst
-/// beim nächsten `yield`, hängt aber in `await for` fest → Abbestellen blockiert.
-Stream<T> watchStream<T>(Stream<void> changes, T Function() load) {
-  late StreamController<T> ctrl;
-  StreamSubscription<void>? sub;
-  ctrl = StreamController<T>(
-    onListen: () {
-      ctrl.add(load());
-      sub = changes.listen((_) => ctrl.add(load()));
-    },
-    onCancel: () async {
-      await sub?.cancel();
-      await ctrl.close();
-    },
-  );
-  return ctrl.stream;
 }
 
 class InMemoryBookRepository implements BookRepository {

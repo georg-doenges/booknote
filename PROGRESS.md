@@ -35,7 +35,9 @@ Spezifikation: `PROJECT.md`. Reihenfolge der Bausteine: PROJECT.md, Abschnitt 10
 lib/
   models/          Source, SourceType, Book, Note (+ models.dart Sammel-Export)   ✅
   repositories/    BookRepository, NoteRepository (Interfaces) ✅, InMemory-Impl ✅,
-                   SQLite-Impl (Schritt 3) ⬜
+                   watch_stream.dart (Helfer) ✅
+  repositories/sqlite/  AppDatabase (Schema v1), SqliteBook/NoteRepository, Mapper ✅
+  app_scope.dart   InheritedWidget, reicht die Repositories an die UI durch      ✅
   services/        (Schritt 4/6) WhisperService, NoteParser, CoverService        ⬜
   export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
   screens/         LibraryScreen (Platzhalter) ✅, Recording/BookDetail/Settings ⬜
@@ -51,8 +53,8 @@ test/
 | # | Baustein | Status |
 |---|----------|--------|
 | 1 | Grundgerüst + Ordnerstruktur + Datenmodell | ✅ auf Gerät getestet |
-| 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ fertig, wartet auf OK des Nutzers |
-| 3 | SQLite-Implementierung | ⬜ |
+| 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ |
+| 3 | SQLite-Implementierung | ✅ fertig, wartet auf Gerätetest/OK des Nutzers |
 | 4 | WhisperService + NoteParser | ⬜ |
 | 5 | UI: Library, Recording, BookDetail, Settings | ⬜ (Library nur Platzhalter) |
 | 6 | CoverService (Google Books + Open Library) | ⬜ |
@@ -87,13 +89,42 @@ test/
   Generator in `await for` hängt). Stattdessen `watchStream()`-Helfer mit
   StreamController; die SQLite-Impl soll denselben Helfer nutzen.
 
+## Was in Schritt 3 passiert ist
+
+- `AppDatabase.open()` öffnet `booknote.db` im sqflite-Standardverzeichnis
+  (plattformneutral). `PRAGMA foreign_keys = ON`, Schema v1, `_onUpgrade` als
+  Migrations-Hook (bei Schemaänderung `schemaVersion` erhöhen).
+- Tabellen `sources` und `notes` wie geplant; Notizen fallen per
+  `ON DELETE CASCADE` mit dem Buch. Indizes auf `notes(source_id, created_at)`
+  und `sources(created_at)`.
+- Mapping Modell ↔ Zeile in `sqlite_mappers.dart`, nicht in den Modellen.
+  Zeitstempel werden über `dbNow()` auf UTC-Millisekunden normalisiert, sonst
+  sind Objekte vor/nach dem Speichern nicht `==` (Dart vergleicht auch `isUtc`).
+- Seiten-Sortierung passiert in Dart (`sortNotes`), nicht in SQL, damit
+  "88f." überall gleich behandelt wird.
+- `note.create` prüft in einer Transaktion, ob die Quelle existiert
+  (→ `EntityNotFoundException`), statt auf den FK-Fehlertext zu matchen.
+- `watchStreamAsync()` für DB-Queries: Änderungen während eines laufenden
+  Ladens führen zu genau einem Nachladen.
+- Vertragstest läuft über `sqflite_common_ffi` in-memory auf dem Desktop.
+- `main.dart` öffnet die DB und reicht die Repositories per `AppScope`
+  (InheritedWidget) durch. `LibraryScreen` zeigt vorläufig eine Liste mit
+  Testbuch-Anlegen/Löschen, um SQLite auf dem Gerät zu verifizieren.
+
 ## Nächster Schritt
 
-**Schritt 3:** `lib/repositories/sqlite/` mit `AppDatabase` (Öffnen, Schema v1,
+**Schritt 4:** `lib/services/note_parser.dart` (regelbasiert, deutsche
+Zahlwörter, "folgende"/"f."/"ff.", Positionen) und
+`lib/services/whisper_service.dart` (Multipart-POST an OpenAI, `language=de`),
+dazu `api_key_store.dart` über `flutter_secure_storage`. Parser mit vielen
+Unit-Tests. Audio-Aufnahme (`record`) + Mikrofon-Permissions folgen mit der
+RecordingScreen-UI in Schritt 5.
+
+~~**Schritt 3:** `lib/repositories/sqlite/` mit `AppDatabase` (Öffnen, Schema v1,
 Migrations-Hook), `SqliteBookRepository`, `SqliteNoteRepository`. Tabellen
 `sources` und `notes` gemäß PROJECT.md 4 (IDs als TEXT/UUID, Zeitstempel als
 INTEGER Unix-ms, `updated_at` zusätzlich, FK mit ON DELETE CASCADE).
-Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.
+Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.~~ (erledigt)
 
 ## Offene Punkte / Hinweise
 
