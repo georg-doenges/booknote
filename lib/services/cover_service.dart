@@ -32,6 +32,21 @@ class CoverSearchException implements Exception {
   String toString() => 'CoverSearchException: $message';
 }
 
+/// Ergebnis einer Suche: Treffer plus optionaler Hinweis, wenn eine Quelle
+/// ausgefallen ist (z.B. Google-Books-Kontingent erschöpft) und die Liste
+/// deshalb nur vom Fallback stammt.
+class CoverSearchResult {
+  const CoverSearchResult(this.candidates, {this.warning});
+
+  final List<CoverCandidate> candidates;
+
+  /// Für die UI, z.B. „Google Books nicht erreichbar (Status 429) – Treffer
+  /// stammen von Open Library." `null` = alles normal.
+  final String? warning;
+
+  bool get isEmpty => candidates.isEmpty;
+}
+
 /// Sucht Cover und Metadaten zu einem Buchtitel.
 ///
 /// Stufe 1: Google Books mit Open Library als Fallback (siehe
@@ -40,7 +55,7 @@ class CoverSearchException implements Exception {
 abstract class CoverService {
   /// Liefert bis zu ~10 Treffer, beste zuerst. Leere Liste = nichts gefunden.
   /// Wirft [CoverSearchException] bei Netzwerk-/API-Fehlern.
-  Future<List<CoverCandidate>> search(String query);
+  Future<CoverSearchResult> search(String query);
 }
 
 /// Fragt [primary]; wenn das leer bleibt **oder fehlschlägt**, [fallback].
@@ -52,16 +67,21 @@ class FallbackCoverService implements CoverService {
   final CoverService fallback;
 
   @override
-  Future<List<CoverCandidate>> search(String query) async {
+  Future<CoverSearchResult> search(String query) async {
     CoverSearchException? primaryError;
     try {
       final result = await primary.search(query);
-      if (result.isNotEmpty) return result;
+      if (!result.isEmpty) return result;
     } on CoverSearchException catch (e) {
       primaryError = e;
     }
     try {
-      return await fallback.search(query);
+      final result = await fallback.search(query);
+      if (primaryError == null) return result;
+      return CoverSearchResult(
+        result.candidates,
+        warning: '${primaryError.message} Treffer stammen nur vom Fallback.',
+      );
     } on CoverSearchException {
       if (primaryError != null) throw primaryError;
       rethrow;

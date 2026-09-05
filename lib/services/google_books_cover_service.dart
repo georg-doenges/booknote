@@ -34,23 +34,25 @@ class GoogleBooksCoverService implements CoverService {
   final Duration timeout;
 
   @override
-  Future<List<CoverCandidate>> search(String query) async {
+  Future<CoverSearchResult> search(String query) async {
     final q = query.trim();
-    if (q.isEmpty) return const [];
+    if (q.isEmpty) return const CoverSearchResult([]);
 
     final key = await _keys.getGoogleBooksKey();
     final lang = preferredLanguage;
-    if (lang == null) return _query(q, key, null);
+    if (lang == null) return CoverSearchResult(await _query(q, key, null));
 
     final preferred = await _query(q, key, lang);
-    if (preferred.length >= maxResults) return preferred;
+    if (preferred.length >= maxResults) return CoverSearchResult(preferred);
 
     final rest = await _query(q, key, null);
     final seen = preferred.map(_dedupeKey).toSet();
-    return [
-      ...preferred,
-      ...rest.where((c) => seen.add(_dedupeKey(c))),
-    ].take(maxResults).toList();
+    return CoverSearchResult(
+      [
+        ...preferred,
+        ...rest.where((c) => seen.add(_dedupeKey(c))),
+      ].take(maxResults).toList(),
+    );
   }
 
   static String _dedupeKey(CoverCandidate c) =>
@@ -79,6 +81,17 @@ class GoogleBooksCoverService implements CoverService {
       throw CoverSearchException('Keine Verbindung zu Google Books.', e);
     } on Exception catch (e) {
       throw CoverSearchException('Google Books nicht erreichbar.', e);
+    }
+    if (res.statusCode == 429 || res.statusCode == 403) {
+      throw CoverSearchException(
+        key == null
+            ? 'Google Books: Kontingent ohne API-Key erschöpft (Status '
+                  '${res.statusCode}). Kostenlosen Key in den Einstellungen '
+                  'eintragen.'
+            : 'Google Books lehnt den API-Key ab oder das Kontingent ist '
+                  'erschöpft (Status ${res.statusCode}).',
+        res.body,
+      );
     }
     if (res.statusCode != 200) {
       throw CoverSearchException(

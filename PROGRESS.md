@@ -65,7 +65,7 @@ test/
 | 4 | WhisperService + NoteParser + ApiKeyStore | ✅ fertig (nur Unit-Tests, noch nicht in der UI) |
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
-| 7 | Markdown-Export | ✅ gebaut, wartet auf Gerätetest |
+| 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
 | 8 | Feinschliff Aufnahme-Flow | ⬜ |
 
 ## Was in Schritt 1 passiert ist
@@ -201,6 +201,20 @@ test/
   bekommt `lang=de`. Sprache ist noch fest `de`; könnte später aus Locale oder
   Settings kommen.
 
+## Google-Books-Kontingent (Diagnose nach Schritt 7)
+
+- Nutzer sah weiterhin nur Open-Library-Treffer. Diagnose per `curl`: Google
+  Books antwortet **ohne API-Key mit 429** („Queries per day" des geteilten
+  anonymen Projekts erschöpft). Der Fallback hatte den Fehler verschluckt.
+- Fix: `CoverService.search` liefert jetzt `CoverSearchResult(candidates,
+  warning)`. `FallbackCoverService` setzt `warning`, wenn die Primärquelle
+  fehlschlug. `GoogleBooksCoverService` formuliert bei 429/403 einen Hinweis
+  auf den kostenlosen Key. `BookSearchScreen` zeigt die Warnung als
+  `MaterialBanner` mit Button „Einstellungen".
+- **Nutzer muss einen Google-Books-API-Key anlegen** (Google Cloud Console →
+  Projekt → „Books API" aktivieren → API-Key, keine Kreditkarte) und in den
+  Einstellungen eintragen. Erst dann greift die Sprachbevorzugung sinnvoll.
+
 ## Was in Schritt 7 passiert ist
 
 - `Exporter` (Interface: `formatName`, `export(book, notes) → ExportResult`),
@@ -284,4 +298,6 @@ Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.~~ (erledi
 - Plattform-Setup für `record`/`flutter_secure_storage` ist erledigt (Schritt 5).
 - Whisper auf dem Gerät mit echtem Key getestet: funktioniert, Parser trifft.
 - Cover-Suche auf dem Gerät getestet, funktioniert. Sprachbias siehe oben.
-- Share-Sheet-Export noch nicht auf dem Gerät getestet.
+- Share-Sheet-Export auf dem Gerät getestet, funktioniert.
+- Google-Books-Key des Nutzers steht noch aus (siehe Diagnose oben).
+- Übergabe an nächste Session: `HANDOFF.md` (Prompt zum Einfügen).

@@ -12,10 +12,10 @@ class _Fixed implements CoverService {
   int calls = 0;
 
   @override
-  Future<List<CoverCandidate>> search(String query) async {
+  Future<CoverSearchResult> search(String query) async {
     calls++;
     if (error != null) throw error!;
-    return result;
+    return CoverSearchResult(result);
   }
 }
 
@@ -27,22 +27,25 @@ void main() {
       final p = _Fixed([_c]);
       final f = _Fixed([_c, _c]);
       final r = await FallbackCoverService(primary: p, fallback: f).search('q');
-      expect(r.length, 1);
+      expect(r.candidates.length, 1);
+      expect(r.warning, isNull);
       expect(f.calls, 0);
     });
 
-    test('fällt bei leerem Ergebnis zurück', () async {
+    test('fällt bei leerem Ergebnis zurück (ohne Warnung)', () async {
       final p = _Fixed([]);
       final f = _Fixed([_c]);
       final r = await FallbackCoverService(primary: p, fallback: f).search('q');
-      expect(r.length, 1);
+      expect(r.candidates.length, 1);
+      expect(r.warning, isNull);
     });
 
-    test('fällt bei Fehler der Primärquelle zurück', () async {
-      final p = _Fixed([], error: const CoverSearchException('down'));
+    test('fällt bei Fehler der Primärquelle zurück, mit Warnung', () async {
+      final p = _Fixed([], error: const CoverSearchException('down.'));
       final f = _Fixed([_c]);
       final r = await FallbackCoverService(primary: p, fallback: f).search('q');
-      expect(r.length, 1);
+      expect(r.candidates.length, 1);
+      expect(r.warning, contains('down.'));
     });
 
     test('beide fehlerhaft → Fehler der Primärquelle', () async {
@@ -93,7 +96,7 @@ void main() {
         }),
       );
 
-      final r = await s.search('Zauberberg');
+      final r = (await s.search('Zauberberg')).candidates;
 
       expect(requests.length, 2);
       expect(requests[0].url.queryParameters['langRestrict'], 'de');
@@ -124,7 +127,7 @@ void main() {
           return http.Response('{}', 200);
         }),
       );
-      expect(await s.search('x'), isEmpty);
+      expect((await s.search('x')).isEmpty, isTrue);
       expect(captured.url.queryParameters.containsKey('key'), isFalse);
     });
 
@@ -162,7 +165,7 @@ void main() {
             ]);
           }),
         );
-        final r = await s.search('Zauberberg');
+        final r = (await s.search('Zauberberg')).candidates;
         expect(r.map((c) => c.title), ['Der Zauberberg', 'The Magic Mountain']);
       },
     );
@@ -181,10 +184,27 @@ void main() {
       expect(calls, 1);
     });
 
-    test('HTTP-Fehler → CoverSearchException', () async {
+    test('429 ohne Key → Hinweis auf Einstellungen', () async {
       final s = GoogleBooksCoverService(
         apiKeys: InMemoryApiKeyStore(),
         client: MockClient((_) async => http.Response('nope', 429)),
+      );
+      expect(
+        () => s.search('x'),
+        throwsA(
+          isA<CoverSearchException>().having(
+            (e) => e.message,
+            'message',
+            contains('Einstellungen'),
+          ),
+        ),
+      );
+    });
+
+    test('500 → CoverSearchException', () async {
+      final s = GoogleBooksCoverService(
+        apiKeys: InMemoryApiKeyStore(),
+        client: MockClient((_) async => http.Response('nope', 500)),
       );
       expect(() => s.search('x'), throwsA(isA<CoverSearchException>()));
     });
@@ -198,7 +218,7 @@ void main() {
           return http.Response('{}', 200);
         }),
       );
-      expect(await s.search('   '), isEmpty);
+      expect((await s.search('   ')).isEmpty, isTrue);
       expect(called, isFalse);
     });
   });
@@ -225,7 +245,7 @@ void main() {
           ),
         ),
       );
-      final r = await s.search('Buddenbrooks');
+      final r = (await s.search('Buddenbrooks')).candidates;
       expect(r.length, 2);
       expect(r[0].coverUrl, 'https://covers.openlibrary.org/b/id/12345-M.jpg');
       expect(r[0].author, 'Thomas Mann');

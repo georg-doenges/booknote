@@ -26,9 +26,9 @@ class OpenLibraryCoverService implements CoverService {
   final Duration timeout;
 
   @override
-  Future<List<CoverCandidate>> search(String query) async {
+  Future<CoverSearchResult> search(String query) async {
     final q = query.trim();
-    if (q.isEmpty) return const [];
+    if (q.isEmpty) return const CoverSearchResult([]);
 
     final uri = _search.replace(
       queryParameters: {
@@ -59,10 +59,12 @@ class OpenLibraryCoverService implements CoverService {
     try {
       final json = jsonDecode(res.body) as Map<String, dynamic>;
       final docs = (json['docs'] as List?) ?? const [];
-      return docs
-          .map((d) => _toCandidate(d as Map<String, dynamic>))
-          .whereType<CoverCandidate>()
-          .toList();
+      return CoverSearchResult(
+        docs
+            .map((d) => _toCandidate(d as Map<String, dynamic>))
+            .whereType<CoverCandidate>()
+            .toList(),
+      );
     } catch (e) {
       throw CoverSearchException('Unerwartete Antwort von Open Library.', e);
     }

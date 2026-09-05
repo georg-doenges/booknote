@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../services/services.dart';
+import 'settings_screen.dart';
 
 /// Ergebnis der Buchsuche: entweder ein ausgewählter Treffer oder der vom
 /// Nutzer eingetippte Titel ohne Cover.
@@ -41,6 +42,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   int _requestId = 0;
 
   List<CoverCandidate>? _results;
+  String? _warning;
   bool _loading = false;
   String? _error;
 
@@ -71,6 +73,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     if (q.isEmpty) {
       setState(() {
         _results = null;
+        _warning = null;
         _error = null;
         _loading = false;
       });
@@ -84,7 +87,8 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       final r = await AppScope.of(context).covers.search(q);
       if (!mounted || id != _requestId) return;
       setState(() {
-        _results = r;
+        _results = r.candidates;
+        _warning = r.warning;
         _loading = false;
       });
     } on CoverSearchException catch (e) {
@@ -145,6 +149,26 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               ),
             ),
           if (_loading) const LinearProgressIndicator(),
+          if (_warning != null)
+            MaterialBanner(
+              backgroundColor: scheme.tertiaryContainer,
+              leading: Icon(
+                Icons.info_outline,
+                color: scheme.onTertiaryContainer,
+              ),
+              content: Text(
+                _warning!,
+                style: TextStyle(color: scheme.onTertiaryContainer),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                  ),
+                  child: const Text('Einstellungen'),
+                ),
+              ],
+            ),
           Expanded(child: _body(scheme)),
         ],
       ),
