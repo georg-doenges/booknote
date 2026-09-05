@@ -38,7 +38,9 @@ lib/
                    watch_stream.dart (Helfer) ✅
   repositories/sqlite/  AppDatabase (Schema v1), SqliteBook/NoteRepository, Mapper ✅
   app_scope.dart   InheritedWidget, reicht die Repositories an die UI durch      ✅
-  services/        (Schritt 4/6) WhisperService, NoteParser, CoverService        ⬜
+  services/        NoteParser + GermanNumberParser ✅, TranscriptionService-Interface
+                   + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
+                   CoverService (Schritt 6) ⬜
   export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
   screens/         LibraryScreen (Platzhalter) ✅, Recording/BookDetail/Settings ⬜
   widgets/         wiederverwendbare UI-Komponenten                              ⬜
@@ -54,8 +56,8 @@ test/
 |---|----------|--------|
 | 1 | Grundgerüst + Ordnerstruktur + Datenmodell | ✅ auf Gerät getestet |
 | 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ |
-| 3 | SQLite-Implementierung | ✅ fertig, wartet auf Gerätetest/OK des Nutzers |
-| 4 | WhisperService + NoteParser | ⬜ |
+| 3 | SQLite-Implementierung | ✅ auf Gerät getestet (Neustart-Persistenz) |
+| 4 | WhisperService + NoteParser + ApiKeyStore | ✅ fertig (nur Unit-Tests, noch nicht in der UI) |
 | 5 | UI: Library, Recording, BookDetail, Settings | ⬜ (Library nur Platzhalter) |
 | 6 | CoverService (Google Books + Open Library) | ⬜ |
 | 7 | Markdown-Export | ⬜ |
@@ -111,14 +113,47 @@ test/
   (InheritedWidget) durch. `LibraryScreen` zeigt vorläufig eine Liste mit
   Testbuch-Anlegen/Löschen, um SQLite auf dem Gerät zu verifizieren.
 
+## Was in Schritt 4 passiert ist
+
+- `NoteParser.parse(raw) → ParsedNote(page, position, text, rawTranscript)`.
+  Regelbasiert per Regex auf der kleingeschriebenen Kopie, der Text behält
+  Originalschreibung. Erkennt: „Seite"/„auf Seite"/„S.", Ziffern oder
+  Zahlwort, „f."/„ff."/„folgende"/„und folgende"/„fortfolgende" (→ f. / ff.),
+  Position oben/mitte/mittig/unten/„Zeile N". Satzzeichen zwischen den Teilen
+  sind egal. „f" nur als eigenes Wort (sonst „Seite 3 fängt…" kaputt).
+  Ohne Seitenangabe am Anfang → alles ist Text, page = null.
+- `GermanNumberParser.parse("dreihundertsiebenundvierzig") → 347`
+  (bis in die Tausender; „zwölfhundert" geht auch).
+- `TranscriptionService` (Interface) + `TranscriptionException(kind, message, cause)`
+  mit `TranscriptionErrorKind` (missingApiKey, unauthorized, network,
+  rateLimited, invalidAudio, server) → UI kann gezielt reagieren.
+- `WhisperService(apiKeys:, client:)`: Multipart-POST, `whisper-1`,
+  `language=de`. HTTP-Client injizierbar → Tests mit `MockClient`.
+- `ApiKeyStore` (Interface) mit `SecureApiKeyStore` (flutter_secure_storage,
+  Android EncryptedSharedPreferences) und `InMemoryApiKeyStore`. Hält auch
+  den optionalen Google-Books-Key für Schritt 6.
+- Auf dem Gerät ändert sich in diesem Schritt nichts Sichtbares.
+
 ## Nächster Schritt
 
-**Schritt 4:** `lib/services/note_parser.dart` (regelbasiert, deutsche
+**Schritt 5 (UI):** Reihenfolge innerhalb des Schritts:
+1. SettingsScreen (OpenAI-Key eingeben/ändern, Kostenhinweis) – nötig, um
+   Whisper überhaupt testen zu können.
+2. RecordingScreen: `record`-Package (m4a/AAC), Mikrofon-Permission in
+   AndroidManifest + Info.plist, tap-to-start/stop, Transkribieren → Parser →
+   `notes.create`, Feedback-Karte, mehrere Aufnahmen pro Sitzung, Audio bei
+   Fehler behalten.
+3. LibraryScreen als Cover-Grid + „Neues Buch"-Dialog (vorerst nur Titel,
+   Cover-Auswahl kommt in Schritt 6).
+4. BookDetailScreen (Liste, Sortierung, bearbeiten, löschen).
+Services über `AppScope` durchreichen (TranscriptionService, ApiKeyStore, NoteParser).
+
+~~**Schritt 4:** `lib/services/note_parser.dart` (regelbasiert, deutsche
 Zahlwörter, "folgende"/"f."/"ff.", Positionen) und
 `lib/services/whisper_service.dart` (Multipart-POST an OpenAI, `language=de`),
 dazu `api_key_store.dart` über `flutter_secure_storage`. Parser mit vielen
 Unit-Tests. Audio-Aufnahme (`record`) + Mikrofon-Permissions folgen mit der
-RecordingScreen-UI in Schritt 5.
+RecordingScreen-UI in Schritt 5.~~ (erledigt)
 
 ~~**Schritt 3:** `lib/repositories/sqlite/` mit `AppDatabase` (Öffnen, Schema v1,
 Migrations-Hook), `SqliteBookRepository`, `SqliteNoteRepository`. Tabellen
