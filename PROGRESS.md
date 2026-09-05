@@ -8,8 +8,9 @@ Spezifikation: `PROJECT.md`. Reihenfolge der Bausteine: PROJECT.md, Abschnitt 10
 
 - Flutter 3.47.2 (stable), Dart 3.13.2. SDK liegt unter `C:\src\flutter`,
   ist **nicht** im PATH → in der Shell vorher `$env:PATH = "C:\src\flutter\bin;$env:PATH"`.
-- Android SDK 37 vorhanden. `flutter doctor` meldete: Android-Lizenzen noch
-  nicht akzeptiert → einmalig `flutter doctor --android-licenses` ausführen (Nutzer).
+- Android SDK 37 vorhanden. `flutter build apk --debug` läuft durch (Gradle hat
+  Platform 34/35 + CMake nachinstalliert). `flutter doctor` meckert trotzdem über
+  „license status unknown" → bei Problemen `flutter doctor --android-licenses`.
 - Test-Gerät: echtes Android-Gerät per USB (`flutter run`).
 - Git: lokal, Branch `main`. Identität repo-lokal gesetzt.
 
@@ -75,6 +76,5 @@ erfüllen kann). Danach Schritt 3: `sqlite_*_repository.dart` + Schema/Migration
 
 ## Offene Punkte / Hinweise
 
-- Android-Lizenzen akzeptieren (siehe Umgebung).
 - `record` und `flutter_secure_storage` brauchen später Plattform-Setup
   (Mikrofon-Permission in AndroidManifest/Info.plist, minSdk-Check). Kommt in Schritt 4/5.
