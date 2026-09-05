@@ -1,8 +1,9 @@
 import 'package:flutter/widgets.dart';
 
 import 'repositories/repositories.dart';
+import 'services/services.dart';
 
-/// Stellt die Repositories dem Widget-Baum zur Verfügung.
+/// Stellt Repositories und Services dem Widget-Baum zur Verfügung.
 ///
 /// Bewusst ein schlichtes InheritedWidget statt eines DI-Frameworks: Die App
 /// hat wenige Abhängigkeiten, und `main.dart` bleibt die einzige Stelle, die
@@ -12,11 +13,17 @@ class AppScope extends InheritedWidget {
     super.key,
     required this.books,
     required this.notes,
+    required this.transcription,
+    required this.apiKeys,
+    this.parser = const NoteParser(),
     required super.child,
   });
 
   final BookRepository books;
   final NoteRepository notes;
+  final TranscriptionService transcription;
+  final ApiKeyStore apiKeys;
+  final NoteParser parser;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -26,5 +33,9 @@ class AppScope extends InheritedWidget {
 
   @override
   bool updateShouldNotify(AppScope old) =>
-      books != old.books || notes != old.notes;
+      books != old.books ||
+      notes != old.notes ||
+      transcription != old.transcription ||
+      apiKeys != old.apiKeys ||
+      parser != old.parser;
 }

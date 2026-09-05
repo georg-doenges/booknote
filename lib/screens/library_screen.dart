@@ -2,21 +2,46 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../models/models.dart';
+import '../widgets/book_cover_tile.dart';
+import 'book_detail_screen.dart';
+import 'recording_screen.dart';
+import 'settings_screen.dart';
 
 /// Startbildschirm: Bibliothek als Cover-Grid.
 ///
-/// Schritt 3: zeigt nur die Anzahl der Bücher aus der Datenbank, um die
-/// SQLite-Anbindung auf dem Gerät zu verifizieren. Der Plus-Button legt
-/// testweise ein Buch mit Zeitstempel-Titel an. Das eigentliche Grid und
-/// der Anlege-Dialog kommen in Schritt 5.
+/// Tippen → RecordingScreen (der wichtigste Pfad).
+/// Lange drücken → BookDetailScreen (Notizen, Bearbeiten, Export).
 class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
+
+  Future<void> _addBook(BuildContext context) async {
+    final title = await showDialog<String>(
+      context: context,
+      builder: (_) => const _NewBookDialog(),
+    );
+    if (title == null || title.isEmpty || !context.mounted) return;
+    final book = await AppScope.of(context).books.create(title: title);
+    if (!context.mounted) return;
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => RecordingScreen(book: book)));
+  }
 
   @override
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Booknote')),
+      appBar: AppBar(
+        title: const Text('Booknote'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Einstellungen',
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+          ),
+        ],
+      ),
       body: StreamBuilder<List<Book>>(
         stream: scope.books.watchAll(),
         builder: (context, snapshot) {
@@ -29,35 +54,88 @@ class LibraryScreen extends StatelessWidget {
           }
           if (books.isEmpty) {
             return const Center(
-              child: Text(
-                'Bibliothek – noch leer.\n(Schritt 3: SQLite angebunden)',
-                textAlign: TextAlign.center,
+              child: Padding(
+                padding: EdgeInsets.all(32),
+                child: Text(
+                  'Noch keine Bücher.\nLege mit „+" dein erstes Buch an.',
+                  textAlign: TextAlign.center,
+                ),
               ),
             );
           }
-          return ListView(
-            children: [
-              for (final b in books)
-                ListTile(
-                  leading: const Icon(Icons.book_outlined),
-                  title: Text(b.title),
-                  subtitle: Text(b.createdAt.toLocal().toString()),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline),
-                    onPressed: () => scope.books.delete(b.id),
+          return GridView.builder(
+            padding: const EdgeInsets.all(12),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 140,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.58,
+            ),
+            itemCount: books.length,
+            itemBuilder: (context, i) {
+              final book = books[i];
+              return BookCoverTile(
+                book: book,
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => RecordingScreen(book: book),
                   ),
                 ),
-            ],
+                onLongPress: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => BookDetailScreen(bookId: book.id),
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => scope.books.create(
-          title: 'Testbuch ${TimeOfDay.now().format(context)}',
-        ),
-        tooltip: 'Testbuch anlegen',
+        onPressed: () => _addBook(context),
+        tooltip: 'Neues Buch',
         child: const Icon(Icons.add),
       ),
+    );
+  }
+}
+
+class _NewBookDialog extends StatefulWidget {
+  const _NewBookDialog();
+
+  @override
+  State<_NewBookDialog> createState() => _NewBookDialogState();
+}
+
+class _NewBookDialogState extends State<_NewBookDialog> {
+  final _title = TextEditingController();
+
+  @override
+  void dispose() {
+    _title.dispose();
+    super.dispose();
+  }
+
+  void _submit() => Navigator.of(context).pop(_title.text.trim());
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Neues Buch'),
+      content: TextField(
+        controller: _title,
+        autofocus: true,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(labelText: 'Titel'),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Abbrechen'),
+        ),
+        FilledButton(onPressed: _submit, child: const Text('Anlegen')),
+      ],
     );
   }
 }

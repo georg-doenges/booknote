@@ -1,0 +1,369 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+
+import '../app_scope.dart';
+import '../models/models.dart';
+import '../services/services.dart';
+import '../widgets/note_tile.dart';
+import 'book_detail_screen.dart';
+import 'settings_screen.dart';
+
+enum _Phase { idle, recording, transcribing, error }
+
+/// Der wichtigste Screen: großer Aufnahme-Button, tap-to-start / tap-to-stop.
+/// Nach dem Speichern bleibt man hier und kann sofort weiter aufnehmen.
+class RecordingScreen extends StatefulWidget {
+  const RecordingScreen({super.key, required this.book});
+
+  final Book book;
+
+  @override
+  State<RecordingScreen> createState() => _RecordingScreenState();
+}
+
+class _RecordingScreenState extends State<RecordingScreen> {
+  final _recorder = NoteRecorder();
+
+  _Phase _phase = _Phase.idle;
+  String? _pendingAudio; // bleibt bei Fehlern erhalten → „Erneut versuchen"
+  TranscriptionException? _error;
+  Duration _elapsed = Duration.zero;
+  Timer? _ticker;
+
+  /// In dieser Sitzung gespeicherte Notizen, neueste zuerst.
+  final List<Note> _session = [];
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    _recorder.dispose();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    switch (_phase) {
+      case _Phase.idle:
+      case _Phase.error:
+        await _start();
+      case _Phase.recording:
+        await _stopAndTranscribe();
+      case _Phase.transcribing:
+        break;
+    }
+  }
+
+  Future<void> _start() async {
+    if (!await _recorder.hasPermission()) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Mikrofon-Berechtigung fehlt. Bitte in den '
+            'System-Einstellungen erlauben.',
+          ),
+        ),
+      );
+      return;
+    }
+    await NoteRecorder.discard(_pendingAudio);
+    _pendingAudio = null;
+    try {
+      await _recorder.start();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Aufnahme konnte nicht starten: $e')),
+      );
+      return;
+    }
+    _elapsed = Duration.zero;
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() => _elapsed += const Duration(seconds: 1));
+    });
+    setState(() {
+      _phase = _Phase.recording;
+      _error = null;
+    });
+  }
+
+  Future<void> _stopAndTranscribe() async {
+    _ticker?.cancel();
+    final path = await _recorder.stop();
+    if (path == null) {
+      setState(() => _phase = _Phase.idle);
+      return;
+    }
+    _pendingAudio = path;
+    await _transcribe();
+  }
+
+  Future<void> _transcribe() async {
+    final path = _pendingAudio;
+    if (path == null) return;
+    setState(() {
+      _phase = _Phase.transcribing;
+      _error = null;
+    });
+
+    final scope = AppScope.of(context);
+    try {
+      final raw = await scope.transcription.transcribe(path);
+      final parsed = scope.parser.parse(raw);
+      final note = await scope.notes.create(
+        sourceId: widget.book.id,
+        page: parsed.page,
+        position: parsed.position,
+        text: parsed.text,
+        rawTranscript: parsed.rawTranscript,
+      );
+      await NoteRecorder.discard(path);
+      _pendingAudio = null;
+      if (!mounted) return;
+      setState(() {
+        _session.insert(0, note);
+        _phase = _Phase.idle;
+      });
+    } on TranscriptionException catch (e) {
+      // Audio bleibt in _pendingAudio → Nutzer kann es erneut versuchen.
+      if (!mounted) return;
+      setState(() {
+        _error = e;
+        _phase = _Phase.error;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = TranscriptionException(
+          TranscriptionErrorKind.server,
+          'Unerwarteter Fehler: $e',
+        );
+        _phase = _Phase.error;
+      });
+    }
+  }
+
+  Future<void> _discardPending() async {
+    await NoteRecorder.discard(_pendingAudio);
+    _pendingAudio = null;
+    setState(() {
+      _phase = _Phase.idle;
+      _error = null;
+    });
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final text = Theme.of(context).textTheme;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.book.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.list_alt),
+            tooltip: 'Alle Notizen',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => BookDetailScreen(bookId: widget.book.id),
+              ),
+            ),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _RecordButton(phase: _phase, onPressed: _toggle),
+                  const SizedBox(height: 16),
+                  Text(_statusLine(), style: text.titleMedium),
+                  if (_phase == _Phase.recording)
+                    Text(_fmt(_elapsed), style: text.headlineSmall),
+                  if (_phase == _Phase.idle && _session.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(32, 12, 32, 0),
+                      child: Text(
+                        'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
+                        'Autor, dass …"',
+                        textAlign: TextAlign.center,
+                        style: text.bodySmall?.copyWith(color: scheme.outline),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (_phase == _Phase.error && _error != null)
+            _ErrorCard(
+              error: _error!,
+              onRetry: _transcribe,
+              onDiscard: _discardPending,
+              onSettings: () => Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
+            ),
+          if (_session.isNotEmpty)
+            Expanded(
+              flex: 4,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    child: Text(
+                      'Diese Sitzung (${_session.length})',
+                      style: text.labelLarge,
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: _session.length,
+                      itemBuilder: (_, i) =>
+                          NoteTile(note: _session[i], highlight: i == 0),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _statusLine() => switch (_phase) {
+    _Phase.idle => 'Tippen zum Aufnehmen',
+    _Phase.recording => 'Aufnahme läuft – tippen zum Beenden',
+    _Phase.transcribing => 'Wird transkribiert …',
+    _Phase.error => 'Transkription fehlgeschlagen',
+  };
+}
+
+class _RecordButton extends StatelessWidget {
+  const _RecordButton({required this.phase, required this.onPressed});
+
+  final _Phase phase;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final recording = phase == _Phase.recording;
+    final busy = phase == _Phase.transcribing;
+
+    return SizedBox(
+      width: 160,
+      height: 160,
+      child: Material(
+        color: recording ? scheme.error : scheme.primary,
+        shape: const CircleBorder(),
+        elevation: 6,
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: busy ? null : onPressed,
+          child: Center(
+            child: busy
+                ? SizedBox(
+                    width: 48,
+                    height: 48,
+                    child: CircularProgressIndicator(
+                      color: scheme.onPrimary,
+                      strokeWidth: 4,
+                    ),
+                  )
+                : Icon(
+                    recording ? Icons.stop : Icons.mic,
+                    size: 72,
+                    color: recording ? scheme.onError : scheme.onPrimary,
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ErrorCard extends StatelessWidget {
+  const _ErrorCard({
+    required this.error,
+    required this.onRetry,
+    required this.onDiscard,
+    required this.onSettings,
+  });
+
+  final TranscriptionException error;
+  final VoidCallback onRetry;
+  final VoidCallback onDiscard;
+  final VoidCallback onSettings;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final needsKey =
+        error.kind == TranscriptionErrorKind.missingApiKey ||
+        error.kind == TranscriptionErrorKind.unauthorized;
+    return Card(
+      margin: const EdgeInsets.all(12),
+      color: scheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              error.message,
+              style: TextStyle(color: scheme.onErrorContainer),
+            ),
+            if (error.cause != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${error.cause}',
+                  style: Theme.of(context).textTheme.bodySmall
+                      ?.copyWith(color: scheme.onErrorContainer),
+                ),
+              ),
+            const SizedBox(height: 4),
+            Text(
+              'Die Aufnahme ist noch da.',
+              style: Theme.of(context).textTheme.bodySmall
+                  ?.copyWith(color: scheme.onErrorContainer),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                if (needsKey)
+                  FilledButton.tonalIcon(
+                    onPressed: onSettings,
+                    icon: const Icon(Icons.key),
+                    label: const Text('API-Key eingeben'),
+                  ),
+                FilledButton.tonalIcon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Erneut versuchen'),
+                ),
+                TextButton(
+                  onPressed: onDiscard,
+                  child: const Text('Verwerfen'),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

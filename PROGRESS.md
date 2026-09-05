@@ -40,10 +40,12 @@ lib/
   app_scope.dart   InheritedWidget, reicht die Repositories an die UI durch      ✅
   services/        NoteParser + GermanNumberParser ✅, TranscriptionService-Interface
                    + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
+                   NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService (Schritt 6) ⬜
   export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
-  screens/         LibraryScreen (Platzhalter) ✅, Recording/BookDetail/Settings ⬜
-  widgets/         wiederverwendbare UI-Komponenten                              ⬜
+  screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
+                   SettingsScreen                                                ✅
+  widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog  ✅
   main.dart        BooknoteApp → LibraryScreen                                    ✅
 test/
   models/          Unit-Tests für das Datenmodell                                 ✅
@@ -58,7 +60,7 @@ test/
 | 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ |
 | 3 | SQLite-Implementierung | ✅ auf Gerät getestet (Neustart-Persistenz) |
 | 4 | WhisperService + NoteParser + ApiKeyStore | ✅ fertig (nur Unit-Tests, noch nicht in der UI) |
-| 5 | UI: Library, Recording, BookDetail, Settings | ⬜ (Library nur Platzhalter) |
+| 5 | UI: Library, Recording, BookDetail, Settings | ✅ gebaut, wartet auf Gerätetest (erster Whisper-Test) |
 | 6 | CoverService (Google Books + Open Library) | ⬜ |
 | 7 | Markdown-Export | ⬜ |
 | 8 | Feinschliff Aufnahme-Flow | ⬜ |
@@ -134,9 +136,43 @@ test/
   den optionalen Google-Books-Key für Schritt 6.
 - Auf dem Gerät ändert sich in diesem Schritt nichts Sichtbares.
 
+## Was in Schritt 5 passiert ist
+
+- `AppScope` reicht jetzt auch `transcription`, `apiKeys` und `parser` durch;
+  `main.dart` verdrahtet `SecureApiKeyStore` + `WhisperService`.
+- **LibraryScreen:** Grid aus `BookCoverTile` (Cover per `Image.network`,
+  sonst Platzhalter mit Titel). Tippen → RecordingScreen, **lange drücken →
+  BookDetailScreen**. „+" → Dialog nur mit Titel (Cover-Auswahl kommt in
+  Schritt 6), danach direkt in den RecordingScreen. Zahnrad → Settings.
+- **RecordingScreen:** Phasen idle/recording/transcribing/error. Großer
+  runder Button (tap-to-start/stop), Sekundenzähler, nach dem Stopp
+  Whisper → Parser → `notes.create`. Gespeicherte Notizen der Sitzung als
+  Liste darunter (neueste hervorgehoben). Bei Fehler: Karte mit Meldung,
+  „Erneut versuchen" (Audio bleibt in `_pendingAudio`), „Verwerfen",
+  bei fehlendem/abgelehntem Key zusätzlich „API-Key eingeben". Listen-Icon
+  oben rechts → BookDetailScreen.
+- **BookDetailScreen:** `watchBySource` mit Sortier-Toggle (Seite ↔
+  chronologisch), Tippen → `NoteEditDialog` (Seite, Position, Text, Original-
+  Transkript aufklappbar), Papierkorb mit Rückfrage, Menü: Umbenennen /
+  Buch löschen (mit Rückfrage). Export-Icon vorhanden, aber deaktiviert
+  (Schritt 7). FAB „Aufnehmen".
+- **SettingsScreen:** OpenAI-Key (maskiert, Auge-Toggle) + optionaler
+  Google-Books-Key, Kostenhinweis, Speichern über `ApiKeyStore`.
+- **Plattform:** `RECORD_AUDIO` + `INTERNET` im AndroidManifest,
+  `NSMicrophoneUsageDescription` in Info.plist. Mikrofon-Prompt kommt über
+  `record.hasPermission()` beim ersten Aufnahmestart.
+- `NoteRecorder`: AAC-LC/m4a, mono, 96 kbit/s, Datei im Temp-Verzeichnis
+  (`path_provider`), wird nach erfolgreichem Speichern gelöscht.
+
 ## Nächster Schritt
 
-**Schritt 5 (UI):** Reihenfolge innerhalb des Schritts:
+**Schritt 6:** `CoverService`-Interface + `GoogleBooksCoverSource` +
+`OpenLibraryCoverSource` (Fallback), Ergebnisliste mit Cover-Thumbnails im
+„Neues Buch"-Dialog zur Auswahl; optional Cover eines bestehenden Buchs im
+BookDetail ändern. Google-Books-Key aus `ApiKeyStore` nutzen, wenn vorhanden.
+Danach Schritt 7 (Markdown-Export, Share-Sheet) und 8 (Feinschliff).
+
+~~**Schritt 5 (UI):** Reihenfolge innerhalb des Schritts:
 1. SettingsScreen (OpenAI-Key eingeben/ändern, Kostenhinweis) – nötig, um
    Whisper überhaupt testen zu können.
 2. RecordingScreen: `record`-Package (m4a/AAC), Mikrofon-Permission in
@@ -146,7 +182,7 @@ test/
 3. LibraryScreen als Cover-Grid + „Neues Buch"-Dialog (vorerst nur Titel,
    Cover-Auswahl kommt in Schritt 6).
 4. BookDetailScreen (Liste, Sortierung, bearbeiten, löschen).
-Services über `AppScope` durchreichen (TranscriptionService, ApiKeyStore, NoteParser).
+Services über `AppScope` durchreichen (TranscriptionService, ApiKeyStore, NoteParser).~~ (erledigt)
 
 ~~**Schritt 4:** `lib/services/note_parser.dart` (regelbasiert, deutsche
 Zahlwörter, "folgende"/"f."/"ff.", Positionen) und
@@ -163,5 +199,6 @@ Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.~~ (erledi
 
 ## Offene Punkte / Hinweise
 
-- `record` und `flutter_secure_storage` brauchen später Plattform-Setup
-  (Mikrofon-Permission in AndroidManifest/Info.plist, minSdk-Check). Kommt in Schritt 4/5.
+- Plattform-Setup für `record`/`flutter_secure_storage` ist erledigt (Schritt 5).
+- Whisper wurde bisher nur gegen einen Mock getestet; erster echter Test mit
+  Nutzer-Key steht aus.

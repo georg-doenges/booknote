@@ -6,6 +6,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Booknote nimmt deine Lesenotizen per Sprache auf.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Booknote</string>
 	<key>CFBundleExecutable</key>
