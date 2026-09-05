@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 
+import 'export/export.dart';
 import 'repositories/repositories.dart';
 import 'services/services.dart';
 
@@ -17,6 +18,7 @@ class AppScope extends InheritedWidget {
     required this.apiKeys,
     required this.covers,
     this.parser = const NoteParser(),
+    this.exporter = const MarkdownExporter(),
     required super.child,
   });
 
@@ -26,6 +28,9 @@ class AppScope extends InheritedWidget {
   final ApiKeyStore apiKeys;
   final CoverService covers;
   final NoteParser parser;
+
+  /// Stufe 1: Markdown. Weitere Formate später über dasselbe Interface.
+  final Exporter exporter;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -40,5 +45,6 @@ class AppScope extends InheritedWidget {
       transcription != old.transcription ||
       apiKeys != old.apiKeys ||
       covers != old.covers ||
-      parser != old.parser;
+      parser != old.parser ||
+      exporter != old.exporter;
 }

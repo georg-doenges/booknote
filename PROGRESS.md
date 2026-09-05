@@ -43,7 +43,7 @@ lib/
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService-Interface + FallbackCoverService,
                    GoogleBooksCoverService, OpenLibraryCoverService ✅
-  export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
+  export/          Exporter-Interface, MarkdownExporter, shareExport (share_plus) ✅
   screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
                    SettingsScreen, BookSearchScreen (Cover-Auswahl)              ✅
   widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog,
@@ -64,8 +64,8 @@ test/
 | 3 | SQLite-Implementierung | ✅ auf Gerät getestet (Neustart-Persistenz) |
 | 4 | WhisperService + NoteParser + ApiKeyStore | ✅ fertig (nur Unit-Tests, noch nicht in der UI) |
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
-| 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ gebaut, wartet auf Gerätetest |
-| 7 | Markdown-Export | ⬜ |
+| 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
+| 7 | Markdown-Export | ✅ gebaut, wartet auf Gerätetest |
 | 8 | Feinschliff Aufnahme-Flow | ⬜ |
 
 ## Was in Schritt 1 passiert ist
@@ -191,6 +191,29 @@ test/
   klein rechts neben der Fundstelle. Nutzerwunsch.
 - **BookCoverTile:** Autor als kleine Zeile unter dem Titel.
 
+## Was nach Schritt 6 noch kam (Sprach-Fix)
+
+- Nutzer fand für „Der Zauberberg" nur englische/niederländische Ausgaben.
+  Ursache: Google Books ohne `langRestrict` mischt Sprachen. Jetzt fragt
+  `GoogleBooksCoverService` zuerst mit `langRestrict=de` (Feld
+  `preferredLanguage`, Default `de`), dann ohne Filter, und führt beide Listen
+  zusammen (Dubletten über Titel+Autor raus, deutsche zuerst). Open Library
+  bekommt `lang=de`. Sprache ist noch fest `de`; könnte später aus Locale oder
+  Settings kommen.
+
+## Was in Schritt 7 passiert ist
+
+- `Exporter` (Interface: `formatName`, `export(book, notes) → ExportResult`),
+  reine Funktion ohne I/O. `ExportResult(fileName, mimeType, content)`.
+- `MarkdownExporter` gemäß PROJECT.md 8: `# Titel`, `*Autor*`, `## Notizen`
+  nach Seite sortiert, `## Ohne Seitenangabe` chronologisch. Zeitstempel
+  hinten kursiv (`includeTimestamps`, Default an). Zeilenumbrüche im Text
+  werden zu Leerzeichen. `safeFileName()` für den Dateinamen.
+- `shareExport(result)`: schreibt nach `<temp>/exports/<name>.md` und öffnet
+  den System-Share-Sheet über `share_plus` (`SharePlus.instance.share`).
+- `AppScope.exporter` (Default `MarkdownExporter`); Export-Icon im
+  BookDetail aktiv.
+
 ## Nutzerwünsche (aus dem Test nach Schritt 5)
 
 | Wunsch | Status |
@@ -200,14 +223,30 @@ test/
 | Notizen nach Seite oder Datum sortieren | ✅ war schon da (Icon oben rechts in der Notizliste) |
 | Notizen bearbeiten | ✅ war schon da (Notiz antippen) |
 
+## Nutzerwünsche (nach Schritt 6) – offen, für später
+
+| Wunsch | Idee / Notiz |
+|--------|--------------|
+| Buchsuche: Autor optional angeben | Google Books kann `inauthor:`/`intitle:`; Open Library `author=`/`title=`. Entweder ein Feld („Mann Zauberberg" geht bei Google im Freitext schon gut) oder zwei Felder Autor + Titel. Nutzer bevorzugt ein Feld, akzeptiert zwei. |
+| Buchsuche per Sprache (Mikrofon rechts im Suchfeld) | `TranscriptionService` wiederverwenden, Ergebnis ins Suchfeld. Konvention „Nachname Titel". Ggf. Parser, der Autor/Titel trennt – wenn nicht zuverlässig, zwei Felder. |
+| Bibliothek nach Autor filtern | Chip-Leiste oder Dropdown mit vorhandenen Autoren; `BookRepository` reicht (`getAll` + Filter in Dart). |
+| Bibliothek nach Titel durchsuchen | Suchfeld in der AppBar der Library, Filter in Dart. |
+| Sprache der Cover-Suche konfigurierbar | Aktuell fest `de`, siehe Sprach-Fix. |
+
 ## Nächster Schritt
 
-**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
+**Schritt 8 (Feinschliff Aufnahme-Flow):** Kandidaten: Haptik beim Start/Stopp,
+Aufnahme-Limit/Hinweis bei sehr langen Aufnahmen, Rückfrage bei sehr kurzer
+Aufnahme (< 1 s), letzte Notiz direkt im RecordingScreen bearbeiten,
+App-Icon, Release-Build-Konfiguration (Signing) für Weitergabe an Tester.
+Danach die offene Wunschliste oben.
+
+~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),
 `MarkdownExporter` gemäß PROJECT.md 8 (Abschnitt „Ohne Seitenangabe",
 Sortierung nach Seite, Autor in Kopfzeile), Datei in Temp-Dir schreiben und
 über `share_plus` teilen. Export-Icon im BookDetail aktivieren. Unit-Tests
-für das Markdown. Danach Schritt 8 (Feinschliff Aufnahme-Flow).
+für das Markdown. Danach Schritt 8 (Feinschliff Aufnahme-Flow).~~ (erledigt)
 
 ~~**Schritt 6:** `CoverService`-Interface + `GoogleBooksCoverSource` +
 `OpenLibraryCoverSource` (Fallback), Ergebnisliste mit Cover-Thumbnails im
@@ -244,5 +283,5 @@ Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.~~ (erledi
 
 - Plattform-Setup für `record`/`flutter_secure_storage` ist erledigt (Schritt 5).
 - Whisper auf dem Gerät mit echtem Key getestet: funktioniert, Parser trifft.
-- Cover-Suche gegen die echten APIs noch nicht auf dem Gerät getestet
-  (nur MockClient-Tests).
+- Cover-Suche auf dem Gerät getestet, funktioniert. Sprachbias siehe oben.
+- Share-Sheet-Export noch nicht auf dem Gerät getestet.

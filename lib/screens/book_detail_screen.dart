@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../export/export.dart';
 import '../models/models.dart';
 import '../repositories/repositories.dart';
 import '../widgets/book_edit_dialog.dart';
@@ -9,8 +10,8 @@ import '../widgets/note_tile.dart';
 import 'book_search_screen.dart';
 import 'recording_screen.dart';
 
-/// Alle Notizen eines Buchs: sortieren, bearbeiten, löschen; Buch umbenennen
-/// oder löschen. Export folgt in Schritt 7.
+/// Alle Notizen eines Buchs: sortieren, bearbeiten, löschen; Buch bearbeiten,
+/// Cover ändern, löschen; Export über den Share-Sheet.
 class BookDetailScreen extends StatefulWidget {
   const BookDetailScreen({super.key, required this.bookId});
 
@@ -59,6 +60,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         author: book.author ?? result.author,
       ),
     );
+  }
+
+  Future<void> _export(Book book) async {
+    final scope = AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final notes = await scope.notes.getBySource(book.id);
+      final result = scope.exporter.export(book, notes);
+      await shareExport(result);
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Export fehlgeschlagen: $e')),
+      );
+    }
   }
 
   Future<void> _removeCover(Book book) async {
@@ -143,8 +158,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.ios_share),
-                tooltip: 'Export (kommt in Schritt 7)',
-                onPressed: null,
+                tooltip: 'Als Markdown teilen',
+                onPressed: book == null ? null : () => _export(book),
               ),
               if (book != null)
                 PopupMenuButton<String>(

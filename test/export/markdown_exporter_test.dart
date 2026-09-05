@@ -28,22 +28,26 @@ void main() {
     updatedAt: t0,
   );
 
-  test('Struktur wie in PROJECT.md 8, Seiten sortiert, Ohne-Seite-Abschnitt',
-      () {
-    final r = const MarkdownExporter(includeTimestamps: false).export(
-      book(author: 'Thomas Mann'),
-      [
-        note('1', '88f.', 'der Konflikt eskaliert', position: 'mitte'),
-        note('2', null, 'nur ein Gedanke', minute: 1),
-        note('3', '12', 'schöne Metapher über das Meer', minute: 2),
-        note('4', '47', 'hier argumentiert der Autor dass…',
-            position: 'oben', minute: 3),
-      ],
-    );
+  test(
+    'Struktur wie in PROJECT.md 8, Seiten sortiert, Ohne-Seite-Abschnitt',
+    () {
+      final r = const MarkdownExporter(includeTimestamps: false)
+          .export(book(author: 'Thomas Mann'), [
+            note('1', '88f.', 'der Konflikt eskaliert', position: 'mitte'),
+            note('2', null, 'nur ein Gedanke', minute: 1),
+            note('3', '12', 'schöne Metapher über das Meer', minute: 2),
+            note(
+              '4',
+              '47',
+              'hier argumentiert der Autor dass…',
+              position: 'oben',
+              minute: 3,
+            ),
+          ]);
 
-    expect(r.fileName, 'Der Zauberberg.md');
-    expect(r.mimeType, 'text/markdown');
-    expect(r.content, '''
+      expect(r.fileName, 'Der Zauberberg.md');
+      expect(r.mimeType, 'text/markdown');
+      expect(r.content, '''
 # Der Zauberberg
 *Thomas Mann*
 
@@ -57,13 +61,12 @@ void main() {
 
 - nur ein Gedanke
 ''');
-  });
+    },
+  );
 
   test('ohne Autor keine Autorzeile; ohne Seiten-Notizen Hinweis', () {
-    final r = const MarkdownExporter(includeTimestamps: false).export(
-      book(),
-      [note('1', null, 'x', position: 'oben')],
-    );
+    final r = const MarkdownExporter(includeTimestamps: false)
+        .export(book(), [note('1', null, 'x', position: 'oben')]);
     expect(r.content, '''
 # Der Zauberberg
 
@@ -79,18 +82,23 @@ _Keine Notizen mit Seitenangabe._
 
   test('Zeitstempel hängt hinten dran', () {
     final r = const MarkdownExporter().export(book(), [note('1', '3', 'x')]);
-    expect(r.content, contains(RegExp(r'- \*\*S\. 3:\*\* x _\(\d\d\.\d\d\.2026, \d\d:\d\d\)_')));
+    expect(
+      r.content,
+      contains(RegExp(r'- \*\*S\. 3:\*\* x _\(\d\d\.\d\d\.2026, \d\d:\d\d\)_')),
+    );
   });
 
-  test('Zeilenumbrüche im Text werden zu Leerzeichen, leerer Text markiert',
-      () {
-    final r = const MarkdownExporter(includeTimestamps: false).export(
-      book(),
-      [note('1', '3', 'erste\nzweite  \n dritte'), note('2', '4', '')],
-    );
-    expect(r.content, contains('- **S. 3:** erste zweite dritte\n'));
-    expect(r.content, contains('- **S. 4:** _(kein Text)_\n'));
-  });
+  test(
+    'Zeilenumbrüche im Text werden zu Leerzeichen, leerer Text markiert',
+    () {
+      final r = const MarkdownExporter(includeTimestamps: false).export(
+        book(),
+        [note('1', '3', 'erste\nzweite  \n dritte'), note('2', '4', '')],
+      );
+      expect(r.content, contains('- **S. 3:** erste zweite dritte\n'));
+      expect(r.content, contains('- **S. 4:** _(kein Text)_\n'));
+    },
+  );
 
   test('safeFileName entfernt Sonderzeichen und kürzt', () {
     expect(safeFileName('Was: ist / das?'), 'Was ist das');
