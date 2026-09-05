@@ -41,15 +41,18 @@ lib/
   services/        NoteParser + GermanNumberParser ✅, TranscriptionService-Interface
                    + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
-                   CoverService (Schritt 6) ⬜
+                   CoverService-Interface + FallbackCoverService,
+                   GoogleBooksCoverService, OpenLibraryCoverService ✅
   export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
   screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
-                   SettingsScreen                                                ✅
-  widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog  ✅
+                   SettingsScreen, BookSearchScreen (Cover-Auswahl)              ✅
+  widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog,
+                   BookEditDialog (Titel/Autor), format.dart (Datum)             ✅
   main.dart        BooknoteApp → LibraryScreen                                    ✅
 test/
   models/          Unit-Tests für das Datenmodell                                 ✅
-  repositories/    repository_contract.dart = Vertragstest für JEDE Impl         ✅
+  repositories/    repository_contract.dart = Vertragstest für JEDE Impl,
+                   migration_test.dart (v1 → aktuell)                            ✅
 ```
 
 ## Status pro Baustein (PROJECT.md, Abschnitt 10)
@@ -60,8 +63,8 @@ test/
 | 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ |
 | 3 | SQLite-Implementierung | ✅ auf Gerät getestet (Neustart-Persistenz) |
 | 4 | WhisperService + NoteParser + ApiKeyStore | ✅ fertig (nur Unit-Tests, noch nicht in der UI) |
-| 5 | UI: Library, Recording, BookDetail, Settings | ✅ gebaut, wartet auf Gerätetest (erster Whisper-Test) |
-| 6 | CoverService (Google Books + Open Library) | ⬜ |
+| 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
+| 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ gebaut, wartet auf Gerätetest |
 | 7 | Markdown-Export | ⬜ |
 | 8 | Feinschliff Aufnahme-Flow | ⬜ |
 
@@ -164,13 +167,53 @@ test/
 - `NoteRecorder`: AAC-LC/m4a, mono, 96 kbit/s, Datei im Temp-Verzeichnis
   (`path_provider`), wird nach erfolgreichem Speichern gelöscht.
 
+## Was in Schritt 6 passiert ist
+
+- **Schema v2:** `sources.author TEXT` (nullable). Migration in
+  `AppDatabase._onUpgrade` (ALTER TABLE), abgesichert durch
+  `test/repositories/migration_test.dart`. `Source`/`Book` haben `author`,
+  `BookRepository.create` nimmt `author`, `copyWith(clearAuthor:)`.
+- **CoverService** (Interface, `search(query) → List<CoverCandidate>`),
+  `CoverCandidate(title, author, coverUrl, provider)`, `CoverSearchException`.
+  `FallbackCoverService(primary, fallback)`: Fallback bei leerem Ergebnis
+  **oder** Fehler der Primärquelle.
+- `GoogleBooksCoverService`: Volumes-API, optionaler Key aus `ApiKeyStore`,
+  Thumbnails auf https und `zoom=1` umgeschrieben, Untertitel angehängt.
+- `OpenLibraryCoverService`: search.json + covers.openlibrary.org (`-M.jpg`).
+- **BookSearchScreen:** Titel tippen (Debounce 600 ms) → Trefferliste mit
+  Thumbnail, Autor, Quelle. Antippen übernimmt Titel/Autor/Cover.
+  „Ohne Cover anlegen" nimmt den getippten Titel. Wird auch aus BookDetail
+  für „Cover suchen" benutzt (Titel bleibt dann erhalten, Autor nur gefüllt,
+  wenn leer).
+- **BookDetail-Menü:** Titel/Autor bearbeiten, Cover suchen, Cover entfernen,
+  Buch löschen. AppBar zeigt Autor als Unterzeile.
+- **NoteTile:** Datum + Uhrzeit (`formatDateTime`, lokal, `dd.MM.yyyy, HH:mm`)
+  klein rechts neben der Fundstelle. Nutzerwunsch.
+- **BookCoverTile:** Autor als kleine Zeile unter dem Titel.
+
+## Nutzerwünsche (aus dem Test nach Schritt 5)
+
+| Wunsch | Status |
+|--------|--------|
+| Datum/Uhrzeit klein an jeder Notiz | ✅ Schritt 6 |
+| Autor optional eingeben, später aus DB (Google Books) vorbefüllt | ✅ Schritt 6 (Suche liefert Autor, Dialog zum Bearbeiten) |
+| Notizen nach Seite oder Datum sortieren | ✅ war schon da (Icon oben rechts in der Notizliste) |
+| Notizen bearbeiten | ✅ war schon da (Notiz antippen) |
+
 ## Nächster Schritt
 
-**Schritt 6:** `CoverService`-Interface + `GoogleBooksCoverSource` +
+**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
+`export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),
+`MarkdownExporter` gemäß PROJECT.md 8 (Abschnitt „Ohne Seitenangabe",
+Sortierung nach Seite, Autor in Kopfzeile), Datei in Temp-Dir schreiben und
+über `share_plus` teilen. Export-Icon im BookDetail aktivieren. Unit-Tests
+für das Markdown. Danach Schritt 8 (Feinschliff Aufnahme-Flow).
+
+~~**Schritt 6:** `CoverService`-Interface + `GoogleBooksCoverSource` +
 `OpenLibraryCoverSource` (Fallback), Ergebnisliste mit Cover-Thumbnails im
 „Neues Buch"-Dialog zur Auswahl; optional Cover eines bestehenden Buchs im
 BookDetail ändern. Google-Books-Key aus `ApiKeyStore` nutzen, wenn vorhanden.
-Danach Schritt 7 (Markdown-Export, Share-Sheet) und 8 (Feinschliff).
+Danach Schritt 7 (Markdown-Export, Share-Sheet) und 8 (Feinschliff).~~ (erledigt)
 
 ~~**Schritt 5 (UI):** Reihenfolge innerhalb des Schritts:
 1. SettingsScreen (OpenAI-Key eingeben/ändern, Kostenhinweis) – nötig, um
@@ -200,5 +243,6 @@ Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.~~ (erledi
 ## Offene Punkte / Hinweise
 
 - Plattform-Setup für `record`/`flutter_secure_storage` ist erledigt (Schritt 5).
-- Whisper wurde bisher nur gegen einen Mock getestet; erster echter Test mit
-  Nutzer-Key steht aus.
+- Whisper auf dem Gerät mit echtem Key getestet: funktioniert, Parser trifft.
+- Cover-Suche gegen die echten APIs noch nicht auf dem Gerät getestet
+  (nur MockClient-Tests).

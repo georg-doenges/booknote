@@ -4,6 +4,7 @@ import '../app_scope.dart';
 import '../models/models.dart';
 import '../widgets/book_cover_tile.dart';
 import 'book_detail_screen.dart';
+import 'book_search_screen.dart';
 import 'recording_screen.dart';
 import 'settings_screen.dart';
 
@@ -15,12 +16,15 @@ class LibraryScreen extends StatelessWidget {
   const LibraryScreen({super.key});
 
   Future<void> _addBook(BuildContext context) async {
-    final title = await showDialog<String>(
-      context: context,
-      builder: (_) => const _NewBookDialog(),
+    final result = await Navigator.of(context).push<BookSearchResult>(
+      MaterialPageRoute(builder: (_) => const BookSearchScreen()),
     );
-    if (title == null || title.isEmpty || !context.mounted) return;
-    final book = await AppScope.of(context).books.create(title: title);
+    if (result == null || !context.mounted) return;
+    final book = await AppScope.of(context).books.create(
+      title: result.title,
+      author: result.author,
+      coverUrl: result.coverUrl,
+    );
     if (!context.mounted) return;
     Navigator.of(context)
         .push(MaterialPageRoute(builder: (_) => RecordingScreen(book: book)));
@@ -96,46 +100,6 @@ class LibraryScreen extends StatelessWidget {
         tooltip: 'Neues Buch',
         child: const Icon(Icons.add),
       ),
-    );
-  }
-}
-
-class _NewBookDialog extends StatefulWidget {
-  const _NewBookDialog();
-
-  @override
-  State<_NewBookDialog> createState() => _NewBookDialogState();
-}
-
-class _NewBookDialogState extends State<_NewBookDialog> {
-  final _title = TextEditingController();
-
-  @override
-  void dispose() {
-    _title.dispose();
-    super.dispose();
-  }
-
-  void _submit() => Navigator.of(context).pop(_title.text.trim());
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: const Text('Neues Buch'),
-      content: TextField(
-        controller: _title,
-        autofocus: true,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(labelText: 'Titel'),
-        onSubmitted: (_) => _submit(),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
-        ),
-        FilledButton(onPressed: _submit, child: const Text('Anlegen')),
-      ],
     );
   }
 }

@@ -9,6 +9,7 @@ class Book extends Source {
   const Book({
     required super.id,
     required super.title,
+    super.author,
     super.coverUrl,
     required super.createdAt,
     required super.updatedAt,
@@ -22,6 +23,7 @@ class Book extends Source {
     return Book(
       id: source.id,
       title: source.title,
+      author: source.author,
       coverUrl: source.coverUrl,
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
@@ -31,6 +33,8 @@ class Book extends Source {
   @override
   Book copyWith({
     String? title,
+    String? author,
+    bool clearAuthor = false,
     String? coverUrl,
     bool clearCoverUrl = false,
     DateTime? updatedAt,
@@ -38,6 +42,7 @@ class Book extends Source {
     return Book(
       id: id,
       title: title ?? this.title,
+      author: clearAuthor ? null : (author ?? this.author),
       coverUrl: clearCoverUrl ? null : (coverUrl ?? this.coverUrl),
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

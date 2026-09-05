@@ -16,7 +16,7 @@ import '../repository_exceptions.dart';
 class AppDatabase {
   AppDatabase._(this._db);
 
-  static const schemaVersion = 1;
+  static const schemaVersion = 2;
   static const defaultFileName = 'booknote.db';
 
   static const tableSources = 'sources';
@@ -68,6 +68,7 @@ class AppDatabase {
         id          TEXT PRIMARY KEY NOT NULL,
         source_type TEXT NOT NULL,
         title       TEXT NOT NULL,
+        author      TEXT,
         cover_url   TEXT,
         created_at  INTEGER NOT NULL,
         updated_at  INTEGER NOT NULL
@@ -94,14 +95,22 @@ class AppDatabase {
     );
   }
 
-  /// Migrations-Hook. Bei Schemaänderung [schemaVersion] erhöhen und hier
-  /// pro Versionssprung die nötigen `ALTER TABLE` etc. ergänzen:
-  /// `if (oldVersion < 2) { ... }`.
+  /// Migrationen. Bei Schemaänderung [schemaVersion] erhöhen und hier pro
+  /// Versionssprung die nötigen Schritte ergänzen (sqflite führt sie in einer
+  /// Transaktion aus).
+  ///
+  /// Historie:
+  /// - v1: sources, notes
+  /// - v2: sources.author (TEXT, nullable)
   static Future<void> _onUpgrade(
     Database db,
     int oldVersion,
     int newVersion,
-  ) async {}
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute('ALTER TABLE $tableSources ADD COLUMN author TEXT');
+    }
+  }
 
   Future<void> close() async {
     await _sourcesChanged.close();

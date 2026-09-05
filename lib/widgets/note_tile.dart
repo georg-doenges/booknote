@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import 'format.dart';
 
 /// Kurzform der Fundstelle: "S. 47 (oben)", "S. 88f.", "Ohne Seite".
 String noteLocationLabel(Note n) {
@@ -29,17 +30,28 @@ class NoteTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
     final text = note.text.isEmpty ? '(kein Text erkannt)' : note.text;
     return Card(
       color: highlight ? scheme.primaryContainer : null,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: ListTile(
         onTap: onTap,
-        title: Text(
-          noteLocationLabel(note),
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: note.page == null ? scheme.error : scheme.primary,
-          ),
+        title: Row(
+          children: [
+            Expanded(
+              child: Text(
+                noteLocationLabel(note),
+                style: textTheme.labelLarge?.copyWith(
+                  color: note.page == null ? scheme.error : scheme.primary,
+                ),
+              ),
+            ),
+            Text(
+              formatDateTime(note.createdAt),
+              style: textTheme.labelSmall?.copyWith(color: scheme.outline),
+            ),
+          ],
         ),
         subtitle: Text(
           text,

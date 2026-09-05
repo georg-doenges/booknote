@@ -43,11 +43,16 @@ class SqliteBookRepository implements BookRepository {
   }
 
   @override
-  Future<Book> create({required String title, String? coverUrl}) async {
+  Future<Book> create({
+    required String title,
+    String? author,
+    String? coverUrl,
+  }) async {
     final now = dbNow(_clock);
     final book = Book(
       id: _uuid.v4(),
       title: title,
+      author: author,
       coverUrl: coverUrl,
       createdAt: now,
       updatedAt: now,
@@ -63,6 +68,7 @@ class SqliteBookRepository implements BookRepository {
       _table,
       {
         'title': book.title,
+        'author': book.author,
         'cover_url': book.coverUrl,
         'updated_at': dbNow(_clock).millisecondsSinceEpoch,
       },

@@ -15,6 +15,7 @@ class AppScope extends InheritedWidget {
     required this.notes,
     required this.transcription,
     required this.apiKeys,
+    required this.covers,
     this.parser = const NoteParser(),
     required super.child,
   });
@@ -23,6 +24,7 @@ class AppScope extends InheritedWidget {
   final NoteRepository notes;
   final TranscriptionService transcription;
   final ApiKeyStore apiKeys;
+  final CoverService covers;
   final NoteParser parser;
 
   static AppScope of(BuildContext context) {
@@ -37,5 +39,6 @@ class AppScope extends InheritedWidget {
       notes != old.notes ||
       transcription != old.transcription ||
       apiKeys != old.apiKeys ||
+      covers != old.covers ||
       parser != old.parser;
 }

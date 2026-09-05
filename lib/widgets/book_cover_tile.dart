@@ -57,6 +57,15 @@ class BookCoverTile extends StatelessWidget {
               style: Theme.of(context).textTheme.bodySmall,
               textAlign: TextAlign.center,
             ),
+            if (book.author != null)
+              Text(
+                book.author!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall
+                    ?.copyWith(color: scheme.outline),
+                textAlign: TextAlign.center,
+              ),
           ],
         ),
       ),

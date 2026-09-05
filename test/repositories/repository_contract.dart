@@ -33,10 +33,16 @@ void runRepositoryContract(
         () async {
           final a = await r.books.create(title: 'A');
           await Future<void>.delayed(const Duration(milliseconds: 2));
-          final b = await r.books.create(title: 'B', coverUrl: 'http://c');
+          final b = await r.books.create(
+            title: 'B',
+            author: 'Autor B',
+            coverUrl: 'http://c',
+          );
 
           expect(a.id, isNotEmpty);
           expect(a.id, isNot(b.id));
+          expect(a.author, isNull);
+          expect(b.author, 'Autor B');
           expect(b.coverUrl, 'http://c');
           expect(a.createdAt, a.updatedAt);
 
@@ -51,14 +57,20 @@ void runRepositoryContract(
         expect(await r.books.getById('nope'), isNull);
       });
 
-      test('update ändert Titel/Cover und updatedAt', () async {
+      test('update ändert Titel/Autor/Cover und updatedAt', () async {
         final a = await r.books.create(title: 'A', coverUrl: 'x');
         await Future<void>.delayed(const Duration(milliseconds: 2));
-        await r.books.update(a.copyWith(title: 'A2', clearCoverUrl: true));
+        await r.books.update(
+          a.copyWith(title: 'A2', author: 'Neu', clearCoverUrl: true),
+        );
 
         final got = (await r.books.getById(a.id))!;
         expect(got.title, 'A2');
+        expect(got.author, 'Neu');
         expect(got.coverUrl, isNull);
+
+        await r.books.update(got.copyWith(clearAuthor: true));
+        expect((await r.books.getById(a.id))!.author, isNull);
         expect(got.createdAt, a.createdAt);
         expect(got.updatedAt.isAfter(a.updatedAt), isTrue);
       });

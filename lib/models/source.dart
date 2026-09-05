@@ -10,6 +10,7 @@ class Source {
     required this.id,
     required this.sourceType,
     required this.title,
+    this.author,
     this.coverUrl,
     required this.createdAt,
     required this.updatedAt,
@@ -18,6 +19,9 @@ class Source {
   final String id;
   final SourceType sourceType;
   final String title;
+
+  /// Autor(en) als Freitext, z.B. "Thomas Mann" oder "A. Müller, B. Schmidt".
+  final String? author;
 
   /// URL des Coverbilds, `null` = Platzhalter anzeigen.
   final String? coverUrl;
@@ -30,6 +34,8 @@ class Source {
 
   Source copyWith({
     String? title,
+    String? author,
+    bool clearAuthor = false,
     String? coverUrl,
     bool clearCoverUrl = false,
     DateTime? updatedAt,
@@ -38,6 +44,7 @@ class Source {
       id: id,
       sourceType: sourceType,
       title: title ?? this.title,
+      author: clearAuthor ? null : (author ?? this.author),
       coverUrl: clearCoverUrl ? null : (coverUrl ?? this.coverUrl),
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -50,13 +57,21 @@ class Source {
       other.id == id &&
       other.sourceType == sourceType &&
       other.title == title &&
+      other.author == author &&
       other.coverUrl == coverUrl &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt;
 
   @override
-  int get hashCode =>
-      Object.hash(id, sourceType, title, coverUrl, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    sourceType,
+    title,
+    author,
+    coverUrl,
+    createdAt,
+    updatedAt,
+  );
 
   @override
   String toString() => 'Source($id, ${sourceType.dbValue}, "$title")';

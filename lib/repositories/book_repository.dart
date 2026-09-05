@@ -18,9 +18,13 @@ abstract class BookRepository {
   Future<Book?> getById(String id);
 
   /// Legt ein neues Buch an und gibt es mit vergebener ID zurück.
-  Future<Book> create({required String title, String? coverUrl});
+  Future<Book> create({
+    required String title,
+    String? author,
+    String? coverUrl,
+  });
 
-  /// Speichert Titel/Cover eines bestehenden Buchs. `updatedAt` setzt das
+  /// Speichert Titel/Autor/Cover eines bestehenden Buchs. `updatedAt` setzt das
   /// Repository selbst.
   Future<void> update(Book book);
 

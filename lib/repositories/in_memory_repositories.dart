@@ -60,11 +60,16 @@ class InMemoryBookRepository implements BookRepository {
   Future<Book?> getById(String id) async => _store.books[id];
 
   @override
-  Future<Book> create({required String title, String? coverUrl}) async {
+  Future<Book> create({
+    required String title,
+    String? author,
+    String? coverUrl,
+  }) async {
     final now = _store.now();
     final book = Book(
       id: _store.newId(),
       title: title,
+      author: author,
       coverUrl: coverUrl,
       createdAt: now,
       updatedAt: now,
@@ -80,6 +85,8 @@ class InMemoryBookRepository implements BookRepository {
     if (existing == null) throw EntityNotFoundException('Book', book.id);
     _store.books[book.id] = existing.copyWith(
       title: book.title,
+      author: book.author,
+      clearAuthor: book.author == null,
       coverUrl: book.coverUrl,
       clearCoverUrl: book.coverUrl == null,
       updatedAt: _store.now(),

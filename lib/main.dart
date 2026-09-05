@@ -18,6 +18,10 @@ Future<void> main() async {
       notes: SqliteNoteRepository(db),
       apiKeys: apiKeys,
       transcription: WhisperService(apiKeys: apiKeys),
+      covers: FallbackCoverService(
+        primary: GoogleBooksCoverService(apiKeys: apiKeys),
+        fallback: OpenLibraryCoverService(),
+      ),
     ),
   );
 }
@@ -29,12 +33,14 @@ class BooknoteApp extends StatelessWidget {
     required this.notes,
     required this.apiKeys,
     required this.transcription,
+    required this.covers,
   });
 
   final BookRepository books;
   final NoteRepository notes;
   final ApiKeyStore apiKeys;
   final TranscriptionService transcription;
+  final CoverService covers;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +49,7 @@ class BooknoteApp extends StatelessWidget {
       notes: notes,
       apiKeys: apiKeys,
       transcription: transcription,
+      covers: covers,
       child: MaterialApp(
         title: 'Booknote',
         theme: ThemeData(

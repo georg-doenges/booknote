@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../app_scope.dart';
 import '../models/models.dart';
 import '../repositories/repositories.dart';
+import '../widgets/book_edit_dialog.dart';
 import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
+import 'book_search_screen.dart';
 import 'recording_screen.dart';
 
 /// Alle Notizen eines Buchs: sortieren, bearbeiten, löschen; Buch umbenennen
@@ -33,32 +35,34 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     await AppScope.of(context).notes.delete(note.id);
   }
 
-  Future<void> _renameBook(Book book) async {
-    final controller = TextEditingController(text: book.title);
-    final title = await showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Buch umbenennen'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(labelText: 'Titel'),
+  Future<void> _editBook(Book book) async {
+    final edited = await showBookEditDialog(context, book);
+    if (edited == null || !mounted) return;
+    await AppScope.of(context).books.update(edited);
+  }
+
+  Future<void> _changeCover(Book book) async {
+    final result = await Navigator.of(context).push<BookSearchResult>(
+      MaterialPageRoute(
+        builder: (_) => BookSearchScreen(
+          initialQuery: book.title,
+          title: 'Cover suchen',
+          allowWithoutCover: false,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(controller.text.trim()),
-            child: const Text('Speichern'),
-          ),
-        ],
       ),
     );
-    controller.dispose();
-    if (title == null || title.isEmpty || !mounted) return;
-    await AppScope.of(context).books.update(book.copyWith(title: title));
+    if (result == null || !mounted) return;
+    // Titel bleibt, wie der Nutzer ihn kennt; Autor nur füllen, wenn leer.
+    await AppScope.of(context).books.update(
+      book.copyWith(
+        coverUrl: result.coverUrl,
+        author: book.author ?? result.author,
+      ),
+    );
+  }
+
+  Future<void> _removeCover(Book book) async {
+    await AppScope.of(context).books.update(book.copyWith(clearCoverUrl: true));
   }
 
   Future<void> _deleteBook(Book book) async {
@@ -107,7 +111,20 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         }
         return Scaffold(
           appBar: AppBar(
-            title: Text(book?.title ?? ''),
+            title: book == null
+                ? const SizedBox.shrink()
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(book.title, overflow: TextOverflow.ellipsis),
+                      if (book.author != null)
+                        Text(
+                          book.author!,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall,
+                        ),
+                    ],
+                  ),
             actions: [
               IconButton(
                 icon: Icon(
@@ -132,13 +149,31 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               if (book != null)
                 PopupMenuButton<String>(
                   onSelected: (v) => switch (v) {
-                    'rename' => _renameBook(book),
+                    'edit' => _editBook(book),
+                    'cover' => _changeCover(book),
+                    'nocover' => _removeCover(book),
                     'delete' => _deleteBook(book),
                     _ => null,
                   },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(value: 'rename', child: Text('Umbenennen')),
-                    PopupMenuItem(value: 'delete', child: Text('Buch löschen')),
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Titel / Autor bearbeiten'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'cover',
+                      child: Text('Cover suchen'),
+                    ),
+                    if (book.coverUrl != null)
+                      const PopupMenuItem(
+                        value: 'nocover',
+                        child: Text('Cover entfernen'),
+                      ),
+                    const PopupMenuDivider(),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text('Buch löschen'),
+                    ),
                   ],
                 ),
             ],
