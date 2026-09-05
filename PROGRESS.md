@@ -34,7 +34,8 @@ Spezifikation: `PROJECT.md`. Reihenfolge der Bausteine: PROJECT.md, Abschnitt 10
 ```
 lib/
   models/          Source, SourceType, Book, Note (+ models.dart Sammel-Export)   ✅
-  repositories/    (Schritt 2/3) abstrakte Interfaces + SQLite-Implementierung   ⬜
+  repositories/    BookRepository, NoteRepository (Interfaces) ✅, InMemory-Impl ✅,
+                   SQLite-Impl (Schritt 3) ⬜
   services/        (Schritt 4/6) WhisperService, NoteParser, CoverService        ⬜
   export/          (Schritt 7) Exporter-Interface + MarkdownExporter             ⬜
   screens/         LibraryScreen (Platzhalter) ✅, Recording/BookDetail/Settings ⬜
@@ -42,14 +43,15 @@ lib/
   main.dart        BooknoteApp → LibraryScreen                                    ✅
 test/
   models/          Unit-Tests für das Datenmodell                                 ✅
+  repositories/    repository_contract.dart = Vertragstest für JEDE Impl         ✅
 ```
 
 ## Status pro Baustein (PROJECT.md, Abschnitt 10)
 
 | # | Baustein | Status |
 |---|----------|--------|
-| 1 | Grundgerüst + Ordnerstruktur + Datenmodell | ✅ fertig, wartet auf OK des Nutzers |
-| 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ⬜ |
+| 1 | Grundgerüst + Ordnerstruktur + Datenmodell | ✅ auf Gerät getestet |
+| 2 | Repository-Interface (`BookRepository`, `NoteRepository`) | ✅ fertig, wartet auf OK des Nutzers |
 | 3 | SQLite-Implementierung | ⬜ |
 | 4 | WhisperService + NoteParser | ⬜ |
 | 5 | UI: Library, Recording, BookDetail, Settings | ⬜ (Library nur Platzhalter) |
@@ -67,12 +69,31 @@ test/
 - Datenmodell in `lib/models/` inkl. Tests.
 - Platzhalter-`LibraryScreen`, damit die App auf dem Gerät startet.
 
+## Was in Schritt 2 passiert ist
+
+- `BookRepository` / `NoteRepository` als abstrakte Klassen in `lib/repositories/`.
+  Reines CRUD + `watchAll()` / `watchBySource()` als reaktive Streams für die UI.
+  Konventionen stehen als Doc-Kommentar im Interface: Repository vergibt IDs und
+  Zeitstempel; `update`/`delete` auf unbekannte ID → `EntityNotFoundException`;
+  `Book.delete` löscht Notizen kaskadierend; `rawTranscript` ist unveränderlich.
+- `NoteSort` (createdAt | page) + `sortNotes()` als gemeinsame Sortierlogik.
+- `RepositoryException` / `EntityNotFoundException` als storage-neutrale Fehler.
+- `InMemoryBookRepository` / `InMemoryNoteRepository` (gemeinsamer `InMemoryStore`):
+  Referenz-Implementierung für Tests und UI-Entwicklung ohne DB.
+- `test/repositories/repository_contract.dart`: **Vertragstest**, den jede
+  Implementierung bestehen muss. SQLite (Schritt 3) und Supabase (später)
+  binden ihn mit einer Zeile ein, siehe `in_memory_repositories_test.dart`.
+- Gelernt: Watch-Streams nicht als `async*` bauen (cancel() blockiert, wenn der
+  Generator in `await for` hängt). Stattdessen `watchStream()`-Helfer mit
+  StreamController; die SQLite-Impl soll denselben Helfer nutzen.
+
 ## Nächster Schritt
 
-**Schritt 2:** `lib/repositories/book_repository.dart` und
-`note_repository.dart` als abstrakte Interfaces (reine CRUD-Methoden, keine
-SQLite-Details, Futures/Streams so schneiden, dass Supabase dasselbe Interface
-erfüllen kann). Danach Schritt 3: `sqlite_*_repository.dart` + Schema/Migration.
+**Schritt 3:** `lib/repositories/sqlite/` mit `AppDatabase` (Öffnen, Schema v1,
+Migrations-Hook), `SqliteBookRepository`, `SqliteNoteRepository`. Tabellen
+`sources` und `notes` gemäß PROJECT.md 4 (IDs als TEXT/UUID, Zeitstempel als
+INTEGER Unix-ms, `updated_at` zusätzlich, FK mit ON DELETE CASCADE).
+Vertragstest über `sqflite_common_ffi` auf dem Desktop laufen lassen.
 
 ## Offene Punkte / Hinweise
 

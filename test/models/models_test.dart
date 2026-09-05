@@ -5,14 +5,14 @@ void main() {
   final now = DateTime.utc(2026, 9, 5, 12);
 
   Note note({String? page}) => Note(
-        id: 'n1',
-        sourceId: 's1',
-        page: page,
-        text: 't',
-        rawTranscript: 'raw',
-        createdAt: now,
-        updatedAt: now,
-      );
+    id: 'n1',
+    sourceId: 's1',
+    page: page,
+    text: 't',
+    rawTranscript: 'raw',
+    createdAt: now,
+    updatedAt: now,
+  );
 
   group('Note.pageNumber', () {
     test('plain number', () => expect(note(page: '47').pageNumber, 47));

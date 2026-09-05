@@ -78,7 +78,15 @@ class Note {
 
   @override
   int get hashCode => Object.hash(
-      id, sourceId, page, position, text, rawTranscript, createdAt, updatedAt);
+    id,
+    sourceId,
+    page,
+    position,
+    text,
+    rawTranscript,
+    createdAt,
+    updatedAt,
+  );
 
   @override
   String toString() => 'Note($id, S.$page $position: "$text")';
