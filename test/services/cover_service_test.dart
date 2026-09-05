@@ -59,11 +59,14 @@ void main() {
 
   group('GoogleBooksCoverService', () {
     test('parst Treffer, https + zoom, hängt Key an', () async {
-      late http.Request captured;
+      final requests = <http.Request>[];
       final s = GoogleBooksCoverService(
         apiKeys: InMemoryApiKeyStore(googleBooksKey: 'gk'),
         client: MockClient((req) async {
-          captured = req;
+          requests.add(req);
+          if (req.url.queryParameters['langRestrict'] == 'de') {
+            return http.Response('{}', 200);
+          }
           return http.Response(
             jsonEncode({
               'items': [
@@ -92,8 +95,14 @@ void main() {
 
       final r = await s.search('Zauberberg');
 
-      expect(captured.url.queryParameters['q'], 'Zauberberg');
-      expect(captured.url.queryParameters['key'], 'gk');
+      expect(requests.length, 2);
+      expect(requests[0].url.queryParameters['langRestrict'], 'de');
+      expect(
+        requests[1].url.queryParameters.containsKey('langRestrict'),
+        false,
+      );
+      expect(requests[0].url.queryParameters['q'], 'Zauberberg');
+      expect(requests[0].url.queryParameters['key'], 'gk');
       expect(r.length, 2);
       expect(r[0].title, 'Der Zauberberg');
       expect(r[0].author, 'Thomas Mann');
@@ -117,6 +126,59 @@ void main() {
       );
       expect(await s.search('x'), isEmpty);
       expect(captured.url.queryParameters.containsKey('key'), isFalse);
+    });
+
+    test(
+      'deutsche Treffer zuerst, Dubletten aus zweiter Abfrage raus',
+      () async {
+        http.Response items(List<Map<String, Object>> infos) => http.Response(
+          jsonEncode({
+            'items': [
+              for (final i in infos) {'volumeInfo': i},
+            ],
+          }),
+          200,
+        );
+        final s = GoogleBooksCoverService(
+          apiKeys: InMemoryApiKeyStore(),
+          client: MockClient((req) async {
+            if (req.url.queryParameters['langRestrict'] == 'de') {
+              return items([
+                {
+                  'title': 'Der Zauberberg',
+                  'authors': ['Thomas Mann'],
+                },
+              ]);
+            }
+            return items([
+              {
+                'title': 'The Magic Mountain',
+                'authors': ['Thomas Mann'],
+              },
+              {
+                'title': 'Der Zauberberg',
+                'authors': ['Thomas Mann'],
+              },
+            ]);
+          }),
+        );
+        final r = await s.search('Zauberberg');
+        expect(r.map((c) => c.title), ['Der Zauberberg', 'The Magic Mountain']);
+      },
+    );
+
+    test('preferredLanguage null → genau eine Abfrage', () async {
+      var calls = 0;
+      final s = GoogleBooksCoverService(
+        apiKeys: InMemoryApiKeyStore(),
+        preferredLanguage: null,
+        client: MockClient((_) async {
+          calls++;
+          return http.Response('{}', 200);
+        }),
+      );
+      await s.search('x');
+      expect(calls, 1);
     });
 
     test('HTTP-Fehler → CoverSearchException', () async {

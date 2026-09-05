@@ -8,11 +8,16 @@ import 'cover_service.dart';
 
 /// Google Books Volumes API. Funktioniert ohne Key; mit Key (aus
 /// [ApiKeyStore]) stabiler gegen Rate-Limits.
+///
+/// Ohne Sprachfilter liefert Google gemischte Ausgaben und deutsche Titel
+/// landen hinten. Deshalb zwei Abfragen: erst `langRestrict=[preferredLanguage]`,
+/// dann ohne Filter; Ergebnisse werden zusammengeführt (Dubletten raus).
 class GoogleBooksCoverService implements CoverService {
   GoogleBooksCoverService({
     required ApiKeyStore apiKeys,
     http.Client? client,
     this.maxResults = 10,
+    this.preferredLanguage = 'de',
     this.timeout = const Duration(seconds: 15),
   }) : _keys = apiKeys,
        _client = client ?? http.Client();
@@ -23,6 +28,9 @@ class GoogleBooksCoverService implements CoverService {
   final ApiKeyStore _keys;
   final http.Client _client;
   final int maxResults;
+
+  /// ISO-639-1, z.B. `de`. `null` = keine Sprachpräferenz (eine Abfrage).
+  final String? preferredLanguage;
   final Duration timeout;
 
   @override
@@ -31,11 +39,34 @@ class GoogleBooksCoverService implements CoverService {
     if (q.isEmpty) return const [];
 
     final key = await _keys.getGoogleBooksKey();
+    final lang = preferredLanguage;
+    if (lang == null) return _query(q, key, null);
+
+    final preferred = await _query(q, key, lang);
+    if (preferred.length >= maxResults) return preferred;
+
+    final rest = await _query(q, key, null);
+    final seen = preferred.map(_dedupeKey).toSet();
+    return [
+      ...preferred,
+      ...rest.where((c) => seen.add(_dedupeKey(c))),
+    ].take(maxResults).toList();
+  }
+
+  static String _dedupeKey(CoverCandidate c) =>
+      '${c.title.toLowerCase()}|${(c.author ?? '').toLowerCase()}';
+
+  Future<List<CoverCandidate>> _query(
+    String q,
+    String? key,
+    String? langRestrict,
+  ) async {
     final uri = _base.replace(
       queryParameters: {
         'q': q,
         'maxResults': '$maxResults',
         'printType': 'books',
+        'langRestrict': ?langRestrict,
         'fields': 'items(volumeInfo(title,subtitle,authors,imageLinks(thumbnail,smallThumbnail)))',
         'key': ?key,
       },

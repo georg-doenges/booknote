@@ -11,6 +11,7 @@ class OpenLibraryCoverService implements CoverService {
   OpenLibraryCoverService({
     http.Client? client,
     this.maxResults = 10,
+    this.preferredLanguage = 'de',
     this.timeout = const Duration(seconds: 15),
   }) : _client = client ?? http.Client();
 
@@ -19,6 +20,9 @@ class OpenLibraryCoverService implements CoverService {
 
   final http.Client _client;
   final int maxResults;
+
+  /// ISO-639-1; Open Library bevorzugt damit Ausgaben in dieser Sprache.
+  final String? preferredLanguage;
   final Duration timeout;
 
   @override
@@ -31,6 +35,7 @@ class OpenLibraryCoverService implements CoverService {
         'q': q,
         'limit': '$maxResults',
         'fields': 'title,author_name,cover_i',
+        'lang': ?preferredLanguage,
       },
     );
 
