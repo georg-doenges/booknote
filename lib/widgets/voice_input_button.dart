@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app_scope.dart';
 import '../services/services.dart';
@@ -133,7 +132,7 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
 
     _startedAt = DateTime.now();
     setState(() => _phase = _Phase.recording);
-    HapticFeedback.mediumImpact();
+    Haptics.recordStart();
     _pulse.repeat(reverse: true);
     _ticker = Timer.periodic(const Duration(milliseconds: 250), (_) {
       if (!mounted || _startedAt == null) return;
@@ -175,7 +174,7 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
       navigator.pop();
       return;
     }
-    HapticFeedback.lightImpact();
+    Haptics.recordStop();
     setState(() => _phase = _Phase.transcribing);
 
     try {

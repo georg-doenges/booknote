@@ -6,6 +6,7 @@ export 'app_settings.dart';
 export 'cover_service.dart';
 export 'google_books_cover_service.dart';
 export 'german_number_parser.dart';
+export 'haptics.dart';
 export 'note_parser.dart';
 export 'note_recorder.dart';
 export 'open_library_cover_service.dart';

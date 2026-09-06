@@ -45,6 +45,7 @@ lib/
   services/        NoteParser + GermanNumberParser ✅, TranscriptionService-Interface
                    + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
                    AppSettings + AppSettingsStore (SharedPrefs + InMemory) ✅,
+                   SilenceDetector ✅, Haptics (Vibrator, `vibration`) ✅,
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService-Interface + FallbackCoverService,
                    GoogleBooksCoverService, OpenLibraryCoverService ✅
@@ -290,9 +291,13 @@ test/
 
 ## Was in Baustein D (Feinschliff Aufnahme-Flow) passiert ist
 
-- **Haptik** (`HapticFeedback`, keine Permission nötig): `mediumImpact` beim
-  Start und beim Stopp, `lightImpact` wenn die Notiz gespeichert ist –
-  im `RecordingScreen` und im Sprach-Sheet (`VoiceInputButton`).
+- **Haptik**: zunächst `HapticFeedback` – auf dem Testgerät (Samsung) **nicht
+  spürbar**, weil `performHapticFeedback` die (dort abgeschaltete)
+  System-Touch-Vibration respektiert. Umgestellt auf das Paket `vibration`
+  (plattformneutral) über `lib/services/haptics.dart` (`Haptics.recordStart` /
+  `recordStop` / `saved`, greift direkt den Vibrator, verschluckt Fehler still).
+  `VIBRATE`-Permission im AndroidManifest. Genutzt im `RecordingScreen` und im
+  Sprach-Sheet.
 - **Sehr kurze Aufnahme (< 1 s):** `RecordingScreen` misst die echte Dauer über
   `_recordStartedAt` und fragt vor dem Transkribieren nach
   („Verwerfen" / „Transkribieren"). Spart versehentliche Whisper-Aufrufe.
@@ -374,6 +379,16 @@ test/
 A + B + C + D sind auf dem Gerät installiert und warten auf den Test
 (Haptik beim Aufnehmen, Rückfrage bei < 1 s, Lang-Hinweis ab 90 s,
 Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
+
+**Offen / zu entscheiden – Baustein F (Export & Geräte-Abgleich):** Nutzer will
+(a) die **ganze Bibliothek** exportieren (nicht nur ein Buch), (b) eine
+**JSON-Bibliotheksdatei im eigenen Format** exportieren **und importieren**, mit
+**Vereinigungs-Abgleich** (maximalistisch: alle Einträge landen auf beiden
+Seiten, neueres `updatedAt` gewinnt, keine Löschungen). Ziel: dieselbe Datei auf
+Telefon und Tablet abgleichen (später via Google Drive automatisch – das ist der
+aufwändige OAuth-Teil und bleibt vorerst in `BACKLOG.md`). Ist architektonisch
+vorbereitet (UUID-IDs, `updatedAt`, Repository-Interfaces). Reihenfolge F vs. E
+noch offen – Nutzer fragen.
 
 **Baustein E (Weitergabe an Tester):** App-Icon (`flutter_launcher_icons` als
 dev-dependency, plattformneutral) und Release-Signing-Konfiguration

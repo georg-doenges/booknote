@@ -2,6 +2,8 @@
     <!-- Booknote: Aufnahme + Whisper-API -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Haptisches Signal beim Aufnehmen (vibration-Paket) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
     <application
         android:label="Booknote"
         android:name="${applicationName}"

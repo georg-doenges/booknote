@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../app_scope.dart';
 import '../models/models.dart';
@@ -98,12 +97,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _phase = _Phase.recording;
       _error = null;
     });
-    HapticFeedback.mediumImpact();
+    Haptics.recordStart();
   }
 
   Future<void> _stopAndTranscribe() async {
     _ticker?.cancel();
-    HapticFeedback.mediumImpact();
+    Haptics.recordStop();
     final startedAt = _recordStartedAt;
     final path = await _recorder.stop();
     if (path == null) {
@@ -171,7 +170,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         _session.insert(0, note);
         _phase = _Phase.idle;
       });
-      HapticFeedback.lightImpact();
+      Haptics.saved();
     } on TranscriptionException catch (e) {
       // Audio bleibt in _pendingAudio → Nutzer kann es erneut versuchen.
       if (!mounted) return;

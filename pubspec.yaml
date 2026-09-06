@@ -35,6 +35,10 @@ dependencies:
   # Markdown-Export über Share-Sheet
   share_plus: ^12.0.1
 
+  # Spürbares haptisches Signal beim Aufnehmen (Flutters HapticFeedback bleibt
+  # auf manchen Geräten unbemerkt); plattformneutral (Android/iOS)
+  vibration: ^3.1.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
