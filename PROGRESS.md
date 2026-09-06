@@ -82,8 +82,8 @@ test/
 | A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
 | B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld (Sheet, Puls, Auto-Stop) | 🔄 gebaut, wartet auf Gerätetest (mit A) |
 | C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
-| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ (als Nächstes) |
-| E | App-Icon, Release-Signierung für Tester | ⬜ |
+| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit) | 🔄 gebaut, wartet auf Gerätetest |
+| E | App-Icon, Release-Signierung für Tester | ⬜ (als Nächstes) |
 
 ## Was in Schritt 1 passiert ist
 
@@ -288,6 +288,23 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Was in Baustein D (Feinschliff Aufnahme-Flow) passiert ist
+
+- **Haptik** (`HapticFeedback`, keine Permission nötig): `mediumImpact` beim
+  Start und beim Stopp, `lightImpact` wenn die Notiz gespeichert ist –
+  im `RecordingScreen` und im Sprach-Sheet (`VoiceInputButton`).
+- **Sehr kurze Aufnahme (< 1 s):** `RecordingScreen` misst die echte Dauer über
+  `_recordStartedAt` und fragt vor dem Transkribieren nach
+  („Verwerfen" / „Transkribieren"). Spart versehentliche Whisper-Aufrufe.
+- **Lange Aufnahme:** ab 90 s ein dezenter Hinweis unter dem Sekundenzähler
+  (kein Auto-Stopp – die Notiz kann bewusst lang sein).
+- **Letzte Notiz direkt bearbeiten:** die Notizen in der Sitzungsliste des
+  `RecordingScreen` sind jetzt antippbar → `showNoteEditDialog` →
+  `notes.update`, und die lokale Liste wird mitgeführt.
+- Konstanten `_minNoteRecording` / `_longRecordingHint` oben im
+  `recording_screen.dart`. Keine neuen Tests (UI/Haptik über schon getestete
+  Services). **138 grün**, analyze sauber.
+
 ## Was in Baustein C (Bibliothek durchsuchen/filtern) passiert ist
 
 - **`lib/models/book_query.dart` neu:** `filterBooks(books, {query, author})`
@@ -354,18 +371,15 @@ test/
 
 ## Nächster Schritt
 
-Bausteine A + B + C warten auf den gemeinsamen Gerätetest (Light/Dark auf allen
-Screens, Theme-Umschalter, Navigationsleiste verdeckt nichts, Mikrofon-Sheet in
-der Buchsuche mit Puls + Auto-Stop, Bibliothek durchsuchen/filtern).
-**Gerät war beim Bauen von C abgesteckt – die Debug-APK ist gebaut, aber noch
-nicht installiert** (`flutter install -d <ID> --debug`).
+A + B + C + D sind auf dem Gerät installiert und warten auf den Test
+(Haptik beim Aufnehmen, Rückfrage bei < 1 s, Lang-Hinweis ab 90 s,
+Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
 
-**Baustein D (Feinschliff Aufnahme-Flow):** Haptik beim Start/Stopp, Rückfrage
-bzw. Verwerfen bei sehr kurzer Aufnahme (< 1 s), Hinweis bei sehr langer
-Aufnahme, letzte Notiz direkt im `RecordingScreen` bearbeiten. Der große
-`RecordButton` und `SilenceDetector` aus Baustein B sind wiederverwendbar.
+**Baustein E (Weitergabe an Tester):** App-Icon (`flutter_launcher_icons` als
+dev-dependency, plattformneutral) und Release-Signing-Konfiguration
+(`key.properties` + `build.gradle`), damit weitergebbare Release-APKs entstehen.
 
-Danach E (App-Icon, Release-Signierung). Ideen „für später" in `BACKLOG.md`.
+Danach die „Feinheiten"-Runde des Nutzers und die Punkte in `BACKLOG.md`.
 
 ~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),

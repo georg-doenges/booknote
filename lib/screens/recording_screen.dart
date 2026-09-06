@@ -1,17 +1,25 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_scope.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
+import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
 import '../widgets/record_button.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
 
 enum _Phase { idle, recording, transcribing, error }
+
+/// Aufnahmen unter dieser Länge sind meist ein Versehen → Rückfrage.
+const _minNoteRecording = Duration(seconds: 1);
+
+/// Ab hier ein dezenter Hinweis, dass die Aufnahme lang wird.
+const _longRecordingHint = Duration(seconds: 90);
 
 /// Der wichtigste Screen: großer Aufnahme-Button, tap-to-start / tap-to-stop.
 /// Nach dem Speichern bleibt man hier und kann sofort weiter aufnehmen.
@@ -31,6 +39,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   String? _pendingAudio; // bleibt bei Fehlern erhalten → „Erneut versuchen"
   TranscriptionException? _error;
   Duration _elapsed = Duration.zero;
+  DateTime? _recordStartedAt;
   Timer? _ticker;
 
   /// In dieser Sitzung gespeicherte Notizen, neueste zuerst.
@@ -79,6 +88,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
       );
       return;
     }
+    if (!mounted) return;
+    _recordStartedAt = DateTime.now();
     _elapsed = Duration.zero;
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) setState(() => _elapsed += const Duration(seconds: 1));
@@ -87,18 +98,52 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _phase = _Phase.recording;
       _error = null;
     });
+    HapticFeedback.mediumImpact();
   }
 
   Future<void> _stopAndTranscribe() async {
     _ticker?.cancel();
+    HapticFeedback.mediumImpact();
+    final startedAt = _recordStartedAt;
     final path = await _recorder.stop();
     if (path == null) {
-      setState(() => _phase = _Phase.idle);
+      if (mounted) setState(() => _phase = _Phase.idle);
       return;
+    }
+    final duration = startedAt == null
+        ? Duration.zero
+        : DateTime.now().difference(startedAt);
+    if (duration < _minNoteRecording) {
+      final send = mounted ? await _confirmVeryShort() : false;
+      if (send != true) {
+        await NoteRecorder.discard(path);
+        if (mounted) setState(() => _phase = _Phase.idle);
+        return;
+      }
     }
     _pendingAudio = path;
     await _transcribe();
   }
+
+  Future<bool?> _confirmVeryShort() => showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: const Text('Sehr kurze Aufnahme'),
+      content: const Text(
+        'Die Aufnahme war unter einer Sekunde. Trotzdem transkribieren?',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: const Text('Verwerfen'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: const Text('Transkribieren'),
+        ),
+      ],
+    ),
+  );
 
   Future<void> _transcribe() async {
     final path = _pendingAudio;
@@ -126,6 +171,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
         _session.insert(0, note);
         _phase = _Phase.idle;
       });
+      HapticFeedback.lightImpact();
     } on TranscriptionException catch (e) {
       // Audio bleibt in _pendingAudio → Nutzer kann es erneut versuchen.
       if (!mounted) return;
@@ -152,6 +198,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
       _phase = _Phase.idle;
       _error = null;
     });
+  }
+
+  /// Notiz aus der Sitzungsliste direkt hier bearbeiten (statt Umweg über die
+  /// Notizübersicht).
+  Future<void> _editSessionNote(int index) async {
+    final edited = await showNoteEditDialog(context, _session[index]);
+    if (edited == null || !mounted) return;
+    await AppScope.of(context).notes.update(edited);
+    if (!mounted) return;
+    setState(() => _session[index] = edited);
   }
 
   String _fmt(Duration d) {
@@ -203,7 +259,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     ),
                     const SizedBox(height: BooknoteTheme.gap24),
                     Text(_statusLine(), style: text.titleMedium),
-                    if (_phase == _Phase.recording)
+                    if (_phase == _Phase.recording) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
                         child: Text(
@@ -213,6 +269,24 @@ class _RecordingScreenState extends State<RecordingScreen> {
                           ),
                         ),
                       ),
+                      if (_elapsed >= _longRecordingHint)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            BooknoteTheme.gap24,
+                            BooknoteTheme.gap4,
+                            BooknoteTheme.gap24,
+                            0,
+                          ),
+                          child: Text(
+                            'Lange Aufnahme – Whisper transkribiert alles am '
+                            'Stück.',
+                            textAlign: TextAlign.center,
+                            style: text.bodySmall?.copyWith(
+                              color: scheme.tertiary,
+                            ),
+                          ),
+                        ),
+                    ],
                     if (_phase == _Phase.idle && _session.isEmpty)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
@@ -262,8 +336,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
                     Expanded(
                       child: ListView.builder(
                         itemCount: _session.length,
-                        itemBuilder: (_, i) =>
-                            NoteTile(note: _session[i], highlight: i == 0),
+                        itemBuilder: (_, i) => NoteTile(
+                          note: _session[i],
+                          highlight: i == 0,
+                          onTap: () => _editSessionNote(i),
+                        ),
                       ),
                     ),
                   ],
