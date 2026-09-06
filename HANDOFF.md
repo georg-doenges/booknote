@@ -30,8 +30,12 @@ einer früheren Session. Bitte arbeite so weiter, wie es dort etabliert wurde.
 - adb liegt unter `$env:LOCALAPPDATA\Android\Sdk\platform-tools`.
 - Testgerät: Samsung, Geräte-ID `R3CY60DPEFA` (per `flutter devices` prüfen).
   Installieren und starten ohne interaktives `flutter run`:
-  `flutter build apk --debug`, `flutter install -d R3CY60DPEFA --debug`,
+  `flutter build apk --debug`, dann **`adb -s R3CY60DPEFA install -r <apk>`**
+  (nicht `flutter install` – das deinstalliert vorher und löscht Daten/Keys),
   `adb -s R3CY60DPEFA shell am start -n de.doenges.booknote/.MainActivity`.
+  **Vor jedem Gerät-Build in `pubspec.yaml` das `+N` hochzählen**, sonst kann
+  `install -r` trotzdem als Neuinstallation gelten. Der Nutzer sollte vor einem
+  Update zur Sicherheit „Bibliothek sichern" (Baustein F2) machen.
 - Vor jedem Commit: `dart format lib test`, `flutter analyze`, `flutter test`
   (aktuell 125 Tests, alle grün, keine Analyzer-Befunde).
 

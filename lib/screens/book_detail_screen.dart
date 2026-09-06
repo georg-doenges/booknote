@@ -152,7 +152,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.ios_share),
-                tooltip: 'Als Markdown teilen',
+                tooltip: 'Exportieren (Buch, Autor oder Bibliothek)',
                 onPressed: book == null ? null : () => _export(book),
               ),
               if (book != null)

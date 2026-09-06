@@ -2,7 +2,9 @@ name: booknote
 description: "Booknote - Lesenotizen per Sprache erfassen"
 publish_to: 'none'
 
-version: 0.1.0+1
+# +N (build number) bei jedem Gerät-Build hochzählen: sonst behandeln manche
+# Android-Geräte ein `adb install -r` als Neuinstallation und löschen App-Daten.
+version: 0.1.0+10
 
 environment:
   sdk: ^3.13.2

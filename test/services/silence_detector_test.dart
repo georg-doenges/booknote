@@ -5,16 +5,17 @@ void main() {
   Duration ms(int n) => Duration(milliseconds: n);
 
   SilenceDetector make() => SilenceDetector(
-    speechThresholdDb: -35,
+    speechThresholdDb: -30,
     silence: ms(1200),
     minLength: ms(800),
+    noSpeechTimeout: ms(3000),
   );
 
-  test('ohne erkannte Sprache stoppt es nie', () {
+  test('ohne Sprache: läuft bis zum noSpeechTimeout, dann Stopp', () {
     final d = make();
-    for (var t = 0; t < 6000; t += 200) {
-      expect(d.update(elapsed: ms(t), db: -55), isFalse);
-    }
+    expect(d.update(elapsed: ms(1000), db: -55), isFalse);
+    expect(d.update(elapsed: ms(2900), db: -55), isFalse);
+    expect(d.update(elapsed: ms(3000), db: -55), isTrue);
     expect(d.heardSpeech, isFalse);
   });
 
@@ -26,10 +27,7 @@ void main() {
     expect(d.update(elapsed: ms(600), db: -18), isFalse); // Sprache
     expect(d.update(elapsed: ms(1000), db: -50), isFalse); // Stille beginnt
     expect(d.update(elapsed: ms(1800), db: -50), isFalse); // 0,8 s still
-    expect(
-      d.update(elapsed: ms(2250), db: -50),
-      isTrue,
-    ); // 1,25 s still → Stopp
+    expect(d.update(elapsed: ms(2250), db: -50), isTrue); // 1,25 s → Stopp
   });
 
   test('neue Sprache setzt das Stille-Fenster zurück', () {
@@ -43,17 +41,26 @@ void main() {
     expect(d.update(elapsed: ms(3700), db: -50), isTrue); // 1,3 s still → Stopp
   });
 
+  test('lautes Reden nach noSpeechTimeout verhindert den Abbruch', () {
+    final d = make();
+    expect(d.update(elapsed: ms(2900), db: -10), isFalse); // spät, aber Sprache
+    expect(
+      d.update(elapsed: ms(3100), db: -10),
+      isFalse,
+    ); // kein noSpeech-Stopp
+    expect(d.update(elapsed: ms(3300), db: -50), isFalse); // Stille beginnt
+    expect(d.update(elapsed: ms(4700), db: -50), isTrue); // 1,4 s still → Stopp
+  });
+
   test('vor minLength wird nie automatisch gestoppt', () {
     final d = SilenceDetector(
-      speechThresholdDb: -35,
+      speechThresholdDb: -30,
       silence: ms(200),
       minLength: ms(2000),
+      noSpeechTimeout: ms(9000),
     );
     d.update(elapsed: ms(100), db: -10); // sehr früh Sprache
-    expect(
-      d.update(elapsed: ms(500), db: -55),
-      isFalse,
-    ); // still, aber < minLength
+    expect(d.update(elapsed: ms(500), db: -55), isFalse); // still, < minLength
     expect(d.update(elapsed: ms(1900), db: -55), isFalse);
     expect(d.update(elapsed: ms(2100), db: -55), isTrue);
   });
@@ -64,6 +71,5 @@ void main() {
     expect(d.heardSpeech, isTrue);
     d.reset();
     expect(d.heardSpeech, isFalse);
-    expect(d.update(elapsed: ms(5000), db: -55), isFalse);
   });
 }

@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/models.dart';
 import '../repositories/repositories.dart';
+import 'app_settings.dart';
 import 'library_merge.dart';
 
 /// Dateiname der Bibliotheksdatei (siehe `SYNC_DESIGN.md`).
@@ -23,7 +24,7 @@ class LibrarySyncCancelled extends LibrarySyncResult {
   const LibrarySyncCancelled();
 }
 
-/// Abgleich durchgeführt. Zahlen für die Rückmeldung an den Nutzer.
+/// Datei und App wurden zusammengeführt (Standardfall).
 class LibrarySyncMerged extends LibrarySyncResult {
   const LibrarySyncMerged({
     required this.booksBefore,
@@ -45,14 +46,30 @@ class LibrarySyncMerged extends LibrarySyncResult {
   int get notesAdded => notesAfter - notesBefore;
 }
 
-/// Kümmert sich um Sichern (Datei schreiben + teilen) und Abgleichen (Datei
-/// wählen, mergen, DB ersetzen). Ohne Google Drive – der Nutzer legt die Datei
-/// selbst in Drive/Files ab bzw. wählt sie dort aus.
+/// Die Datei war als **Master** markiert – der lokale Stand wurde komplett
+/// daran angeglichen (kein Merge).
+class LibrarySyncAdoptedMaster extends LibrarySyncResult {
+  const LibrarySyncAdoptedMaster({
+    required this.books,
+    required this.notes,
+    required this.masterGeneration,
+  });
+
+  final int books;
+  final int notes;
+  final int masterGeneration;
+}
+
+/// Kümmert sich um Sichern (Datei schreiben + teilen), Abgleichen (Datei
+/// wählen, mergen bzw. Master übernehmen, DB ersetzen) und „Als Master
+/// setzen". Ohne Google Drive – der Nutzer legt die Datei selbst ab bzw. wählt
+/// sie aus.
 class LibrarySync {
-  LibrarySync(this._archive, {DateTime Function()? clock})
+  LibrarySync(this._archive, this._settings, {DateTime Function()? clock})
     : _clock = clock ?? DateTime.now;
 
   final LibraryArchive _archive;
+  final AppSettings _settings;
   final DateTime Function() _clock;
 
   /// Schreibt den aktuellen Stand als `booknote-library.json` und öffnet den
@@ -67,11 +84,33 @@ class LibrarySync {
   Future<bool> shareSnapshot(LibrarySnapshot snapshot) =>
       _shareSnapshot(snapshot);
 
-  /// Lässt den Nutzer eine Bibliotheksdatei wählen, führt den Merge aus und
-  /// ersetzt den lokalen Stand. Wirft [LibraryFileException] bei kaputter Datei.
+  /// Erklärt den lokalen Stand zur Vorlage: `masterGeneration` hochzählen, den
+  /// **unveränderten** lokalen Stand als Datei schreiben und teilen. Andere
+  /// Geräte übernehmen ihn beim nächsten Abgleich komplett.
+  Future<bool> setAsMaster() async {
+    final local = await _archive.readSnapshot();
+    final nextGen = local.masterGeneration + 1;
+    final master = LibrarySnapshot(
+      sources: local.sources,
+      notes: local.notes,
+      tombstones: local.tombstones,
+      masterGeneration: nextGen,
+    );
+    await _archive.replaceWith(master); // hält die neue Generation lokal fest
+    await _settings.updateSync(
+      _settings.sync.copyWith(lastConsumedMasterGeneration: nextGen),
+    );
+    return _shareSnapshot(master);
+  }
+
+  /// Lässt den Nutzer eine Bibliotheksdatei wählen und gleicht ab: normaler
+  /// Merge, oder – wenn die Datei eine neuere Master-Generation trägt –
+  /// vollständige Übernahme. Wirft [LibraryFileException] bei kaputter Datei.
   Future<LibrarySyncResult> pickAndMerge() async {
     final picked = await FilePicker.platform.pickFiles(
       dialogTitle: 'Bibliotheksdatei wählen',
+      type: FileType.custom,
+      allowedExtensions: ['json'],
       withData: true,
     );
     if (picked == null || picked.files.isEmpty) {
@@ -84,7 +123,30 @@ class LibrarySync {
 
     final incoming = LibrarySnapshot.parse(text);
     final local = await _archive.readSnapshot();
-    final merged = mergeLibrary(local, incoming, now: _clock());
+
+    // Master-Kurzschluss (SYNC_DESIGN.md §4.1).
+    if (incoming.masterGeneration >
+        _settings.sync.lastConsumedMasterGeneration) {
+      await _archive.replaceWith(incoming);
+      await _settings.updateSync(
+        _settings.sync.copyWith(
+          lastConsumedMasterGeneration: incoming.masterGeneration,
+        ),
+      );
+      return LibrarySyncAdoptedMaster(
+        books: incoming.sourceCount,
+        notes: incoming.noteCount,
+        masterGeneration: incoming.masterGeneration,
+      );
+    }
+
+    final merged = mergeLibrary(
+      local,
+      incoming,
+      now: _clock(),
+      gcEnabled: _settings.sync.tombstoneGcEnabled,
+      gcDays: _settings.sync.tombstoneGcDays,
+    );
     await _archive.replaceWith(merged);
 
     return LibrarySyncMerged(

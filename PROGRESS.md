@@ -89,8 +89,8 @@ test/
 | C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit) | 🔄 gebaut, wartet auf Gerätetest |
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | 🔄 gebaut, wartet auf Gerätetest |
-| F2a | Grabsteine, JSON-Snapshot, Merge, Sichern/Abgleichen | 🔄 gebaut, wartet auf Gerätetest |
-| F2b | „Als Master setzen" + GC-Felder in AppSettings | ⬜ (als Nächstes) |
+| F2a | Grabsteine, JSON-Snapshot, Merge, Sichern/Abgleichen | ✅ Smoke-Test auf Gerät |
+| F2b | „Als Master setzen" + GC-Felder + klare Merge/Master-UI | 🔄 gebaut, wartet auf Gerätetest |
 | E | Release-Signierung (App-Icon später) | ⬜ (nach F) |
 
 ## Was in Schritt 1 passiert ist
@@ -295,6 +295,37 @@ test/
   importierbare Farbschemata (Theme-Datei laden), Export lokal speichern,
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
+
+## Was in Baustein F2b + Testrunden-Korrekturen passiert ist
+
+- **Gerät löschte bei `adb install -r` die Daten**, weil `versionCode` (aus
+  `pubspec` `+N`) gleich blieb → Samsung behandelte es als Neuinstallation.
+  **Fix: `+N` bei jedem Gerät-Build hochzählen** (jetzt `+10`). Danach bleiben DB
+  **und** Secure-Storage-Keys erhalten (verifiziert). Steht in `HANDOFF.md`.
+- **„Als Vorlage (Master) setzen"** (`LibrarySync.setAsMaster`): `masterGeneration
+  + 1`, unveränderten lokalen Stand als Datei, lokal festhalten. **Master-
+  Kurzschluss** im Abgleich: `incoming.masterGeneration >
+  lastConsumedMasterGeneration` → `replaceWith(incoming)` statt Merge.
+- **`AppSettings` → `SyncSettings`** (`lastConsumedMasterGeneration`,
+  `tombstoneGcEnabled` Default true, `tombstoneGcDays` Default 120); `LibrarySync`
+  bekommt `AppSettings`, der Merge liest GC daraus. UI für die GC-Schalter →
+  Settings-Seite (BACKLOG).
+- **Sync-Sheet neu**: drei klar benannte Aktionen mit Erklärtext –
+  *Sichern* / *Abgleichen (zusammenführen)* / *Als Vorlage (Master) setzen*
+  (mit Rückfrage). Ergebnis unterscheidet „Zusammengeführt" vs. „Vorlage
+  übernommen". (Nutzerwunsch: sichtbar machen, was welche Option bedeutet.)
+- **`file_picker` filtert auf `.json`** (`FileType.custom`).
+- **`SilenceDetector`**: Schwelle -35 → -30 (unempfindlicher gegen Raum-
+  geräusche), neuer `noSpeechTimeout` (Default 3 s) – vorher stoppte es zu
+  früh, wenn nichts gesagt wurde. Silence-Fenster nach dem Sprechen bleibt bei
+  1,3 s (vom Nutzer als gut bestätigt).
+- **`RecordingScreen`**: das dezente AppBar-Icon ist raus; stattdessen ein
+  sichtbarer `OutlinedButton` „N Notizen zu diesem Buch" unter dem Status,
+  der zur Notizübersicht führt (`_AllNotesButton`, live-Zahl).
+- **`BookDetailScreen`**: Export-Icon-Tooltip jetzt „Exportieren (Buch, Autor
+  oder Bibliothek)" – die Funktion war da, nur unklar benannt.
+- **162 Tests grün** (`silence_detector_test`, `app_settings_test` angepasst),
+  analyze sauber.
 
 ## Was in Baustein F2a (Bibliotheksdatei, Grabsteine, Abgleich) passiert ist
 

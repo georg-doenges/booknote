@@ -25,7 +25,7 @@ Future<void> main() async {
         fallback: OpenLibraryCoverService(),
       ),
       settings: settings,
-      librarySync: LibrarySync(LibraryArchive(db)),
+      librarySync: LibrarySync(LibraryArchive(db), settings),
     ),
   );
 }

@@ -222,20 +222,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final muted = scheme.onSurfaceVariant;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.book.title),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.list_alt),
-            tooltip: 'Alle Notizen',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => BookDetailScreen(bookId: widget.book.id),
-              ),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.book.title)),
       // SafeArea unten: sonst verdeckt die System-Navigationsleiste die
       // Aktionen der Fehlerkarte („Erneut versuchen").
       body: SafeArea(
@@ -301,6 +288,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
                           style: text.bodyMedium?.copyWith(color: muted),
                         ),
                       ),
+                    if (_phase == _Phase.idle || _phase == _Phase.error)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: BooknoteTheme.gap24,
+                        ),
+                        child: _AllNotesButton(bookId: widget.book.id),
+                      ),
                   ],
                 ),
               ),
@@ -357,6 +351,37 @@ class _RecordingScreenState extends State<RecordingScreen> {
     _Phase.transcribing => 'Wird transkribiert …',
     _Phase.error => 'Transkription fehlgeschlagen',
   };
+}
+
+/// Wichtige sekundäre Option auf dem Aufnahme-Screen: zur Notizübersicht des
+/// Buchs. Zeigt die aktuelle Notizzahl (inkl. der gerade aufgenommenen).
+class _AllNotesButton extends StatelessWidget {
+  const _AllNotesButton({required this.bookId});
+
+  final String bookId;
+
+  @override
+  Widget build(BuildContext context) {
+    final notes = AppScope.of(context).notes;
+    return StreamBuilder<List<Note>>(
+      stream: notes.watchBySource(bookId),
+      builder: (context, snap) {
+        final count = snap.data?.length;
+        final label = count == null
+            ? 'Notizen zu diesem Buch'
+            : count == 1
+            ? '1 Notiz zu diesem Buch'
+            : '$count Notizen zu diesem Buch';
+        return OutlinedButton.icon(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: bookId)),
+          ),
+          icon: const Icon(Icons.menu_book_outlined),
+          label: Text(label),
+        );
+      },
+    );
+  }
 }
 
 class _ErrorCard extends StatelessWidget {
