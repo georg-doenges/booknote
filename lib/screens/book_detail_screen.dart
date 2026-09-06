@@ -63,19 +63,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 
-  Future<void> _export(Book book) async {
-    final scope = AppScope.of(context);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      final notes = await scope.notes.getBySource(book.id);
-      final result = scope.exporter.export(book, notes);
-      await shareExport(result);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Export fehlgeschlagen: $e')),
-      );
-    }
-  }
+  Future<void> _export(Book book) => showExportSheet(
+    context,
+    initialScope: ExportScope.book,
+    book: book,
+    author: book.author,
+  );
 
   Future<void> _removeCover(Book book) async {
     await AppScope.of(context).books.update(book.copyWith(clearCoverUrl: true));

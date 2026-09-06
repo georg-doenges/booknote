@@ -1,5 +1,42 @@
 import '../models/models.dart';
 
+/// Ein Buch mit seinen (noch unsortierten) Notizen – Baustein einer
+/// Export-Anfrage.
+class ExportBook {
+  const ExportBook(this.book, this.notes);
+
+  final Book book;
+  final List<Note> notes;
+}
+
+/// Was exportiert werden soll: ein Buch, alle Bücher eines Autors oder die
+/// ganze Bibliothek.
+class ExportRequest {
+  const ExportRequest({
+    required this.books,
+    this.collectionTitle,
+    this.includeTimestamps = true,
+  });
+
+  /// Ein einzelnes Buch.
+  ExportRequest.single(
+    Book book,
+    List<Note> notes, {
+    this.includeTimestamps = true,
+  }) : books = [ExportBook(book, notes)],
+       collectionTitle = null;
+
+  final List<ExportBook> books;
+
+  /// Überschrift der Sammel-Datei („Bibliothek" oder ein Autorname).
+  /// `null` → genau ein Buch, der Dateititel ist der Buchtitel.
+  final String? collectionTitle;
+
+  final bool includeTimestamps;
+
+  bool get isCollection => collectionTitle != null;
+}
+
 /// Ergebnis eines Exports: Dateiname, MIME-Typ und Inhalt als Text.
 class ExportResult {
   const ExportResult({
@@ -13,15 +50,20 @@ class ExportResult {
   final String content;
 }
 
-/// Wandelt ein Buch samt Notizen in ein Zielformat um.
+/// Wandelt eine [ExportRequest] in ein Zielformat um.
 ///
 /// Reine Funktion ohne I/O, damit sie testbar bleibt; Schreiben/Teilen macht
 /// `shareExport()`. Weitere Formate (JSON, …) implementieren dieses Interface.
 abstract class Exporter {
-  /// Anzeigename, z.B. "Markdown".
+  /// Anzeigename, z.B. „Markdown".
   String get formatName;
 
-  ExportResult export(Book book, List<Note> notes);
+  /// Datei-Endung ohne Punkt, z.B. `md`.
+  String get fileExtension;
+
+  String get mimeType;
+
+  ExportResult export(ExportRequest request);
 }
 
 /// Macht aus einem Titel einen brauchbaren Dateinamen (ohne Extension).

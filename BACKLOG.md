@@ -24,14 +24,19 @@ fotografieren, andere Quellen, weitere Exportformate, lokales Whisper).
 Empfehlung: als **Baustein F** bündeln (Details/Entscheidung offen, siehe
 PROGRESS.md „Nächster Schritt").
 
-- **Ganze Bibliothek exportieren** (Markdown), nicht nur ein einzelnes Buch –
-  optional gefiltert auf den aktuell gewählten Autor. Als Sammel-Datei oder
-  Zip pro Buch, über den Share-Sheet.
-- **Lokal speichern**, nicht nur Share-Sheet (`.md`/`.txt` in einen gewählten
-  Ordner).
-- **TXT-Format** neben Markdown. `Exporter` ist schon ein Interface
-  (`formatName`, `export(book, notes) → ExportResult`); `PlainTextExporter`
-  tritt einfach daneben. UI: Formatauswahl vor dem Export.
+- ~~Ganze Bibliothek exportieren, 3 Ebenen (Buch/Autor/Bibliothek)~~ → Baustein F1.
+- ~~TXT-Format neben Markdown~~ → Baustein F1 (`PlainTextExporter`).
+- **Lokal speichern**, nicht nur Share-Sheet (`.md`/`.txt`/`.json` in einen
+  gewählten Ordner). `shareExport` deckt den Share-Sheet ab; „Speichern unter"
+  über `file_picker` / SAF fehlt noch.
+- **Format der Export-Auswahl merken** (letztes Format als Default), über
+  `AppSettings`.
+- **Tombstone-Register für den Abgleich** (siehe unten): Datei führt eine Liste
+  gelöschter IDs; beim Import fragt die App einmal pauschal „Gelöschte Einträge
+  auf allen Geräten löschen? ja/nein". Bei „nein" der maximalistische Ansatz von
+  F2. Bedingt Schema v3 (`tombstones`-Tabelle), Anpassung jedes Delete-Pfads,
+  und irgendwann Aufräumen alter Tombstones. Lohnt sich nur, wenn F2 im Alltag
+  zu viel „Wiederauferstehen" gelöschter Notizen bringt.
 - **Bibliotheks-Datei im eigenen JSON-Format** (alle Quellen + alle Notizen mit
   ihren UUIDs, `createdAt`, `updatedAt`) zum Export **und Import**.
 - **Vereinigungs-Abgleich (maximalistisch, Nutzerwunsch):** Beim Import einer

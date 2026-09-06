@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../export/export.dart';
 import '../models/models.dart';
 import '../theme.dart';
 import '../widgets/book_cover_tile.dart';
@@ -54,6 +55,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
+  void _export() => showExportSheet(
+    context,
+    initialScope: _authorFilter != null
+        ? ExportScope.author
+        : ExportScope.library,
+    author: _authorFilter,
+  );
+
   @override
   Widget build(BuildContext context) {
     final scope = AppScope.of(context);
@@ -88,12 +97,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   tooltip: 'Suchen',
                   onPressed: () => setState(() => _searching = true),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.settings_outlined),
-                  tooltip: 'Einstellungen',
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  ),
+                PopupMenuButton<String>(
+                  onSelected: (v) {
+                    switch (v) {
+                      case 'export':
+                        _export();
+                      case 'settings':
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsScreen(),
+                          ),
+                        );
+                    }
+                  },
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'export',
+                      child: Text('Exportieren …'),
+                    ),
+                    PopupMenuItem(
+                      value: 'settings',
+                      child: Text('Einstellungen'),
+                    ),
+                  ],
                 ),
               ],
             ),

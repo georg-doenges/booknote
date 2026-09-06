@@ -49,7 +49,8 @@ lib/
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService-Interface + FallbackCoverService,
                    GoogleBooksCoverService, OpenLibraryCoverService ✅
-  export/          Exporter-Interface, MarkdownExporter, shareExport (share_plus) ✅
+  export/          Exporter-Interface + ExportRequest, MarkdownExporter,
+                   PlainTextExporter, showExportSheet, shareExport (share_plus)  ✅
   screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
                    SettingsScreen, BookSearchScreen (Cover-Auswahl)              ✅
   widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog,
@@ -84,7 +85,9 @@ test/
 | B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld (Sheet, Puls, Auto-Stop) | 🔄 gebaut, wartet auf Gerätetest (mit A) |
 | C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit) | 🔄 gebaut, wartet auf Gerätetest |
-| E | App-Icon, Release-Signierung für Tester | ⬜ (als Nächstes) |
+| F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | 🔄 gebaut, wartet auf Gerätetest |
+| F2 | JSON-Bibliotheksdatei + Import mit Vereinigungs-Abgleich | ⬜ (als Nächstes) |
+| E | Release-Signierung (App-Icon später) | ⬜ (nach F) |
 
 ## Was in Schritt 1 passiert ist
 
@@ -289,6 +292,30 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Was in Baustein F1 (Export in 3 Ebenen, Markdown + Text) passiert ist
+
+- **`Exporter`-Interface umgebaut:** `export(ExportRequest) → ExportResult`.
+  `ExportRequest` = Liste von `ExportBook(book, notes)` + optionaler
+  `collectionTitle` (`null` → genau ein Buch; sonst „Bibliothek" oder ein
+  Autorname) + `includeTimestamps`. `ExportRequest.single(book, notes)` als
+  Kurzform.
+- **`MarkdownExporter`** rendert jetzt Einzelbuch (`#`/`##`) **und** Sammlung
+  (`#` Titel, je Buch `##`/`###`). **`PlainTextExporter` neu** – gleiche
+  Gliederung ohne Markdown-Zeichen, `formatName`/`fileExtension`/`mimeType`.
+- `AppScope.exporter` → **`AppScope.exporters`** (`List<Exporter>`,
+  Default `[Markdown, Text]`, erstes = Vorauswahl).
+- **`showExportSheet(context, {initialScope, book?, author?})`** in
+  `lib/export/export_sheet.dart`: Bottom-Sheet mit Ebenen-Radios (dieses Buch /
+  alle eines Autors / ganze Bibliothek) und Format-Umschalter, lädt die Notizen
+  selbst und teilt über den Share-Sheet. Sammlungen werden nach Buchtitel
+  sortiert.
+- **Vorauswahl je Kontext:** `BookDetailScreen` → „dieses Buch" (Autor als
+  Option, falls vorhanden). `LibraryScreen` → Overflow-Menü „Exportieren …",
+  Vorauswahl „ganze Bibliothek" bzw. „dieser Autor", wenn ein Autor-Chip aktiv
+  ist. (Einstellungen sind vom Icon ins selbe Overflow-Menü gewandert.)
+- Tests: `markdown_exporter_test.dart` erweitert (Sammlung),
+  `plain_text_exporter_test.dart` neu. **142 grün**, analyze sauber.
+
 ## Was in Baustein D (Feinschliff Aufnahme-Flow) passiert ist
 
 - **Haptik**: zunächst `HapticFeedback` – auf dem Testgerät (Samsung) **nicht
@@ -380,19 +407,25 @@ A + B + C + D sind auf dem Gerät installiert und warten auf den Test
 (Haptik beim Aufnehmen, Rückfrage bei < 1 s, Lang-Hinweis ab 90 s,
 Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
 
-**Offen / zu entscheiden – Baustein F (Export & Geräte-Abgleich):** Nutzer will
-(a) die **ganze Bibliothek** exportieren (nicht nur ein Buch), (b) eine
-**JSON-Bibliotheksdatei im eigenen Format** exportieren **und importieren**, mit
-**Vereinigungs-Abgleich** (maximalistisch: alle Einträge landen auf beiden
-Seiten, neueres `updatedAt` gewinnt, keine Löschungen). Ziel: dieselbe Datei auf
-Telefon und Tablet abgleichen (später via Google Drive automatisch – das ist der
-aufwändige OAuth-Teil und bleibt vorerst in `BACKLOG.md`). Ist architektonisch
-vorbereitet (UUID-IDs, `updatedAt`, Repository-Interfaces). Reihenfolge F vs. E
-noch offen – Nutzer fragen.
+**Baustein F2 (JSON-Bibliotheksdatei + Abgleich):** `booknote-library.json`
+(alle Quellen + alle Notizen mit UUIDs, `createdAt`, `updatedAt`, plus
+`formatVersion` – Platz für ein späteres Tombstone-Register lassen). Export +
+Import über den System-Dateiwähler. Import = **Vereinigungs-Abgleich**:
+- Eintrag nur auf einer Seite → zur anderen hinzufügen.
+- Eintrag auf beiden → neueres `updatedAt` gewinnt (feldweise last-write-wins).
+- **Keine** Löschungen übertragen (Nutzerentscheidung: Tombstones lohnen den
+  Aufwand jetzt nicht – Schema-Migration + jeder Delete-Pfad + GC. Format bleibt
+  aber erweiterbar; die „gelöschte Einträge überall löschen? ja/nein"-Abfrage
+  steht in `BACKLOG.md`).
+- Nach dem Merge Datei neu schreiben → beide Seiten konvergieren.
+Merge-Logik als reine, getestete Funktion; braucht eine Bulk-Upsert-Methode an
+den Repositories (oder einen `LibrarySync`-Service). Paket `file_picker` fürs
+Auswählen der Datei.
 
-**Baustein E (Weitergabe an Tester):** App-Icon (`flutter_launcher_icons` als
-dev-dependency, plattformneutral) und Release-Signing-Konfiguration
-(`key.properties` + `build.gradle`), damit weitergebbare Release-APKs entstehen.
+**Baustein E (Weitergabe an Tester) – nach F:** Nur die
+**Release-Signing-Konfiguration** (`key.properties` + `build.gradle`), damit
+weitergebbare Release-APKs entstehen. **App-Icon hebt sich der Nutzer für
+später auf** (BACKLOG).
 
 Danach die „Feinheiten"-Runde des Nutzers und die Punkte in `BACKLOG.md`.
 

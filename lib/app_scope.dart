@@ -19,7 +19,7 @@ class AppScope extends InheritedWidget {
     required this.covers,
     required this.settings,
     this.parser = const NoteParser(),
-    this.exporter = const MarkdownExporter(),
+    this.exporters = const [MarkdownExporter(), PlainTextExporter()],
     required super.child,
   });
 
@@ -34,8 +34,8 @@ class AppScope extends InheritedWidget {
 
   final NoteParser parser;
 
-  /// Stufe 1: Markdown. Weitere Formate später über dasselbe Interface.
-  final Exporter exporter;
+  /// Verfügbare Export-Formate; die UI lässt den Nutzer wählen. Erstes = Default.
+  final List<Exporter> exporters;
 
   static AppScope of(BuildContext context) {
     final scope = context.dependOnInheritedWidgetOfExactType<AppScope>();
@@ -52,5 +52,5 @@ class AppScope extends InheritedWidget {
       covers != old.covers ||
       settings != old.settings ||
       parser != old.parser ||
-      exporter != old.exporter;
+      exporters != old.exporters;
 }
