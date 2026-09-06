@@ -78,20 +78,20 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, …) | 🔄 Baustein A (Theme) fertig, auf Gerät |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | 🔄 A–D + F auf Gerät bestätigt; E + Settings-Seite offen |
 
 ### Schritt 8 in Bausteinen
 
 | Baustein | Inhalt | Status |
 |----------|--------|--------|
-| A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
-| B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld (Sheet, Puls, Auto-Stop) | 🔄 gebaut, wartet auf Gerätetest (mit A) |
-| C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
-| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit) | 🔄 gebaut, wartet auf Gerätetest |
-| F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | 🔄 gebaut, wartet auf Gerätetest |
-| F2a | Grabsteine, JSON-Snapshot, Merge, Sichern/Abgleichen | ✅ Smoke-Test auf Gerät |
-| F2b | „Als Master setzen" + GC-Felder + klare Merge/Master-UI | 🔄 gebaut, wartet auf Gerätetest |
-| E | Release-Signierung (App-Icon später) | ⬜ (nach F) |
+| A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät bestätigt |
+| B | Buchsuche: kombiniertes Feld, Mikrofon-Sheet (Puls, Auto-Stop) | ✅ auf Gerät bestätigt |
+| C | Bibliothek nach Titel/Autor durchsuchen & filtern | ✅ auf Gerät bestätigt |
+| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit, Titel-Edit) | ✅ auf Gerät bestätigt |
+| F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
+| F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
+| E | **Release-Signierung** (App-Icon → BACKLOG) | ⬜ **als Nächstes** |
+| — | **Settings-Seite** (bündelt Theme, Keys, Vibration, GC …) | ⬜ danach, siehe BACKLOG |
 
 ## Was in Schritt 1 passiert ist
 
@@ -498,9 +498,9 @@ Spezifikation: `SYNC_DESIGN.md`.
 
 ## Nächster Schritt
 
-A + B + C + D sind auf dem Gerät installiert und warten auf den Test
-(Haptik beim Aufnehmen, Rückfrage bei < 1 s, Lang-Hinweis ab 90 s,
-Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
+Stufe 1 ist im Kern fertig: A–D + F auf dem Gerät bestätigt (Master nur
+logik-/testgetestet). Offen sind nur noch **E (Release-Signierung)** und die
+**Settings-Seite** (Vibration- und GC-Schalter haben noch keine UI).
 
 **Baustein F2 (Bibliotheksdatei + Geräte-Abgleich):** volle Spezifikation in
 **`SYNC_DESIGN.md`** (mit dem Nutzer abgestimmt). Kurz:
