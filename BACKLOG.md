@@ -19,46 +19,45 @@ fotografieren, andere Quellen, weitere Exportformate, lokales Whisper).
   - Offen: Dateiformat (JSON mit Seed + optionalen Overrides?), Ablageort,
     Auswahl-UI in den Einstellungen, mitgelieferte Presets.
 
+## Settings-Seite (dediziert, clean)
+
+Der Nutzer will die Hauptflächen schlank halten und **alle** detaillierten
+Optionen auf **einer** klaren, verständlichen Seite bündeln, erreichbar über
+einen „Einstellungen"-Knopf. Wenn diese Seite gebaut wird, gehört dort hinein:
+
+- Theme-Modus (System/Hell/Dunkel) – wandert vom jetzigen Ort (`SettingsScreen`)
+  hierher bzw. wird Teil davon.
+- API-Keys (OpenAI, Google Books) – schon da, würden hier eingegliedert.
+- **Vibration an/aus** (Aufnahme-Haptik).
+- **Grabstein-Aufräumen (GC): an/aus + Anzahl Tage** (Default 120), siehe
+  `SYNC_DESIGN.md` §6. Die Felder (`tombstoneGcEnabled`, `tombstoneGcDays`)
+  kommen schon mit F2 in `AppSettings`; hier fehlt nur die UI.
+- Export-Format merken (letztes MD/TXT als Default).
+- Sprache der Cover-Suche (aktuell fest `de`).
+- Später: Theme-Import (s.o.), Google-Drive-Konto verbinden.
+
+Struktur: übersichtliche Abschnitte mit Erklärtext, keine kryptischen Schalter.
+
 ## Export & Abgleich zwischen Geräten
 
-Empfehlung: als **Baustein F** bündeln (Details/Entscheidung offen, siehe
-PROGRESS.md „Nächster Schritt").
+Volle Spezifikation: **`SYNC_DESIGN.md`**. In Baustein F2 gebaut wird der
+manuelle Weg (Datei per Share-Sheet raus, per `file_picker` rein, Merge bzw.
+Master, Grabsteine, GC-Felder). Deferred bleibt:
 
-- ~~Ganze Bibliothek exportieren, 3 Ebenen (Buch/Autor/Bibliothek)~~ → Baustein F1.
-- ~~TXT-Format neben Markdown~~ → Baustein F1 (`PlainTextExporter`).
-- **Lokal speichern**, nicht nur Share-Sheet (`.md`/`.txt`/`.json` in einen
-  gewählten Ordner). `shareExport` deckt den Share-Sheet ab; „Speichern unter"
-  über `file_picker` / SAF fehlt noch.
-- **Format der Export-Auswahl merken** (letztes Format als Default), über
-  `AppSettings`.
-- **Tombstone-Register für den Abgleich** (siehe unten): Datei führt eine Liste
-  gelöschter IDs; beim Import fragt die App einmal pauschal „Gelöschte Einträge
-  auf allen Geräten löschen? ja/nein". Bei „nein" der maximalistische Ansatz von
-  F2. Bedingt Schema v3 (`tombstones`-Tabelle), Anpassung jedes Delete-Pfads,
-  und irgendwann Aufräumen alter Tombstones. Lohnt sich nur, wenn F2 im Alltag
-  zu viel „Wiederauferstehen" gelöschter Notizen bringt.
-- **Bibliotheks-Datei im eigenen JSON-Format** (alle Quellen + alle Notizen mit
-  ihren UUIDs, `createdAt`, `updatedAt`) zum Export **und Import**.
-- **Vereinigungs-Abgleich (maximalistisch, Nutzerwunsch):** Beim Import einer
-  solchen Datei werden App und Datei **zusammengeführt**, nicht die Schnittmenge
-  gebildet: jeder Eintrag, der in einer der beiden Seiten existiert, ist danach
-  in beiden. Bei einem Eintrag, den beide Seiten kennen, gewinnt der mit dem
-  neueren `updatedAt` (last-write-wins pro Feld). **Keine** Löschungen werden
-  übertragen. Nach dem Merge wird die Datei neu geschrieben → beide Seiten
-  konvergieren zur Vereinigung.
-  - **Machbar, weil die Architektur es vorbereitet:** IDs sind UUID v4
-    (geräteübergreifend eindeutig, keine Kollision zwischen Telefon/Tablet),
-    jede Quelle und Notiz hat `updatedAt`, die UI spricht nur mit den
-    Repository-Interfaces. Der Merge ist reine, testbare Logik über einer
-    Bulk-Import-Methode am Repository (oder einem `LibrarySync`-Service).
-- **Google Drive automatisch** (späterer Schritt, der aufwändige Teil):
-  `google_sign_in` + Drive-API (`appDataFolder`), die eine JSON-Bibliotheks-
-  datei automatisch findet, den Vereinigungs-Abgleich fährt und zurückschreibt.
-  Setup-Kosten: OAuth-Consent-Screen, Tokens. **Bis dahin geht der Abgleich
-  manuell**: Datei exportieren → per Drive/Mail/USB aufs andere Gerät →
-  importieren. PROJECT.md 3b nennt als Ziel-Sync eigentlich Supabase; der
-  Vereinigungs-Abgleich über eine Datei ist die einfachere, für eine private
-  App ausreichende Variante und blockiert Supabase nicht.
+- ~~Ganze Bibliothek exportieren, 3 Ebenen~~ / ~~TXT-Format~~ → Baustein F1
+  (erledigt).
+- **„Speichern unter" in einen Ordner** (`.md`/`.txt`/`.json`), nicht nur
+  Share-Sheet – über `file_picker` / SAF.
+- **Google Drive automatisch:** `google_sign_in` + Drive-API (`appDataFolder`),
+  die die Bibliotheksdatei selbst findet, abgleicht und zurückschreibt.
+  Setup-Kosten: OAuth-Consent-Screen, Tokens. Bis dahin manuell (F2).
+- **Zwei gleichzeitige Master-Pushes** ohne Zwischen-Abgleich: der zuletzt
+  geschriebene gewinnt, der andere geht verloren (`SYNC_DESIGN.md` §5). Ggf.
+  `deviceId` + Generation statt nur Integer.
+- **Grabstein-GC-UI** – die Logik + `AppSettings`-Felder kommen mit F2, nur die
+  Schalter (an/aus, Tage) fehlen → Settings-Seite (s.o.).
+- PROJECT.md 3b nennt als Ziel-Sync Supabase; der Datei-Abgleich ist die
+  einfachere, ausreichende Variante und blockiert Supabase nicht.
 
 ## Cover-Suche
 

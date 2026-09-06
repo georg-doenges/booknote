@@ -407,27 +407,31 @@ A + B + C + D sind auf dem Gerät installiert und warten auf den Test
 (Haptik beim Aufnehmen, Rückfrage bei < 1 s, Lang-Hinweis ab 90 s,
 Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
 
-**Baustein F2 (JSON-Bibliotheksdatei + Abgleich):** `booknote-library.json`
-(alle Quellen + alle Notizen mit UUIDs, `createdAt`, `updatedAt`, plus
-`formatVersion` – Platz für ein späteres Tombstone-Register lassen). Export +
-Import über den System-Dateiwähler. Import = **Vereinigungs-Abgleich**:
-- Eintrag nur auf einer Seite → zur anderen hinzufügen.
-- Eintrag auf beiden → neueres `updatedAt` gewinnt (feldweise last-write-wins).
-- **Keine** Löschungen übertragen (Nutzerentscheidung: Tombstones lohnen den
-  Aufwand jetzt nicht – Schema-Migration + jeder Delete-Pfad + GC. Format bleibt
-  aber erweiterbar; die „gelöschte Einträge überall löschen? ja/nein"-Abfrage
-  steht in `BACKLOG.md`).
-- Nach dem Merge Datei neu schreiben → beide Seiten konvergieren.
-Merge-Logik als reine, getestete Funktion; braucht eine Bulk-Upsert-Methode an
-den Repositories (oder einen `LibrarySync`-Service). Paket `file_picker` fürs
-Auswählen der Datei.
+**Baustein F2 (Bibliotheksdatei + Geräte-Abgleich):** volle Spezifikation in
+**`SYNC_DESIGN.md`** (mit dem Nutzer abgestimmt). Kurz:
+
+- Klar getrennt vom **Abzug** (F1, MD/TXT, nur raus): die **Bibliotheksdatei**
+  `booknote-library.json` ist die bidirektionale Sync-Grundlage mit Grabsteinen.
+- **Schema v3:** Tabelle `tombstones`; `delete` schreibt Grabsteine mit.
+- **`mergeLibrary`** (reine Funktion): „neuester Fakt gewinnt" – eine Löschung
+  ist ein Fakt mit `deletedAt`. Löschung schlägt Bearbeitung bei Gleichstand.
+- **„Als Master setzen"**: `masterGeneration` hochzählen; ein Gerät mit
+  `datei.masterGeneration > lastConsumed` **ersetzt** seine DB komplett (kein
+  Merge).
+- **GC**: `AppSettings.tombstoneGcEnabled` (Default an) / `tombstoneGcDays`
+  (Default 120); Merge verwirft alte Grabsteine. UI dafür → Settings-Seite
+  (BACKLOG).
+- Ohne Drive: „Sichern"/„Als Master setzen" über Share-Sheet, „Abgleichen"
+  über `file_picker`, danach Hinweis „aktualisierte Datei sichern".
+- Unterteilung **F2a** (Grabsteine, Snapshot/JSON, Merge, LibraryArchive,
+  Sichern/Abgleichen) und **F2b** (Master-Modus + GC-Felder).
 
 **Baustein E (Weitergabe an Tester) – nach F:** Nur die
-**Release-Signing-Konfiguration** (`key.properties` + `build.gradle`), damit
-weitergebbare Release-APKs entstehen. **App-Icon hebt sich der Nutzer für
-später auf** (BACKLOG).
+**Release-Signing-Konfiguration** (`key.properties` + `build.gradle`).
+**App-Icon** hebt sich der Nutzer für später auf (BACKLOG).
 
-Danach die „Feinheiten"-Runde des Nutzers und die Punkte in `BACKLOG.md`.
+Danach die „Feinheiten"-Runde des Nutzers und die Punkte in `BACKLOG.md`
+(u.a. die dedizierte **Settings-Seite**, die alle Optionen bündelt).
 
 ~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),

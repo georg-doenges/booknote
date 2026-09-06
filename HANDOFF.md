@@ -15,7 +15,8 @@ einer früheren Session. Bitte arbeite so weiter, wie es dort etabliert wurde.
 1. `PROGRESS.md` – Stand, Architektur-Entscheidungen, Wunschliste, offene
    Punkte. **Das ist die wichtigste Datei.**
 2. `PROJECT.md` – die ursprüngliche Spezifikation. `BACKLOG.md` – Ideen für
-   spätere Ausbaustufen (nicht jetzt bauen).
+   spätere Ausbaustufen (nicht jetzt bauen). `SYNC_DESIGN.md` – Spezifikation
+   für den Geräte-Abgleich (Baustein F2), falls das gerade dran ist.
 3. `lib/app_scope.dart` und `lib/main.dart` – dort siehst du, wie alles
    verdrahtet ist (Repositories, Services, Exporter über ein InheritedWidget).
 4. Je nach Aufgabe: `lib/repositories/book_repository.dart` +
