@@ -35,7 +35,8 @@ Ideen für später (nicht jetzt bauen, nur architektonisch offenhalten):
 
 ```
 lib/
-  models/          Source, SourceType, Book, Note (+ models.dart Sammel-Export)   ✅
+  models/          Source, SourceType, Book, Note, book_query.dart (filterBooks,
+                   distinctAuthors) (+ models.dart Sammel-Export)                 ✅
   repositories/    BookRepository, NoteRepository (Interfaces) ✅, InMemory-Impl ✅,
                    watch_stream.dart (Helfer) ✅
   repositories/sqlite/  AppDatabase (Schema v1), SqliteBook/NoteRepository, Mapper ✅
@@ -80,8 +81,8 @@ test/
 |----------|--------|--------|
 | A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
 | B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld (Sheet, Puls, Auto-Stop) | 🔄 gebaut, wartet auf Gerätetest (mit A) |
-| C | Bibliothek nach Titel/Autor filtern & durchsuchen | 🔄 in Arbeit |
-| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ |
+| C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
+| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ (als Nächstes) |
 | E | App-Icon, Release-Signierung für Tester | ⬜ |
 
 ## Was in Schritt 1 passiert ist
@@ -287,6 +288,23 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Was in Baustein C (Bibliothek durchsuchen/filtern) passiert ist
+
+- **`lib/models/book_query.dart` neu:** `filterBooks(books, {query, author})`
+  (Freitext auf Titel **oder** Autor, Teilstring, case-insensitiv; plus
+  optionaler exakter Autor) und `distinctAuthors(books)` (sortiert, ohne
+  Dubletten/Leere). Reine Funktionen, getestet in
+  `test/models/book_query_test.dart`. Repository bleibt unangetastet – die
+  Bibliothek lädt weiter alle Bücher und filtert in Dart.
+- **`LibraryScreen` ist jetzt `StatefulWidget`:** Lupe in der AppBar → AppBar
+  wird zum Suchfeld (Zurück-Pfeil beendet, „×" leert). Darunter eine
+  horizontale **`FilterChip`-Leiste** mit „Alle" + je einem Autor, aber nur
+  wenn ≥ 2 Autoren vorhanden sind. Suche und Autorfilter wirken zusammen.
+  Kein Treffer → Hinweis mit „Filter zurücksetzen". Grid/Empty-States in
+  eigene kleine Widgets ausgelagert (`_BookGrid`, `_AuthorFilterBar`,
+  `_EmptyHint`).
+- **138 Tests grün**, analyze sauber.
+
 ## Was in Baustein B (Buchsuche mit Autor + Mikrofon) passiert ist
 
 - **Ein kombiniertes Suchfeld** (Nutzerentscheidung): Titel und Autor im selben
@@ -330,24 +348,24 @@ test/
 |--------|--------------|
 | Buchsuche: Autor optional angeben | ✅ Baustein B: ein kombiniertes Freitextfeld (Titel + Autor), Google-Books-Freitext. |
 | Buchsuche per Sprache (Mikrofon rechts im Suchfeld) | ✅ Baustein B: `VoiceInputButton`, Ergebnis → Suchfeld, kein Autor/Titel-Splitter. |
-| Bibliothek nach Autor filtern | Baustein C. Chip-Leiste oder Dropdown mit vorhandenen Autoren; `BookRepository` reicht. |
-| Bibliothek nach Titel durchsuchen | Baustein C. Suchfeld in der AppBar der Library, Filter in Dart. |
+| Bibliothek nach Autor filtern | ✅ Baustein C: `FilterChip`-Leiste (ab 2 Autoren). |
+| Bibliothek nach Titel durchsuchen | ✅ Baustein C: Lupe → Suchfeld in der AppBar, Filter in Dart. |
 | Sprache der Cover-Suche konfigurierbar | `BACKLOG.md`. Aktuell fest `de`, siehe Sprach-Fix. |
 
 ## Nächster Schritt
 
-Erst wartet Baustein B auf den Gerätetest (zusammen mit A: Light/Dark auf allen
-Screens, Theme-Umschalter in den Einstellungen, Navigationsleiste verdeckt
-nichts mehr, Mikrofon in der Buchsuche).
+Bausteine A + B + C warten auf den gemeinsamen Gerätetest (Light/Dark auf allen
+Screens, Theme-Umschalter, Navigationsleiste verdeckt nichts, Mikrofon-Sheet in
+der Buchsuche mit Puls + Auto-Stop, Bibliothek durchsuchen/filtern).
+**Gerät war beim Bauen von C abgesteckt – die Debug-APK ist gebaut, aber noch
+nicht installiert** (`flutter install -d <ID> --debug`).
 
-**Baustein C (Bibliothek filtern/durchsuchen):** Suchfeld in der AppBar der
-`LibraryScreen` (Filter in Dart über den vorhandenen `watchAll()`-Stream) und
-Filter nach Autor (Chips/Dropdown aus den vorhandenen Autoren). `BookRepository`
-reicht dafür.
+**Baustein D (Feinschliff Aufnahme-Flow):** Haptik beim Start/Stopp, Rückfrage
+bzw. Verwerfen bei sehr kurzer Aufnahme (< 1 s), Hinweis bei sehr langer
+Aufnahme, letzte Notiz direkt im `RecordingScreen` bearbeiten. Der große
+`RecordButton` und `SilenceDetector` aus Baustein B sind wiederverwendbar.
 
-Danach D (Feinschliff Aufnahme-Flow: Haptik, Rückfrage bei < 1 s, Hinweis bei
-sehr langer Aufnahme, letzte Notiz direkt im RecordingScreen bearbeiten),
-E (App-Icon, Release-Signierung). Ideen „für später" in `BACKLOG.md`.
+Danach E (App-Icon, Release-Signierung). Ideen „für später" in `BACKLOG.md`.
 
 ~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),
