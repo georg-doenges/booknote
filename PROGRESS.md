@@ -66,7 +66,17 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff Aufnahme-Flow | ⬜ |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, …) | 🔄 Baustein A (Theme) fertig, auf Gerät |
+
+### Schritt 8 in Bausteinen
+
+| Baustein | Inhalt | Status |
+|----------|--------|--------|
+| A | Zentrales `lib/theme.dart`, Dark Mode, Abstände/Typo | ✅ auf Gerät |
+| B | Buchsuche: Autor im selben Feld, Mikrofon im Suchfeld | ⬜ |
+| C | Bibliothek nach Titel/Autor filtern & durchsuchen | ⬜ |
+| D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ |
+| E | App-Icon, Release-Signierung für Tester | ⬜ |
 
 ## Was in Schritt 1 passiert ist
 
@@ -228,6 +238,29 @@ test/
 - `AppScope.exporter` (Default `MarkdownExporter`); Export-Icon im
   BookDetail aktiv.
 
+## Was in Baustein A (Theme/Design) passiert ist
+
+- **`lib/theme.dart` neu:** `BooknoteTheme` als Namespace (`abstract final class`).
+  Ein Seed (`0xFF6D4C41`, warmes Braun) → `ColorScheme.fromSeed` für hell **und**
+  dunkel. Abstands-Konstanten `gap4..gap24`, `screenPadding`, `cardRadius`.
+  Komponenten-Themes: flache AppBar (linksbündig, Fläche = `surface`), flache
+  Karten (`elevation 0`, `surfaceContainerLow`, Radius 12), Eingabefelder appweit
+  mit `OutlineInputBorder`, SnackBars `floating`, Divider als Haarlinie.
+- **`main.dart`:** `theme` / `darkTheme` / `themeMode: ThemeMode.system`. Damit
+  folgt die App jetzt dem System-Hell/Dunkel (vorher nur hell verdrahtet).
+- **Screens/Widgets auf das Theme umgestellt:** rohe Zahlen → `BooknoteTheme.gapN`;
+  redundantes `border: OutlineInputBorder()` aus den Feldern entfernt (kommt jetzt
+  aus dem Theme); gedämpfter Text `scheme.outline` → `scheme.onSurfaceVariant`
+  (bessere Lesbarkeit, v.a. im Dark Mode). Betrifft `library_screen`,
+  `recording_screen`, `settings_screen`, `book_search_screen`, `book_cover_tile`,
+  `note_tile`, `note_edit_dialog`, `book_edit_dialog`.
+- **Aufnahme-Button** (`recording_screen`): größer (184), sitzt in einem
+  farbigen Ring (`primaryContainer` / bei Aufnahme `errorContainer`),
+  `AnimatedContainer` für weichen Zustandswechsel, Sekundenzähler mit
+  Tabellenziffern.
+- **Tests:** `test/theme_test.dart` (hell/dunkel, Rahmen, `themeMode`). 118 grün.
+- Nicht angefasst: App-weite Schriftart, Icon, konkreter Aufnahme-Flow (Baustein D).
+
 ## Nutzerwünsche (aus dem Test nach Schritt 5)
 
 | Wunsch | Status |
@@ -249,11 +282,15 @@ test/
 
 ## Nächster Schritt
 
-**Schritt 8 (Feinschliff Aufnahme-Flow):** Kandidaten: Haptik beim Start/Stopp,
-Aufnahme-Limit/Hinweis bei sehr langen Aufnahmen, Rückfrage bei sehr kurzer
-Aufnahme (< 1 s), letzte Notiz direkt im RecordingScreen bearbeiten,
-App-Icon, Release-Build-Konfiguration (Signing) für Weitergabe an Tester.
-Danach die offene Wunschliste oben.
+**Baustein B (Buchsuche mit Autor + Mikrofon):** Nutzer hat sich für **ein
+kombiniertes Suchfeld** entschieden (Titel und Autor im selben Feld, kein
+zweites Feld). Google-Books-Freitext trifft „Zauberberg Mann" schon gut; ggf.
+leichte Query-Aufbereitung. Zusätzlich Mikrofon-Icon rechts im Suchfeld, das
+`TranscriptionService` wiederverwendet und das Ergebnis ins Feld schreibt.
+
+Danach Baustein C (Bibliothek filtern/durchsuchen), D (Feinschliff Aufnahme-Flow:
+Haptik, Rückfrage bei < 1 s, Hinweis bei sehr langer Aufnahme, letzte Notiz
+direkt im RecordingScreen bearbeiten), E (App-Icon, Release-Signierung).
 
 ~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),

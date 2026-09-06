@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../theme.dart';
 
 /// Einstellungen: OpenAI-API-Key (Pflicht für Whisper) und optionaler
 /// Google-Books-Key (Cover-Suche, Schritt 6).
@@ -57,23 +58,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final text = Theme.of(context).textTheme;
+    final theme = Theme.of(context);
+    final text = theme.textTheme;
+    final captionStyle = text.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
     return Scaffold(
       appBar: AppBar(title: const Text('Einstellungen')),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.all(16),
+              padding: BooknoteTheme.screenPadding,
               children: [
                 Text('OpenAI-API-Key', style: text.titleMedium),
-                const SizedBox(height: 4),
+                const SizedBox(height: BooknoteTheme.gap4),
                 Text(
                   'Für die Spracherkennung (Whisper). Wird nur auf diesem Gerät '
                   'gespeichert. Kosten: ca. 0,006 US-Dollar pro Minute Aufnahme, '
                   'kein Abo.',
-                  style: text.bodySmall,
+                  style: captionStyle,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: BooknoteTheme.gap8),
                 TextField(
                   controller: _openAi,
                   obscureText: !_showOpenAi,
@@ -81,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   enableSuggestions: false,
                   decoration: InputDecoration(
                     hintText: 'sk-…',
-                    border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _showOpenAi ? Icons.visibility_off : Icons.visibility,
@@ -91,27 +95,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: BooknoteTheme.gap24),
                 Text(
                   'Google-Books-API-Key (optional)',
                   style: text.titleMedium,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: BooknoteTheme.gap4),
                 Text(
                   'Für die Cover-Suche. Ohne Key funktioniert die Suche meist '
                   'auch, mit Key stabiler. Kostenlos.',
-                  style: text.bodySmall,
+                  style: captionStyle,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: BooknoteTheme.gap8),
                 TextField(
                   controller: _googleBooks,
                   autocorrect: false,
                   enableSuggestions: false,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                  ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: BooknoteTheme.gap24),
                 FilledButton.icon(
                   onPressed: _saving ? null : _save,
                   icon: const Icon(Icons.save_outlined),

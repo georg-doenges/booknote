@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../services/services.dart';
+import '../theme.dart';
 import 'settings_screen.dart';
 
 /// Ergebnis der Buchsuche: entweder ein ausgewählter Treffer oder der vom
@@ -118,7 +119,12 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            padding: const EdgeInsets.fromLTRB(
+              BooknoteTheme.gap16,
+              BooknoteTheme.gap12,
+              BooknoteTheme.gap16,
+              BooknoteTheme.gap4,
+            ),
             child: TextField(
               controller: _query,
               autofocus: widget.initialQuery.isEmpty,
@@ -128,7 +134,6 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
                 labelText: 'Titel (und ggf. Autor)',
-                border: const OutlineInputBorder(),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
                   onPressed: _search,
@@ -201,7 +206,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       return Center(
         child: Text(
           'Titel eingeben, um Cover zu suchen.',
-          style: TextStyle(color: scheme.outline),
+          style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       );
     }
@@ -210,7 +215,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
         child: Text(
           'Nichts gefunden. Anderen Titel probieren\noder ohne Cover anlegen.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: scheme.outline),
+          style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       );
     }

@@ -49,14 +49,19 @@ class NoteTile extends StatelessWidget {
             ),
             Text(
               formatDateTime(note.createdAt),
-              style: textTheme.labelSmall?.copyWith(color: scheme.outline),
+              style: textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
         subtitle: Text(
           text,
           style: note.text.isEmpty
-              ? TextStyle(fontStyle: FontStyle.italic, color: scheme.outline)
+              ? TextStyle(
+                  fontStyle: FontStyle.italic,
+                  color: scheme.onSurfaceVariant,
+                )
               : null,
         ),
         trailing: onDelete == null

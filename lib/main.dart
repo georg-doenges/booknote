@@ -4,6 +4,7 @@ import 'app_scope.dart';
 import 'repositories/repositories.dart';
 import 'screens/library_screen.dart';
 import 'services/services.dart';
+import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,10 +53,9 @@ class BooknoteApp extends StatelessWidget {
       covers: covers,
       child: MaterialApp(
         title: 'Booknote',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.brown),
-          useMaterial3: true,
-        ),
+        theme: BooknoteTheme.light(),
+        darkTheme: BooknoteTheme.dark(),
+        themeMode: ThemeMode.system,
         home: const LibraryScreen(),
       ),
     );

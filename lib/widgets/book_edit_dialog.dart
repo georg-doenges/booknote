@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../theme.dart';
 
 /// Titel und Autor eines Buchs bearbeiten. Gibt das geänderte Buch zurück
 /// oder `null` bei Abbruch.
@@ -56,7 +57,7 @@ class _BookEditDialogState extends State<_BookEditDialog> {
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(labelText: 'Titel'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: BooknoteTheme.gap12),
           TextField(
             controller: _author,
             textCapitalization: TextCapitalization.words,

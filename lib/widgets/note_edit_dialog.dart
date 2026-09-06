@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../theme.dart';
 
 /// Dialog zum Bearbeiten von Seite, Position und Text einer Notiz.
 /// Gibt die geänderte Notiz zurück oder `null` bei Abbruch.
@@ -67,7 +68,7 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: BooknoteTheme.gap12),
                 Expanded(
                   child: TextField(
                     controller: _position,
@@ -79,7 +80,7 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: BooknoteTheme.gap12),
             TextField(
               controller: _text,
               autofocus: true,
@@ -87,7 +88,7 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
               maxLines: 8,
               decoration: const InputDecoration(labelText: 'Text'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: BooknoteTheme.gap12),
             ExpansionTile(
               title: Text(
                 'Original-Transkript',

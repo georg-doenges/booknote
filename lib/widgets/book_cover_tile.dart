@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
+import '../theme.dart';
 
 /// Cover-Kachel für das Bibliotheks-Grid. Ohne Cover: Platzhalter mit Titel.
 class BookCoverTile extends StatelessWidget {
@@ -23,13 +24,13 @@ class BookCoverTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(BooknoteTheme.cardRadius),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(BooknoteTheme.cardRadius),
                 child: Container(
                   color: scheme.surfaceContainerHighest,
                   child: book.coverUrl == null
@@ -63,7 +64,7 @@ class BookCoverTile extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.labelSmall
-                    ?.copyWith(color: scheme.outline),
+                    ?.copyWith(color: scheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
           ],

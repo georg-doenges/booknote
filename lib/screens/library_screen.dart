@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../models/models.dart';
+import '../theme.dart';
 import '../widgets/book_cover_tile.dart';
 import 'book_detail_screen.dart';
 import 'book_search_screen.dart';
@@ -57,22 +58,25 @@ class LibraryScreen extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (books.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(32),
+                padding: const EdgeInsets.all(BooknoteTheme.gap24),
                 child: Text(
                   'Noch keine Bücher.\nLege mit „+" dein erstes Buch an.',
                   textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ),
             );
           }
           return GridView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(BooknoteTheme.gap12),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 140,
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
+              mainAxisSpacing: BooknoteTheme.gap16,
+              crossAxisSpacing: BooknoteTheme.gap12,
               childAspectRatio: 0.58,
             ),
             itemCount: books.length,

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_scope.dart';
 import '../models/models.dart';
 import '../services/services.dart';
+import '../theme.dart';
 import '../widgets/note_tile.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
@@ -162,6 +163,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
+    final muted = scheme.onSurfaceVariant;
 
     return Scaffold(
       appBar: AppBar(
@@ -187,18 +189,31 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _RecordButton(phase: _phase, onPressed: _toggle),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: BooknoteTheme.gap24),
                   Text(_statusLine(), style: text.titleMedium),
                   if (_phase == _Phase.recording)
-                    Text(_fmt(_elapsed), style: text.headlineSmall),
+                    Padding(
+                      padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
+                      child: Text(
+                        _fmt(_elapsed),
+                        style: text.headlineSmall?.copyWith(
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ),
                   if (_phase == _Phase.idle && _session.isEmpty)
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(32, 12, 32, 0),
+                      padding: const EdgeInsets.fromLTRB(
+                        BooknoteTheme.gap24,
+                        BooknoteTheme.gap12,
+                        BooknoteTheme.gap24,
+                        0,
+                      ),
                       child: Text(
                         'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
                         'Autor, dass …"',
                         textAlign: TextAlign.center,
-                        style: text.bodySmall?.copyWith(color: scheme.outline),
+                        style: text.bodyMedium?.copyWith(color: muted),
                       ),
                     ),
                 ],
@@ -221,10 +236,15 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                    padding: const EdgeInsets.fromLTRB(
+                      BooknoteTheme.gap16,
+                      BooknoteTheme.gap8,
+                      BooknoteTheme.gap16,
+                      BooknoteTheme.gap4,
+                    ),
                     child: Text(
                       'Diese Sitzung (${_session.length})',
-                      style: text.labelLarge,
+                      style: text.labelLarge?.copyWith(color: muted),
                     ),
                   ),
                   Expanded(
@@ -262,13 +282,19 @@ class _RecordButton extends StatelessWidget {
     final recording = phase == _Phase.recording;
     final busy = phase == _Phase.transcribing;
 
-    return SizedBox(
-      width: 160,
-      height: 160,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      width: 184,
+      height: 184,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: recording ? scheme.errorContainer : scheme.primaryContainer,
+      ),
+      padding: const EdgeInsets.all(BooknoteTheme.gap12),
       child: Material(
         color: recording ? scheme.error : scheme.primary,
         shape: const CircleBorder(),
-        elevation: 6,
+        elevation: 3,
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: busy ? null : onPressed,
@@ -284,7 +310,7 @@ class _RecordButton extends StatelessWidget {
                   )
                 : Icon(
                     recording ? Icons.stop : Icons.mic,
-                    size: 72,
+                    size: 76,
                     color: recording ? scheme.onError : scheme.onPrimary,
                   ),
           ),
@@ -314,10 +340,10 @@ class _ErrorCard extends StatelessWidget {
         error.kind == TranscriptionErrorKind.missingApiKey ||
         error.kind == TranscriptionErrorKind.unauthorized;
     return Card(
-      margin: const EdgeInsets.all(12),
+      margin: const EdgeInsets.all(BooknoteTheme.gap12),
       color: scheme.errorContainer,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(BooknoteTheme.gap16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
