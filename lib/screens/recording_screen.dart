@@ -180,84 +180,89 @@ class _RecordingScreenState extends State<RecordingScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _RecordButton(phase: _phase, onPressed: _toggle),
-                  const SizedBox(height: BooknoteTheme.gap24),
-                  Text(_statusLine(), style: text.titleMedium),
-                  if (_phase == _Phase.recording)
-                    Padding(
-                      padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
-                      child: Text(
-                        _fmt(_elapsed),
-                        style: text.headlineSmall?.copyWith(
-                          fontFeatures: const [FontFeature.tabularFigures()],
+      // SafeArea unten: sonst verdeckt die System-Navigationsleiste die
+      // Aktionen der Fehlerkarte („Erneut versuchen").
+      body: SafeArea(
+        top: false,
+        child: Column(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _RecordButton(phase: _phase, onPressed: _toggle),
+                    const SizedBox(height: BooknoteTheme.gap24),
+                    Text(_statusLine(), style: text.titleMedium),
+                    if (_phase == _Phase.recording)
+                      Padding(
+                        padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
+                        child: Text(
+                          _fmt(_elapsed),
+                          style: text.headlineSmall?.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
-                    ),
-                  if (_phase == _Phase.idle && _session.isEmpty)
+                    if (_phase == _Phase.idle && _session.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          BooknoteTheme.gap24,
+                          BooknoteTheme.gap12,
+                          BooknoteTheme.gap24,
+                          0,
+                        ),
+                        child: Text(
+                          'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
+                          'Autor, dass …"',
+                          textAlign: TextAlign.center,
+                          style: text.bodyMedium?.copyWith(color: muted),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            if (_phase == _Phase.error && _error != null)
+              _ErrorCard(
+                error: _error!,
+                onRetry: _transcribe,
+                onDiscard: _discardPending,
+                onSettings: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                ),
+              ),
+            if (_session.isNotEmpty)
+              Expanded(
+                flex: 4,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Padding(
                       padding: const EdgeInsets.fromLTRB(
-                        BooknoteTheme.gap24,
-                        BooknoteTheme.gap12,
-                        BooknoteTheme.gap24,
-                        0,
+                        BooknoteTheme.gap16,
+                        BooknoteTheme.gap8,
+                        BooknoteTheme.gap16,
+                        BooknoteTheme.gap4,
                       ),
                       child: Text(
-                        'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
-                        'Autor, dass …"',
-                        textAlign: TextAlign.center,
-                        style: text.bodyMedium?.copyWith(color: muted),
+                        'Diese Sitzung (${_session.length})',
+                        style: text.labelLarge?.copyWith(color: muted),
                       ),
                     ),
-                ],
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: _session.length,
+                        itemBuilder: (_, i) =>
+                            NoteTile(note: _session[i], highlight: i == 0),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          if (_phase == _Phase.error && _error != null)
-            _ErrorCard(
-              error: _error!,
-              onRetry: _transcribe,
-              onDiscard: _discardPending,
-              onSettings: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const SettingsScreen())),
-            ),
-          if (_session.isNotEmpty)
-            Expanded(
-              flex: 4,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      BooknoteTheme.gap16,
-                      BooknoteTheme.gap8,
-                      BooknoteTheme.gap16,
-                      BooknoteTheme.gap4,
-                    ),
-                    child: Text(
-                      'Diese Sitzung (${_session.length})',
-                      style: text.labelLarge?.copyWith(color: muted),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: _session.length,
-                      itemBuilder: (_, i) =>
-                          NoteTile(note: _session[i], highlight: i == 0),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }

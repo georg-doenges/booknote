@@ -4,6 +4,7 @@ import '../app_scope.dart';
 import '../export/export.dart';
 import '../models/models.dart';
 import '../repositories/repositories.dart';
+import '../theme.dart';
 import '../widgets/book_edit_dialog.dart';
 import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
@@ -209,7 +210,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 );
               }
               return ListView.builder(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                // Unten Platz für System-Navigationsleiste und FAB.
+                padding: EdgeInsets.fromLTRB(
+                  0,
+                  BooknoteTheme.gap8,
+                  0,
+                  BooknoteTheme.gap8 +
+                      BooknoteTheme.fabSafeBottom +
+                      MediaQuery.paddingOf(context).bottom,
+                ),
                 itemCount: notes.length,
                 itemBuilder: (_, i) => NoteTile(
                   note: notes[i],

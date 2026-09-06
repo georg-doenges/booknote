@@ -220,6 +220,9 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       );
     }
     return ListView.separated(
+      padding: EdgeInsets.only(
+        bottom: BooknoteTheme.gap16 + MediaQuery.paddingOf(context).bottom,
+      ),
       itemCount: results.length,
       separatorBuilder: (_, _) => const Divider(height: 1),
       itemBuilder: (context, i) {

@@ -17,6 +17,7 @@ class AppScope extends InheritedWidget {
     required this.transcription,
     required this.apiKeys,
     required this.covers,
+    required this.settings,
     this.parser = const NoteParser(),
     this.exporter = const MarkdownExporter(),
     required super.child,
@@ -27,6 +28,10 @@ class AppScope extends InheritedWidget {
   final TranscriptionService transcription;
   final ApiKeyStore apiKeys;
   final CoverService covers;
+
+  /// App-Einstellungen (Theme-Modus etc.), von der UI les- und schreibbar.
+  final AppSettings settings;
+
   final NoteParser parser;
 
   /// Stufe 1: Markdown. Weitere Formate später über dasselbe Interface.
@@ -45,6 +50,7 @@ class AppScope extends InheritedWidget {
       transcription != old.transcription ||
       apiKeys != old.apiKeys ||
       covers != old.covers ||
+      settings != old.settings ||
       parser != old.parser ||
       exporter != old.exporter;
 }

@@ -3,6 +3,8 @@
 Diese Datei hält fest, was gebaut ist, was fehlt und wo wir gerade stehen,
 damit ein anderes Modell (oder Mensch) die Arbeit nahtlos übernehmen kann.
 Spezifikation: `PROJECT.md`. Reihenfolge der Bausteine: PROJECT.md, Abschnitt 10.
+Ideen für später (nicht jetzt bauen, nur architektonisch offenhalten):
+`BACKLOG.md`.
 
 ## Umgebung
 
@@ -37,9 +39,11 @@ lib/
   repositories/    BookRepository, NoteRepository (Interfaces) ✅, InMemory-Impl ✅,
                    watch_stream.dart (Helfer) ✅
   repositories/sqlite/  AppDatabase (Schema v1), SqliteBook/NoteRepository, Mapper ✅
-  app_scope.dart   InheritedWidget, reicht die Repositories an die UI durch      ✅
+  app_scope.dart   InheritedWidget, reicht Repositories + Services an die UI      ✅
+  theme.dart       BooknoteTheme: Seed → hell/dunkel, Abstände, Komponenten       ✅
   services/        NoteParser + GermanNumberParser ✅, TranscriptionService-Interface
                    + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
+                   AppSettings + AppSettingsStore (SharedPrefs + InMemory) ✅,
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService-Interface + FallbackCoverService,
                    GoogleBooksCoverService, OpenLibraryCoverService ✅
@@ -72,8 +76,8 @@ test/
 
 | Baustein | Inhalt | Status |
 |----------|--------|--------|
-| A | Zentrales `lib/theme.dart`, Dark Mode, Abstände/Typo | ✅ auf Gerät |
-| B | Buchsuche: Autor im selben Feld, Mikrofon im Suchfeld | ⬜ |
+| A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
+| B | Buchsuche: Autor im selben Feld, Mikrofon im Suchfeld | ⬜ (als Nächstes) |
 | C | Bibliothek nach Titel/Autor filtern & durchsuchen | ⬜ |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ |
 | E | App-Icon, Release-Signierung für Tester | ⬜ |
@@ -258,8 +262,28 @@ test/
   farbigen Ring (`primaryContainer` / bei Aufnahme `errorContainer`),
   `AnimatedContainer` für weichen Zustandswechsel, Sekundenzähler mit
   Tabellenziffern.
-- **Tests:** `test/theme_test.dart` (hell/dunkel, Rahmen, `themeMode`). 118 grün.
+- **Tests:** `test/theme_test.dart` (hell/dunkel, Rahmen, `themeMode`).
 - Nicht angefasst: App-weite Schriftart, Icon, konkreter Aufnahme-Flow (Baustein D).
+
+### Nachbesserung nach dem ersten Test (gleicher Commit-Block)
+
+- **Theme-Umschalter in den Einstellungen.** Neu: `lib/services/app_settings.dart`
+  mit `AppSettingsStore` (Interface), `SharedPrefsAppSettingsStore` (produktiv,
+  neues Paket `shared_preferences`), `InMemoryAppSettingsStore` (Tests) und
+  `AppSettings extends ChangeNotifier` (hält den Stand, schreibt durch). `main.dart`
+  lädt `AppSettings` beim Start, `AppScope` reicht es durch, `MaterialApp` liegt in
+  einem `ListenableBuilder` → Wechsel wirkt sofort. `SettingsScreen` hat oben einen
+  `SegmentedButton` System / Hell / Dunkel. Auswahl wird persistiert.
+  Tests: `test/services/app_settings_test.dart`. Gesamt **125 grün**.
+- **System-Navigationsleiste verdeckt nichts mehr.** `RecordingScreen` (Fehlerkarte
+  „Erneut versuchen") und `SettingsScreen` in `SafeArea(top: false)`; die Listen in
+  `LibraryScreen`, `BookDetailScreen`, `BookSearchScreen` haben unten
+  `MediaQuery.paddingOf(context).bottom` (+ `BooknoteTheme.fabSafeBottom` wo ein FAB
+  sitzt) als Scroll-Abstand.
+- **`BACKLOG.md` neu:** Sammelstelle für Wünsche „für später". Aktuell drin:
+  importierbare Farbschemata (Theme-Datei laden), Export lokal speichern,
+  Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
+  `BooknoteTheme` + `AppSettings` gekapselt.
 
 ## Nutzerwünsche (aus dem Test nach Schritt 5)
 

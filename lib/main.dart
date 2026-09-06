@@ -12,6 +12,7 @@ Future<void> main() async {
   // Einzige Stelle, die die konkreten Implementierungen wählt.
   final db = await AppDatabase.open();
   final apiKeys = SecureApiKeyStore();
+  final settings = await AppSettings.load(SharedPrefsAppSettingsStore());
 
   runApp(
     BooknoteApp(
@@ -23,6 +24,7 @@ Future<void> main() async {
         primary: GoogleBooksCoverService(apiKeys: apiKeys),
         fallback: OpenLibraryCoverService(),
       ),
+      settings: settings,
     ),
   );
 }
@@ -35,6 +37,7 @@ class BooknoteApp extends StatelessWidget {
     required this.apiKeys,
     required this.transcription,
     required this.covers,
+    required this.settings,
   });
 
   final BookRepository books;
@@ -42,6 +45,7 @@ class BooknoteApp extends StatelessWidget {
   final ApiKeyStore apiKeys;
   final TranscriptionService transcription;
   final CoverService covers;
+  final AppSettings settings;
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +55,16 @@ class BooknoteApp extends StatelessWidget {
       apiKeys: apiKeys,
       transcription: transcription,
       covers: covers,
-      child: MaterialApp(
-        title: 'Booknote',
-        theme: BooknoteTheme.light(),
-        darkTheme: BooknoteTheme.dark(),
-        themeMode: ThemeMode.system,
-        home: const LibraryScreen(),
+      settings: settings,
+      child: ListenableBuilder(
+        listenable: settings,
+        builder: (context, _) => MaterialApp(
+          title: 'Booknote',
+          theme: BooknoteTheme.light(),
+          darkTheme: BooknoteTheme.dark(),
+          themeMode: settings.themeMode,
+          home: const LibraryScreen(),
+        ),
       ),
     );
   }

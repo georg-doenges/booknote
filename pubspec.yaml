@@ -29,6 +29,9 @@ dependencies:
   # API-Key sicher speichern
   flutter_secure_storage: ^9.2.4
 
+  # Einfache App-Einstellungen (Theme-Modus etc.), plattformneutral
+  shared_preferences: ^2.3.2
+
   # Markdown-Export über Share-Sheet
   share_plus: ^12.0.1
 

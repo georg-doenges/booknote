@@ -72,7 +72,15 @@ class LibraryScreen extends StatelessWidget {
             );
           }
           return GridView.builder(
-            padding: const EdgeInsets.all(BooknoteTheme.gap12),
+            // Unten Platz für System-Navigationsleiste und FAB.
+            padding: EdgeInsets.fromLTRB(
+              BooknoteTheme.gap12,
+              BooknoteTheme.gap12,
+              BooknoteTheme.gap12,
+              BooknoteTheme.gap12 +
+                  BooknoteTheme.fabSafeBottom +
+                  MediaQuery.paddingOf(context).bottom,
+            ),
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 140,
               mainAxisSpacing: BooknoteTheme.gap16,

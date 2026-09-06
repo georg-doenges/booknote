@@ -14,7 +14,8 @@ einer früheren Session. Bitte arbeite so weiter, wie es dort etabliert wurde.
 
 1. `PROGRESS.md` – Stand, Architektur-Entscheidungen, Wunschliste, offene
    Punkte. **Das ist die wichtigste Datei.**
-2. `PROJECT.md` – die ursprüngliche Spezifikation.
+2. `PROJECT.md` – die ursprüngliche Spezifikation. `BACKLOG.md` – Ideen für
+   spätere Ausbaustufen (nicht jetzt bauen).
 3. `lib/app_scope.dart` und `lib/main.dart` – dort siehst du, wie alles
    verdrahtet ist (Repositories, Services, Exporter über ein InheritedWidget).
 4. Je nach Aufgabe: `lib/repositories/book_repository.dart` +
@@ -31,7 +32,7 @@ einer früheren Session. Bitte arbeite so weiter, wie es dort etabliert wurde.
   `flutter build apk --debug`, `flutter install -d R3CY60DPEFA --debug`,
   `adb -s R3CY60DPEFA shell am start -n de.doenges.booknote/.MainActivity`.
 - Vor jedem Commit: `dart format lib test`, `flutter analyze`, `flutter test`
-  (aktuell 114 Tests, alle grün, keine Analyzer-Befunde).
+  (aktuell 125 Tests, alle grün, keine Analyzer-Befunde).
 
 ## Arbeitsweise, die ich erwarte
 
@@ -43,9 +44,12 @@ einer früheren Session. Bitte arbeite so weiter, wie es dort etabliert wurde.
   ist", „Nächster Schritt"). Das Repo ist nur lokal, Branch `main`.
 - Architektur nicht aufweichen: UI spricht nur mit den Interfaces
   (`BookRepository`, `NoteRepository`, `TranscriptionService`, `CoverService`,
-  `Exporter`, `ApiKeyStore`). Neue Implementierungen müssen den Vertragstest in
+  `Exporter`, `ApiKeyStore`, `AppSettingsStore`) über `AppScope`. Neue
+  Repository-Implementierungen müssen den Vertragstest in
   `test/repositories/repository_contract.dart` bestehen. Keine Android-only-
   Pakete, iOS muss baubar bleiben.
+- Erscheinungsbild nur über `lib/theme.dart` (`BooknoteTheme`), nicht als
+  Einzelstyling in den Screens. Ideen „für später" in `BACKLOG.md` sammeln.
 - Antworten auf Deutsch, kurz. Dateien mit Pfad nennen.
 - Wenn etwas an der Spec oder meinen Wünschen unklar ist: kurz fragen, sonst
   sinnvolle Annahme treffen und im Ergebnis nennen.

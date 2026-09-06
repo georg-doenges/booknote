@@ -21,6 +21,11 @@ abstract final class BooknoteTheme {
   /// Standard-Innenabstand für scrollbare Screen-Inhalte.
   static const EdgeInsets screenPadding = EdgeInsets.all(gap16);
 
+  /// Zusätzlicher unterer Scroll-Abstand, damit ein FAB den letzten
+  /// Listeneintrag nicht verdeckt. Zur System-Navigationsleiste kommt
+  /// `MediaQuery.paddingOf(context).bottom` obendrauf.
+  static const double fabSafeBottom = 88;
+
   /// Kantenradius für Karten und Cover-Kacheln.
   static const double cardRadius = 12;
 
