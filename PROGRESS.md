@@ -90,8 +90,8 @@ test/
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit, Titel-Edit) | ✅ auf Gerät bestätigt |
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
-| E | **Release-Signierung** (App-Icon → BACKLOG) | ⬜ **als Nächstes** |
-| — | **Settings-Seite** (bündelt Theme, Keys, Vibration, GC …) | ⬜ danach, siehe BACKLOG |
+| E | Release-Signierung (App-Icon → BACKLOG) | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
+| G | **Settings-Seite** (bündelt Theme, Keys, Vibration, GC …) | 🔄 **als Nächstes** |
 
 ## Was in Schritt 1 passiert ist
 
@@ -295,6 +295,16 @@ test/
   importierbare Farbschemata (Theme-Datei laden), Export lokal speichern,
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
+
+## Was in Baustein E (Release-Signierung) passiert ist
+
+- `android/app/build.gradle.kts` liest die Signierung aus `android/key.properties`
+  (git-ignoriert). Fehlt die Datei, fällt der Release-Build auf den Debug-Key
+  zurück – nichts bricht. `flutter build apk --release` verifiziert (Fallback).
+- **`SIGNING.md`**: Schritt-für-Schritt für den Nutzer (Keystore per `keytool`
+  anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
+  wählt der Nutzer selbst.
+- App-Icon bleibt bewusst offen (BACKLOG).
 
 ## Merge-Modell überarbeitet (Nutzerentscheidung) + weitere Korrekturen
 
