@@ -91,7 +91,7 @@ test/
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
 | E | Release-Signierung (App-Icon → BACKLOG) | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
-| G | **Settings-Seite** (bündelt Theme, Keys, Vibration, GC …) | 🔄 **als Nächstes** |
+| G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | 🔄 gebaut, wartet auf Gerätetest |
 
 ## Was in Schritt 1 passiert ist
 
@@ -295,6 +295,20 @@ test/
   importierbare Farbschemata (Theme-Datei laden), Export lokal speichern,
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
+
+## Was in Baustein G (Settings-Seite) passiert ist
+
+- **`SettingsScreen` neu aufgebaut** als aufgeräumte, abschnittsweise Seite
+  (`_Section`-Helfer: Titel in Primärfarbe + Erklärtext): **Darstellung**
+  (Theme-Modus), **Aufnahme** (`SwitchListTile` Vibration), **API-Schlüssel**
+  (OpenAI + Google Books + „Schlüssel speichern"), **Geräte-Abgleich**
+  (`SwitchListTile` „Alte Löschungen vergessen" + `DropdownButton` Tage, nur
+  wenn an). Alle Schalter außer den Text-Keys speichern sofort.
+- **`AppSettings` + Store**: neu `hapticsEnabled` (Default true). `main.dart`
+  hält `Haptics.enabled` per Listener mit den Settings synchron.
+- Die GC-Felder (`tombstoneGcEnabled`/`Days`) haben jetzt ihre UI; der Merge
+  liest sie schon seit F2b aus `AppSettings.sync`.
+- Tests: `app_settings_test.dart` um Haptik + GC erweitert. **165 grün**.
 
 ## Was in Baustein E (Release-Signierung) passiert ist
 

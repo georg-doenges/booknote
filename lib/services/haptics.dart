@@ -9,6 +9,10 @@ import 'package:vibration/vibration.dart';
 abstract final class Haptics {
   static bool? _hasVibrator;
 
+  /// Vom Nutzer abschaltbar (Einstellungen). `main.dart` hält das mit
+  /// `AppSettings.hapticsEnabled` synchron.
+  static bool enabled = true;
+
   /// Aufnahme beginnt.
   static Future<void> recordStart() => _buzz(50);
 
@@ -19,6 +23,7 @@ abstract final class Haptics {
   static Future<void> saved() => _buzz(18);
 
   static Future<void> _buzz(int ms) async {
+    if (!enabled) return;
     try {
       _hasVibrator ??= await Vibration.hasVibrator();
       if (_hasVibrator != true) return;

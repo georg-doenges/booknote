@@ -45,6 +45,26 @@ void main() {
 
       expect(notified, 0);
     });
+
+    test('Haptik: Default an, abschaltbar, wird durchgeschrieben', () async {
+      final store = InMemoryAppSettingsStore();
+      final settings = await AppSettings.load(store);
+      expect(settings.hapticsEnabled, isTrue);
+
+      await settings.setHapticsEnabled(false);
+      expect(settings.hapticsEnabled, isFalse);
+      expect(store.hapticsEnabled, isFalse);
+    });
+
+    test('GC-Einstellungen: Default an / 120 Tage, änderbar', () async {
+      final store = InMemoryAppSettingsStore();
+      final settings = await AppSettings.load(store);
+      expect(settings.sync.tombstoneGcEnabled, isTrue);
+      expect(settings.sync.tombstoneGcDays, 120);
+
+      await settings.updateSync(settings.sync.copyWith(tombstoneGcDays: 30));
+      expect(store.syncSettings.tombstoneGcDays, 30);
+    });
   });
 
   group('SharedPrefsAppSettingsStore', () {

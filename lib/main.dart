@@ -13,6 +13,8 @@ Future<void> main() async {
   final db = await AppDatabase.open();
   final apiKeys = SecureApiKeyStore();
   final settings = await AppSettings.load(SharedPrefsAppSettingsStore());
+  Haptics.enabled = settings.hapticsEnabled;
+  settings.addListener(() => Haptics.enabled = settings.hapticsEnabled);
 
   runApp(
     BooknoteApp(

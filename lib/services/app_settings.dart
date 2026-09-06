@@ -40,6 +40,10 @@ abstract class AppSettingsStore {
   Future<ThemeMode> getThemeMode();
   Future<void> setThemeMode(ThemeMode mode);
 
+  /// Haptisches Feedback beim Aufnehmen.
+  Future<bool> getHapticsEnabled();
+  Future<void> setHapticsEnabled(bool enabled);
+
   Future<SyncSettings> getSyncSettings();
   Future<void> setSyncSettings(SyncSettings settings);
 }
@@ -47,6 +51,7 @@ abstract class AppSettingsStore {
 /// Produktive Implementierung über `shared_preferences` (plattformneutral).
 class SharedPrefsAppSettingsStore implements AppSettingsStore {
   static const _themeModeKey = 'theme_mode';
+  static const _hapticsKey = 'haptics_enabled';
   static const _masterGenKey = 'sync_last_master_generation';
   static const _gcEnabledKey = 'sync_tombstone_gc_enabled';
   static const _gcDaysKey = 'sync_tombstone_gc_days';
@@ -65,6 +70,18 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
   Future<void> setThemeMode(ThemeMode mode) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_themeModeKey, mode.name);
+  }
+
+  @override
+  Future<bool> getHapticsEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_hapticsKey) ?? true;
+  }
+
+  @override
+  Future<void> setHapticsEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_hapticsKey, enabled);
   }
 
   @override
@@ -92,10 +109,12 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
 class InMemoryAppSettingsStore implements AppSettingsStore {
   InMemoryAppSettingsStore({
     this.themeMode = ThemeMode.system,
+    this.hapticsEnabled = true,
     this.syncSettings = const SyncSettings(),
   });
 
   ThemeMode themeMode;
+  bool hapticsEnabled;
   SyncSettings syncSettings;
 
   @override
@@ -103,6 +122,13 @@ class InMemoryAppSettingsStore implements AppSettingsStore {
 
   @override
   Future<void> setThemeMode(ThemeMode mode) async => themeMode = mode;
+
+  @override
+  Future<bool> getHapticsEnabled() async => hapticsEnabled;
+
+  @override
+  Future<void> setHapticsEnabled(bool enabled) async =>
+      hapticsEnabled = enabled;
 
   @override
   Future<SyncSettings> getSyncSettings() async => syncSettings;
@@ -117,12 +143,13 @@ class InMemoryAppSettingsStore implements AppSettingsStore {
 /// die UI liest daraus und ruft die Setter. Als [ChangeNotifier], damit
 /// `MaterialApp` bei einem Theme-Wechsel sofort neu baut.
 class AppSettings extends ChangeNotifier {
-  AppSettings(this._store, this._themeMode, this._sync);
+  AppSettings(this._store, this._themeMode, this._hapticsEnabled, this._sync);
 
   /// Lädt den gespeicherten Stand und baut daraus die Instanz.
   static Future<AppSettings> load(AppSettingsStore store) async => AppSettings(
     store,
     await store.getThemeMode(),
+    await store.getHapticsEnabled(),
     await store.getSyncSettings(),
   );
 
@@ -130,6 +157,9 @@ class AppSettings extends ChangeNotifier {
 
   ThemeMode _themeMode;
   ThemeMode get themeMode => _themeMode;
+
+  bool _hapticsEnabled;
+  bool get hapticsEnabled => _hapticsEnabled;
 
   SyncSettings _sync;
   SyncSettings get sync => _sync;
@@ -139,6 +169,13 @@ class AppSettings extends ChangeNotifier {
     _themeMode = mode;
     notifyListeners();
     await _store.setThemeMode(mode);
+  }
+
+  Future<void> setHapticsEnabled(bool enabled) async {
+    if (enabled == _hapticsEnabled) return;
+    _hapticsEnabled = enabled;
+    notifyListeners();
+    await _store.setHapticsEnabled(enabled);
   }
 
   Future<void> updateSync(SyncSettings settings) async {
