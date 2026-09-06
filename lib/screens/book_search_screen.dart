@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_scope.dart';
 import '../services/services.dart';
 import '../theme.dart';
+import '../widgets/voice_input_button.dart';
 import 'settings_screen.dart';
 
 /// Ergebnis der Buchsuche: entweder ein ausgewählter Treffer oder der vom
@@ -105,6 +106,16 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     BookSearchResult(title: c.title, author: c.author, coverUrl: c.coverUrl),
   );
 
+  void _onVoice(String text) {
+    _query.text = text;
+    _query.selection = TextSelection.collapsed(offset: text.length);
+    _search();
+  }
+
+  void _openSettings() =>
+      Navigator.of(context)
+          .push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
+
   void _withoutCover() {
     final t = _query.text.trim();
     if (t.isEmpty) return;
@@ -134,9 +145,21 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
                 labelText: 'Titel (und ggf. Autor)',
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.search),
-                  onPressed: _search,
+                helperText: 'z.B. „Zauberberg Mann"',
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    VoiceInputButton(
+                      onResult: _onVoice,
+                      onOpenSettings: _openSettings,
+                      tooltip: 'Titel einsprechen',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.search),
+                      tooltip: 'Suchen',
+                      onPressed: _search,
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -167,9 +190,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SettingsScreen()),
-                  ),
+                  onPressed: _openSettings,
                   child: const Text('Einstellungen'),
                 ),
               ],

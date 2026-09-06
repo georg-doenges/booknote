@@ -51,7 +51,8 @@ lib/
   screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
                    SettingsScreen, BookSearchScreen (Cover-Auswahl)              ✅
   widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog,
-                   BookEditDialog (Titel/Autor), format.dart (Datum)             ✅
+                   BookEditDialog (Titel/Autor), VoiceInputButton (Mikrofon fürs
+                   Textfeld), format.dart (Datum)                                ✅
   main.dart        BooknoteApp → LibraryScreen                                    ✅
 test/
   models/          Unit-Tests für das Datenmodell                                 ✅
@@ -77,8 +78,8 @@ test/
 | Baustein | Inhalt | Status |
 |----------|--------|--------|
 | A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
-| B | Buchsuche: Autor im selben Feld, Mikrofon im Suchfeld | ⬜ (als Nächstes) |
-| C | Bibliothek nach Titel/Autor filtern & durchsuchen | ⬜ |
+| B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld | 🔄 gebaut, wartet auf Gerätetest (zusammen mit A) |
+| C | Bibliothek nach Titel/Autor filtern & durchsuchen | ⬜ (als Nächstes) |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ |
 | E | App-Icon, Release-Signierung für Tester | ⬜ |
 
@@ -285,6 +286,25 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Was in Baustein B (Buchsuche mit Autor + Mikrofon) passiert ist
+
+- **Ein kombiniertes Suchfeld** (Nutzerentscheidung): Titel und Autor im selben
+  Feld als Freitext. Kein zweites Feld, kein Autor/Titel-Splitter. Google Books
+  bekommt den Text schon 1:1 als `q=` (`GoogleBooksCoverService` unverändert),
+  Freitext wie „Zauberberg Mann" trifft gut. `BookSearchScreen` zeigt jetzt
+  `helperText: z.B. „Zauberberg Mann"`.
+- **`lib/widgets/voice_input_button.dart` neu:** `VoiceInputButton` – Mikrofon-
+  Icon für ein Textfeld. Tippen → `NoteRecorder` nimmt auf (Dauer-SnackBar
+  „Aufnahme läuft"), nochmal tippen → `TranscriptionService.transcribe` →
+  `onResult(rawText)`. **Kein** `NoteParser` (Suchtext, keine Notiz). Fehler →
+  SnackBar; bei fehlendem/abgelehntem Key optional `onOpenSettings`.
+  Wiederverwendbar (später auch am Notiz-Textfeld).
+- `BookSearchScreen.suffixIcon` ist jetzt `[VoiceInputButton, Such-IconButton]`.
+  Spracheingabe schreibt das Ergebnis ins Feld und löst die Suche aus.
+- **Keine neuen Tests**: `VoiceInputButton` bündelt nur die schon getesteten
+  Services (`WhisperService`, `NoteRecorder`); wie beim `RecordingScreen`
+  Verifikation auf dem Gerät. Gesamt weiterhin **125 grün**, analyze sauber.
+
 ## Nutzerwünsche (aus dem Test nach Schritt 5)
 
 | Wunsch | Status |
@@ -298,23 +318,26 @@ test/
 
 | Wunsch | Idee / Notiz |
 |--------|--------------|
-| Buchsuche: Autor optional angeben | Google Books kann `inauthor:`/`intitle:`; Open Library `author=`/`title=`. Entweder ein Feld („Mann Zauberberg" geht bei Google im Freitext schon gut) oder zwei Felder Autor + Titel. Nutzer bevorzugt ein Feld, akzeptiert zwei. |
-| Buchsuche per Sprache (Mikrofon rechts im Suchfeld) | `TranscriptionService` wiederverwenden, Ergebnis ins Suchfeld. Konvention „Nachname Titel". Ggf. Parser, der Autor/Titel trennt – wenn nicht zuverlässig, zwei Felder. |
-| Bibliothek nach Autor filtern | Chip-Leiste oder Dropdown mit vorhandenen Autoren; `BookRepository` reicht (`getAll` + Filter in Dart). |
-| Bibliothek nach Titel durchsuchen | Suchfeld in der AppBar der Library, Filter in Dart. |
-| Sprache der Cover-Suche konfigurierbar | Aktuell fest `de`, siehe Sprach-Fix. |
+| Buchsuche: Autor optional angeben | ✅ Baustein B: ein kombiniertes Freitextfeld (Titel + Autor), Google-Books-Freitext. |
+| Buchsuche per Sprache (Mikrofon rechts im Suchfeld) | ✅ Baustein B: `VoiceInputButton`, Ergebnis → Suchfeld, kein Autor/Titel-Splitter. |
+| Bibliothek nach Autor filtern | Baustein C. Chip-Leiste oder Dropdown mit vorhandenen Autoren; `BookRepository` reicht. |
+| Bibliothek nach Titel durchsuchen | Baustein C. Suchfeld in der AppBar der Library, Filter in Dart. |
+| Sprache der Cover-Suche konfigurierbar | `BACKLOG.md`. Aktuell fest `de`, siehe Sprach-Fix. |
 
 ## Nächster Schritt
 
-**Baustein B (Buchsuche mit Autor + Mikrofon):** Nutzer hat sich für **ein
-kombiniertes Suchfeld** entschieden (Titel und Autor im selben Feld, kein
-zweites Feld). Google-Books-Freitext trifft „Zauberberg Mann" schon gut; ggf.
-leichte Query-Aufbereitung. Zusätzlich Mikrofon-Icon rechts im Suchfeld, das
-`TranscriptionService` wiederverwendet und das Ergebnis ins Feld schreibt.
+Erst wartet Baustein B auf den Gerätetest (zusammen mit A: Light/Dark auf allen
+Screens, Theme-Umschalter in den Einstellungen, Navigationsleiste verdeckt
+nichts mehr, Mikrofon in der Buchsuche).
 
-Danach Baustein C (Bibliothek filtern/durchsuchen), D (Feinschliff Aufnahme-Flow:
-Haptik, Rückfrage bei < 1 s, Hinweis bei sehr langer Aufnahme, letzte Notiz
-direkt im RecordingScreen bearbeiten), E (App-Icon, Release-Signierung).
+**Baustein C (Bibliothek filtern/durchsuchen):** Suchfeld in der AppBar der
+`LibraryScreen` (Filter in Dart über den vorhandenen `watchAll()`-Stream) und
+Filter nach Autor (Chips/Dropdown aus den vorhandenen Autoren). `BookRepository`
+reicht dafür.
+
+Danach D (Feinschliff Aufnahme-Flow: Haptik, Rückfrage bei < 1 s, Hinweis bei
+sehr langer Aufnahme, letzte Notiz direkt im RecordingScreen bearbeiten),
+E (App-Icon, Release-Signierung). Ideen „für später" in `BACKLOG.md`.
 
 ~~**Schritt 7:** `lib/export/exporter.dart` (Interface `Exporter` mit
 `export(Book, List<Note>) → ExportResult(fileName, mimeType, bytes)`),
