@@ -76,45 +76,36 @@ Wird eine ID neu angelegt, die zufällig einem Grabstein entspricht (praktisch
 nur bei „Undelete via Merge"), verliert der Grabstein beim nächsten Merge gegen
 die neuere `updatedAt` – kein Sonderfall nötig.
 
-## 4. Merge (`mergeLibrary`, reine Funktion)
+## 4. Abgleichen — `mergeLibrary`, **rein additiv**
 
 Eingabe: lokaler Snapshot + Datei-Snapshot, je `{sources, notes, tombstones,
 masterGeneration}`. Ausgabe: gemischter Snapshot – wird **sowohl** in die DB
-geschrieben **als auch** als neue Datei.
+geschrieben **als auch** (auf Wunsch) als neue Datei.
 
 ### 4.1 Master-Kurzschluss (zuerst prüfen)
 
 Jedes Gerät merkt sich `lastConsumedMasterGeneration` (in `AppSettings`, Default 0).
 
 - Ist `datei.masterGeneration > lastConsumedMasterGeneration`:
-  → **kein Merge**. Die lokale DB wird **komplett durch den Datei-Inhalt
-  ersetzt** (inkl. Grabsteine). `lastConsumedMasterGeneration :=
-  datei.masterGeneration`. Fertig.
-  Begründung: Der Nutzer hat diese Datei bewusst zum „Master" erklärt (§5);
-  lokale Extras sollen weichen.
+  → **kein Merge**, sondern `adoptMaster` (§5). `lastConsumedMasterGeneration :=
+  datei.masterGeneration`.
 - Sonst: normaler Merge (§4.2).
 
-### 4.2 Normaler Merge — „neuester Fakt gewinnt"
+### 4.2 Merge — Vereinigung, nie Datenverlust
 
-Für jede Eintrags-ID sammeln wir alle bekannten Fakten aus beiden Seiten:
+**Grundsatz:** Alles, was auf einer der beiden Seiten noch **lebt**, ist danach
+dabei. **Löschungen werden nicht übertragen.** Grabsteine werden mitgeführt,
+aber **nicht angewendet** – sie wirken erst in `adoptMaster` (§5).
 
-| Fakt | Zeitstempel |
-|---|---|
-| lebende Quelle | `updatedAt` |
-| lebende Notiz | `updatedAt` |
-| Grabstein | `deletedAt` |
-
-Pro ID gewinnt der Fakt mit dem **größten Zeitstempel**. Bei exaktem
-Gleichstand gewinnt der **Grabstein** (Löschung schlägt Bearbeitung).
-
-Danach:
-1. `liveSources` = alle Sieger-Fakten vom Typ Quelle.
-2. `liveNotes` = alle Sieger-Fakten vom Typ Notiz, **gefiltert**: Notizen, deren
-   `sourceId` nicht unter `liveSources` ist, fallen weg (Waise nach
-   Buch-Löschung).
-3. `tombstones` = alle Sieger-Fakten vom Typ Grabstein.
-4. **Grabstein-GC** (§6): Grabsteine mit `deletedAt < now - gcDays` entfernen,
-   falls GC eingeschaltet.
+1. `sources` = Vereinigung beider Quell-Listen; bei gleicher ID gewinnt der
+   neuere `updatedAt` (Inhaltskonflikt = last-write-wins, **nur** bei Inhalt,
+   nicht bei Existenz).
+2. `notes` analog; danach fallen Waisen (Buch nicht mehr da) weg.
+3. `tombstones` = Vereinigung, jüngster je ID – **aber nur, solange der Eintrag
+   nirgends mehr lebt.** Kommt ein Eintrag im Merge wieder zum Leben,
+   verschwindet sein Grabstein. → Invariante: *lebendig* und *Grabstein*
+   schließen sich aus.
+4. **Grabstein-GC** (§6).
 5. `masterGeneration` = `max(lokal, datei)`.
 
 Ergebnis ist per Konstruktion ein Superset der lebenden lokalen Daten → die DB
@@ -122,42 +113,55 @@ kann gefahrlos komplett ersetzt werden (`LibraryArchive.replaceWith`).
 
 ### 4.3 Fälle (zur Kontrolle)
 
-| Situation | Ergebnis |
+| Situation | Merge-Ergebnis |
 |---|---|
-| auf A gelöscht, auf B unangetastet | Grabstein neuer → überall weg |
-| auf A gelöscht, danach auf B bearbeitet | Bearbeitung neuer → kommt zurück |
-| nur auf A neu | Union → bleibt |
-| auf beiden gelöscht | bleibt weg |
-| dieselbe Notiz auf A und B bearbeitet | spätere Wall-Clock gewinnt, andere Änderung weg (akzeptiert) |
+| nur auf A vorhanden | Union → bleibt |
+| auf A gelöscht, auf B noch da | **kommt zurück** (Merge löscht nie) |
+| dieselbe Notiz auf A und B bearbeitet | spätere Wall-Clock gewinnt (nur Inhalt) |
+| auf beiden gelöscht, nirgends mehr da | Grabstein bleibt (für spätere `adoptMaster`) |
 
-## 5. „Als Master setzen"
+## 5. „Als Vorlage (Master) setzen" + `adoptMaster`
 
-Zusätzlich zum normalen „Sichern" (schreibt Datei mit unverändertem
-`masterGeneration`) gibt es **„Als Master setzen"**:
+### 5.1 Setzen (Gerät A)
 
-- schreibt die Datei mit dem **aktuellen lokalen Stand unverändert** (kein
-  vorheriger Merge),
-- `masterGeneration := max(lokal, zuletzt gesehene Datei) + 1`,
-- setzt lokal `lastConsumedMasterGeneration := neue masterGeneration`.
+- `masterGeneration := lokale masterGeneration + 1`
+- schreibt die Datei mit dem **aktuellen lokalen Stand unverändert** (inkl.
+  seiner Grabsteine, kein vorheriger Merge)
+- hält die neue Generation lokal fest (`replaceWith` + `lastConsumedMasterGeneration`)
+- teilt die Datei
 
-Praxis: Nutzer macht normalen Abgleich, konsolidiert/editiert in Ruhe, dann
-„Als Master setzen". Alle anderen Geräte richten sich beim nächsten Abgleich
-per §4.1 danach aus.
+Praxis: erst normal abgleichen, dann in Ruhe konsolidieren/aufräumen, dann „Als
+Vorlage setzen".
 
-**Grenze (dokumentieren, nicht lösen):** Setzen zwei Geräte ohne
-zwischenzeitlichen Abgleich „Master", gewinnt die zuletzt in Drive geschriebene
-Datei; der andere Master-Push geht verloren. Für eine private App ok.
+### 5.2 Übernehmen (`adoptMaster(local, master)`, Gerät B)
+
+Der Master ist **verbindlich für alles, was er kennt**:
+
+- **`master.sources` / `master.notes` gewinnen** – auch gegen einen neueren
+  lokalen Stand derselben ID.
+- **`master.tombstones` werden angewendet:** entsprechende lokale Einträge
+  fallen weg. **Nur so werden Löschungen übertragen.**
+- Lokale Einträge, deren ID der Master **nie gesehen hat** (weder lebendig noch
+  als Grabstein), **bleiben** – sie sind auf B neu dazugekommen.
+- Danach Waisen-Filter, Grabstein-Invariante (§4.2.3), GC.
+- `masterGeneration := master.masterGeneration`.
+
+### 5.3 Grenze (dokumentieren, nicht lösen)
+
+Setzen zwei Geräte ohne zwischenzeitlichen Abgleich „Master", gewinnt die
+zuletzt in Drive geschriebene Datei; der andere Master-Push geht verloren. Für
+eine private App ok.
 
 ## 6. Grabstein-Aufräumen (GC)
 
-- `AppSettings`: `tombstoneGcEnabled` (Default **true**), `tombstoneGcDays`
+- `AppSettings.sync`: `tombstoneGcEnabled` (Default **true**), `tombstoneGcDays`
   (Default **120**).
-- Beim Merge (Schritt §4.2.4) werden Grabsteine älter als
-  `now - tombstoneGcDays` verworfen, wenn `tombstoneGcEnabled`.
-- Risiko bei sehr seltenem Abgleich (Gerät > gcDays offline mit lebendem
-  Eintrag → Wiederauferstehung). Deshalb abschaltbar.
-- GC ist pro Gerät konfiguriert; ein Gerät mit GC aus bringt alte Grabsteine
-  wieder in die Datei – harmlos, solange der Eintrag wirklich überall tot ist.
+- In `mergeLibrary` **und** `adoptMaster` werden Grabsteine älter als
+  `now - tombstoneGcDays` verworfen, wenn eingeschaltet.
+- Risiko: Gerät > gcDays offline mit lebendem Eintrag, der anderswo per Master
+  gelöscht wurde → beim späten `adoptMaster` fehlt der Grabstein → Eintrag gilt
+  als „auf B neu" und bleibt (Wiederauferstehung). Deshalb abschaltbar. Für zwei
+  regelmäßig genutzte Geräte irrelevant.
 
 ## 7. Ablauf ohne Google Drive (jetzt baubar)
 

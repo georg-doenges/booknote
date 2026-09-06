@@ -16,7 +16,7 @@ Future<void> showLibrarySyncSheet(BuildContext context) {
   );
 }
 
-enum _Phase { idle, working, done, error }
+enum _Phase { idle, working, merged, error }
 
 class _LibrarySyncSheet extends StatefulWidget {
   const _LibrarySyncSheet();
@@ -28,49 +28,96 @@ class _LibrarySyncSheet extends StatefulWidget {
 class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   _Phase _phase = _Phase.idle;
   String _message = '';
-  Widget? _resultBody;
+  LibrarySyncMerged? _mergeResult;
 
   LibrarySync get _sync => AppScope.of(context).librarySync;
 
-  Future<void> _run(Future<void> Function() action) async {
+  void _snack(String text) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+
+  Future<void> _save() async {
     setState(() => _phase = _Phase.working);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
     try {
-      await action();
+      await _sync.save();
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Bibliotheksdatei gesichert.')),
+      );
     } catch (e) {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _message = e is LibraryFileException
-              ? e.message
-              : 'Fehlgeschlagen: $e';
+          _message = 'Sichern fehlgeschlagen: $e';
         });
       }
     }
   }
 
-  Future<void> _save() => _run(() async {
-    await _sync.save();
-    if (mounted) setState(() => _phase = _Phase.idle);
-  });
-
-  Future<void> _merge() => _run(() async {
-    final result = await _sync.pickAndMerge();
-    if (!mounted) return;
-    switch (result) {
-      case LibrarySyncCancelled():
-        setState(() => _phase = _Phase.idle);
-      case LibrarySyncMerged():
+  Future<void> _merge() async {
+    setState(() => _phase = _Phase.working);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final result = await _sync.pickAndMerge();
+      if (!mounted) return;
+      switch (result) {
+        case LibrarySyncCancelled():
+          setState(() => _phase = _Phase.idle);
+        case LibrarySyncMerged():
+          setState(() {
+            _phase = _Phase.merged;
+            _mergeResult = result;
+          });
+        case LibrarySyncAdoptedMaster():
+          Navigator.of(context).pop();
+          messenger.showSnackBar(
+            SnackBar(
+              content: Text(
+                'Vorlage übernommen: ${result.books} Bücher, '
+                '${result.notes} Notizen.',
+              ),
+            ),
+          );
+      }
+    } on LibraryFileException catch (e) {
+      if (mounted) {
         setState(() {
-          _phase = _Phase.done;
-          _resultBody = _mergedResult(result);
+          _phase = _Phase.error;
+          _message = e.message;
         });
-      case LibrarySyncAdoptedMaster():
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _phase = _Phase.done;
-          _resultBody = _adoptedResult(result);
+          _phase = _Phase.error;
+          _message = 'Abgleich fehlgeschlagen: $e';
         });
+      }
     }
-  });
+  }
+
+  Future<void> _shareMerged() async {
+    final merged = _mergeResult?.merged;
+    if (merged == null) return;
+    setState(() => _phase = _Phase.working);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
+      await _sync.shareSnapshot(merged);
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('Aktualisierte Bibliotheksdatei gesichert.'),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _phase = _Phase.merged);
+        _snack('Sichern fehlgeschlagen: $e');
+      }
+    }
+  }
 
   Future<void> _setAsMaster() async {
     final ok = await showDialog<bool>(
@@ -79,9 +126,10 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
         title: const Text('Als Vorlage (Master) setzen?'),
         content: const Text(
           'Der aktuelle Stand dieses Geräts wird zur verbindlichen Vorlage. '
-          'Andere Geräte übernehmen ihn beim nächsten Abgleich vollständig – '
-          'auch dort neu Hinzugefügtes wird dann überschrieben.\n\n'
-          'Nutze das nur, wenn du hier gerade alles konsolidiert hast.',
+          'Andere Geräte übernehmen ihn beim nächsten Abgleich – inklusive der '
+          'hier gelöschten Einträge. Was auf dem anderen Gerät ganz neu ist, '
+          'bleibt.\n\nNutze das nur, wenn du hier gerade alles konsolidiert '
+          'hast.',
         ),
         actions: [
           TextButton(
@@ -95,11 +143,28 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
         ],
       ),
     );
-    if (ok != true) return;
-    await _run(() async {
+    if (ok != true || !mounted) return;
+    setState(() => _phase = _Phase.working);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    try {
       await _sync.setAsMaster();
-      if (mounted) setState(() => _phase = _Phase.idle);
-    });
+      navigator.pop();
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Als Vorlage gesichert. Andere Geräte gleichen sich an.',
+          ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _phase = _Phase.error;
+          _message = 'Fehlgeschlagen: $e';
+        });
+      }
+    }
   }
 
   @override
@@ -139,8 +204,8 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
               style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
             ),
             const SizedBox(height: BooknoteTheme.gap16),
-            if (_phase == _Phase.done && _resultBody != null)
-              _resultBody!
+            if (_phase == _Phase.merged && _mergeResult != null)
+              _mergedView(text, scheme)
             else if (_phase == _Phase.error)
               _errorView(text, scheme)
             else
@@ -185,8 +250,8 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           label: const Text('Abgleichen (zusammenführen)'),
         ),
         hint(
-          'Vereint Datei und App. Nichts geht verloren; Löschungen, die neuer '
-          'sind als die Datei, werden übernommen.',
+          'Vereint Datei und App. Alles, was auf einer Seite noch da ist, '
+          'bleibt – Löschungen werden hier nicht übertragen.',
         ),
         OutlinedButton.icon(
           onPressed: busy ? null : _setAsMaster,
@@ -194,22 +259,27 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           label: const Text('Als Vorlage (Master) setzen'),
         ),
         hint(
-          'Erklärt diesen Stand zur Vorlage. Andere Geräte übernehmen ihn beim '
-          'nächsten Abgleich komplett.',
+          'Nur so werden Löschungen übertragen: andere Geräte übernehmen diesen '
+          'Stand komplett (ihr ganz Neues bleibt).',
         ),
       ],
     );
   }
 
-  Widget _mergedResult(LibrarySyncMerged r) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
+  Widget _mergedView(TextTheme text, ColorScheme scheme) {
+    final r = _mergeResult!;
     String line(String label, int after, int added) =>
         '$label: $after${added > 0 ? '  (+$added)' : ''}';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _resultHeader(Icons.merge, 'Zusammengeführt', scheme.primary),
+        Row(
+          children: [
+            Icon(Icons.merge, color: scheme.primary),
+            const SizedBox(width: BooknoteTheme.gap8),
+            Text('Zusammengeführt', style: text.titleSmall),
+          ],
+        ),
         const SizedBox(height: BooknoteTheme.gap8),
         Text(
           line('Bücher', r.booksAfter, r.booksAdded),
@@ -221,63 +291,18 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
         ),
         const SizedBox(height: BooknoteTheme.gap16),
         FilledButton.icon(
-          onPressed: _phase == _Phase.working ? null : _shareMerged(r),
+          onPressed: _phase == _Phase.working ? null : _shareMerged,
           icon: const Icon(Icons.save_outlined),
           label: const Text('Aktualisierte Datei sichern'),
         ),
         const SizedBox(height: BooknoteTheme.gap8),
-        _doneButton(),
-      ],
-    );
-  }
-
-  Widget _adoptedResult(LibrarySyncAdoptedMaster r) {
-    final text = Theme.of(context).textTheme;
-    final scheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _resultHeader(Icons.flag, 'Vorlage übernommen', scheme.tertiary),
-        const SizedBox(height: BooknoteTheme.gap8),
-        Text(
-          'Die Datei war als Master markiert. Der Stand dieses Geräts wurde '
-          'komplett daran angeglichen.',
-          style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Fertig'),
         ),
-        const SizedBox(height: BooknoteTheme.gap8),
-        Text('Bücher: ${r.books}', style: text.bodyMedium),
-        Text('Notizen: ${r.notes}', style: text.bodyMedium),
-        const SizedBox(height: BooknoteTheme.gap16),
-        _doneButton(),
       ],
     );
   }
-
-  VoidCallback _shareMerged(LibrarySyncMerged r) => () async {
-    setState(() => _phase = _Phase.working);
-    final messenger = ScaffoldMessenger.of(context);
-    try {
-      await _sync.shareSnapshot(r.merged);
-    } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Sichern fehlgeschlagen: $e')),
-      );
-    }
-    if (mounted) setState(() => _phase = _Phase.done);
-  };
-
-  Widget _resultHeader(IconData icon, String label, Color color) => Row(
-    children: [
-      Icon(icon, color: color),
-      const SizedBox(width: BooknoteTheme.gap8),
-      Text(label, style: Theme.of(context).textTheme.titleSmall),
-    ],
-  );
-
-  Widget _doneButton() => TextButton(
-    onPressed: () => Navigator.of(context).pop(),
-    child: const Text('Fertig'),
-  );
 
   Widget _errorView(TextTheme text, ColorScheme scheme) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,

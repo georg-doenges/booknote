@@ -63,6 +63,13 @@ class _ExportSheetState extends State<_ExportSheet> {
       final result = _exporter.export(request);
       navigator.pop();
       await shareExport(result);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            '${_exporter.formatName} exportiert: ${result.fileName}',
+          ),
+        ),
+      );
     } catch (e) {
       if (mounted) setState(() => _busy = false);
       messenger.showSnackBar(

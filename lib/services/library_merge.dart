@@ -1,16 +1,15 @@
 import '../models/models.dart';
 
-/// Führt zwei Bibliotheks-Stände zusammen (`SYNC_DESIGN.md` §4.2).
+/// Zwei Bibliotheks-Stände zusammenführen (`SYNC_DESIGN.md` §4).
 ///
-/// Regel: pro Eintrags-ID gewinnt der **neueste Fakt** – eine lebende Version
-/// (Zeitstempel = `updatedAt`) oder ein Grabstein (Zeitstempel = `deletedAt`).
-/// Bei exaktem Gleichstand gewinnt der Grabstein. Notizen, deren Buch nach dem
-/// Merge nicht mehr lebt, fallen weg. `masterGeneration` = Maximum beider Seiten.
+/// **Rein additiv:** Alles, was auf einer der beiden Seiten noch lebt, ist
+/// danach dabei. Bei einem Inhaltskonflikt (dieselbe ID auf beiden Seiten
+/// lebendig) gewinnt der neuere `updatedAt`. **Löschungen werden nicht
+/// übertragen** – Grabsteine werden mitgeführt, aber nicht angewendet. Sie
+/// wirken erst beim [adoptMaster].
 ///
-/// **Nicht** enthalten: der Master-Kurzschluss (§4.1) – der hängt an
-/// geräte­lokalem Zustand und wird vom Aufrufer entschieden.
-///
-/// Reine Funktion, damit sie ohne DB/IO testbar ist.
+/// Invariante der Ausgabe: lebendig und Grabstein schließen sich aus (kommt ein
+/// Eintrag im Merge wieder zum Leben, verschwindet sein Grabstein).
 LibrarySnapshot mergeLibrary(
   LibrarySnapshot a,
   LibrarySnapshot b, {
@@ -18,83 +17,127 @@ LibrarySnapshot mergeLibrary(
   bool gcEnabled = true,
   int gcDays = 120,
 }) {
-  int ms(DateTime d) => d.toUtc().millisecondsSinceEpoch;
-
-  final winningTs = <String, int>{};
-  final liveSources = <String, Source>{};
-  final liveNotes = <String, Note>{};
-  final tombs = <String, Tombstone>{};
-
-  /// `true`, wenn der neue Fakt den bisher besten für [id] schlägt.
-  bool wins(String id, int t, {required bool isTomb}) {
-    final cur = winningTs[id];
-    if (cur == null || t > cur) return true;
-    return t == cur && isTomb; // Löschung gewinnt Gleichstand
-  }
-
-  void takeSource(Source s) {
-    final t = ms(s.updatedAt);
-    if (!wins(s.id, t, isTomb: false)) return;
-    winningTs[s.id] = t;
-    liveSources[s.id] = s;
-    liveNotes.remove(s.id);
-    tombs.remove(s.id);
-  }
-
-  void takeNote(Note n) {
-    final t = ms(n.updatedAt);
-    if (!wins(n.id, t, isTomb: false)) return;
-    winningTs[n.id] = t;
-    liveNotes[n.id] = n;
-    liveSources.remove(n.id);
-    tombs.remove(n.id);
-  }
-
-  void takeTomb(Tombstone tomb) {
-    final t = ms(tomb.deletedAt);
-    if (!wins(tomb.entityId, t, isTomb: true)) return;
-    winningTs[tomb.entityId] = t;
-    tombs[tomb.entityId] = tomb;
-    liveSources.remove(tomb.entityId);
-    liveNotes.remove(tomb.entityId);
-  }
-
-  for (final s in a.sources) {
-    takeSource(s);
-  }
-  for (final s in b.sources) {
-    takeSource(s);
-  }
-  for (final n in a.notes) {
-    takeNote(n);
-  }
-  for (final n in b.notes) {
-    takeNote(n);
-  }
-  for (final tomb in a.tombstones) {
-    takeTomb(tomb);
-  }
-  for (final tomb in b.tombstones) {
-    takeTomb(tomb);
-  }
-
-  // Waisen-Notizen (Buch weg) verwerfen.
-  final notes = liveNotes.values
-      .where((n) => liveSources.containsKey(n.sourceId))
-      .toList();
-
-  var tombstones = tombs.values.toList();
-  if (gcEnabled) {
-    final cutoff = ms(now) - Duration(days: gcDays).inMilliseconds;
-    tombstones = tombstones.where((t) => ms(t.deletedAt) >= cutoff).toList();
-  }
-
-  return LibrarySnapshot(
-    sources: liveSources.values.toList(),
+  final sources = _newestById<Source>(
+    [...a.sources, ...b.sources],
+    (s) => s.id,
+    (s) => s.updatedAt,
+  );
+  final notes = _newestById<Note>(
+    [...a.notes, ...b.notes],
+    (n) => n.id,
+    (n) => n.updatedAt,
+  );
+  return _finish(
+    sources: sources,
     notes: notes,
-    tombstones: tombstones,
+    incomingTombstones: [...a.tombstones, ...b.tombstones],
     masterGeneration: a.masterGeneration > b.masterGeneration
         ? a.masterGeneration
         : b.masterGeneration,
+    now: now,
+    gcEnabled: gcEnabled,
+    gcDays: gcDays,
+  );
+}
+
+/// Einen Master-Stand übernehmen (`SYNC_DESIGN.md` §5).
+///
+/// [master] ist verbindlich für alles, was er kennt: seine lebenden Einträge
+/// gewinnen, seine Grabsteine werden **angewendet** (entsprechende lokale
+/// Einträge fallen weg). Lokale Einträge, die der Master **nie gesehen hat**
+/// (weder lebendig noch als Grabstein), bleiben erhalten – sie sind auf diesem
+/// Gerät neu dazugekommen.
+LibrarySnapshot adoptMaster(
+  LibrarySnapshot local,
+  LibrarySnapshot master, {
+  required DateTime now,
+  bool gcEnabled = true,
+  int gcDays = 120,
+}) {
+  final knownToMaster = <String>{
+    ...master.sources.map((s) => s.id),
+    ...master.notes.map((n) => n.id),
+    ...master.tombstones.map((t) => t.entityId),
+  };
+
+  final sources = {for (final s in master.sources) s.id: s};
+  for (final s in local.sources) {
+    if (!knownToMaster.contains(s.id)) sources[s.id] = s;
+  }
+  final notes = {for (final n in master.notes) n.id: n};
+  for (final n in local.notes) {
+    if (!knownToMaster.contains(n.id)) notes[n.id] = n;
+  }
+
+  return _finish(
+    sources: sources,
+    notes: notes,
+    incomingTombstones: [...local.tombstones, ...master.tombstones],
+    masterGeneration: master.masterGeneration,
+    now: now,
+    gcEnabled: gcEnabled,
+    gcDays: gcDays,
+  );
+}
+
+Map<String, T> _newestById<T>(
+  Iterable<T> items,
+  String Function(T) id,
+  DateTime Function(T) updatedAt,
+) {
+  final out = <String, T>{};
+  for (final it in items) {
+    final cur = out[id(it)];
+    if (cur == null || updatedAt(it).isAfter(updatedAt(cur))) out[id(it)] = it;
+  }
+  return out;
+}
+
+LibrarySnapshot _finish({
+  required Map<String, Source> sources,
+  required Map<String, Note> notes,
+  required List<Tombstone> incomingTombstones,
+  required int masterGeneration,
+  required DateTime now,
+  required bool gcEnabled,
+  required int gcDays,
+}) {
+  // Waisen-Notizen (Buch weg) verwerfen.
+  final liveNotes = notes.values
+      .where((n) => sources.containsKey(n.sourceId))
+      .toList();
+
+  // Jüngsten Grabstein je ID behalten, aber nur solange der Eintrag nicht
+  // (wieder) lebt.
+  final tombs = <String, Tombstone>{};
+  for (final t in incomingTombstones) {
+    final cur = tombs[t.entityId];
+    if (cur == null || t.deletedAt.isAfter(cur.deletedAt)) {
+      tombs[t.entityId] = t;
+    }
+  }
+  final liveNoteIds = liveNotes.map((n) => n.id).toSet();
+  var tombstones = tombs.values
+      .where(
+        (t) =>
+            !sources.containsKey(t.entityId) &&
+            !liveNoteIds.contains(t.entityId),
+      )
+      .toList();
+
+  if (gcEnabled) {
+    final cutoffMs =
+        now.toUtc().millisecondsSinceEpoch -
+        Duration(days: gcDays).inMilliseconds;
+    tombstones = tombstones
+        .where((t) => t.deletedAt.toUtc().millisecondsSinceEpoch >= cutoffMs)
+        .toList();
+  }
+
+  return LibrarySnapshot(
+    sources: sources.values.toList(),
+    notes: liveNotes,
+    tombstones: tombstones,
+    masterGeneration: masterGeneration,
   );
 }

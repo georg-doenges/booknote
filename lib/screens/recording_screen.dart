@@ -6,6 +6,7 @@ import '../app_scope.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
+import '../widgets/book_edit_dialog.dart';
 import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
 import '../widgets/record_button.dart';
@@ -33,6 +34,9 @@ class RecordingScreen extends StatefulWidget {
 
 class _RecordingScreenState extends State<RecordingScreen> {
   final _recorder = NoteRecorder();
+
+  /// Anfangs `widget.book`; nach „Titel bearbeiten" der aktualisierte Stand.
+  late Book _book = widget.book;
 
   _Phase _phase = _Phase.idle;
   String? _pendingAudio; // bleibt bei Fehlern erhalten → „Erneut versuchen"
@@ -157,7 +161,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
       final raw = await scope.transcription.transcribe(path);
       final parsed = scope.parser.parse(raw);
       final note = await scope.notes.create(
-        sourceId: widget.book.id,
+        sourceId: _book.id,
         page: parsed.page,
         position: parsed.position,
         text: parsed.text,
@@ -199,6 +203,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
+  /// Titel/Autor korrigieren (langer Druck auf den Titel) – selten gebraucht,
+  /// deshalb unauffällig.
+  Future<void> _editBook() async {
+    final edited = await showBookEditDialog(context, _book);
+    if (edited == null || !mounted) return;
+    await AppScope.of(context).books.update(edited);
+    if (!mounted) return;
+    setState(() => _book = edited);
+  }
+
   /// Notiz aus der Sitzungsliste direkt hier bearbeiten (statt Umweg über die
   /// Notizübersicht).
   Future<void> _editSessionNote(int index) async {
@@ -222,7 +236,12 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final muted = scheme.onSurfaceVariant;
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.book.title)),
+      appBar: AppBar(
+        title: GestureDetector(
+          onLongPress: _editBook,
+          child: Text(_book.title),
+        ),
+      ),
       // SafeArea unten: sonst verdeckt die System-Navigationsleiste die
       // Aktionen der Fehlerkarte („Erneut versuchen").
       body: SafeArea(
@@ -293,7 +312,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         padding: const EdgeInsets.only(
                           top: BooknoteTheme.gap24,
                         ),
-                        child: _AllNotesButton(bookId: widget.book.id),
+                        child: _AllNotesButton(bookId: _book.id),
                       ),
                   ],
                 ),

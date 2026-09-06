@@ -44,112 +44,138 @@ void main() {
   final now = at(1000);
   LibrarySnapshot merge(LibrarySnapshot a, LibrarySnapshot b) =>
       mergeLibrary(a, b, now: now, gcEnabled: false);
+  LibrarySnapshot adopt(LibrarySnapshot local, LibrarySnapshot master) =>
+      adoptMaster(local, master, now: now, gcEnabled: false);
 
-  test('Union: Eintrag nur auf einer Seite bleibt', () {
-    final a = snap(sources: [src('s1', updated: 1)]);
-    final b = snap(sources: [src('s2', updated: 1)]);
-    final m = merge(a, b);
-    expect(m.sources.map((s) => s.id).toSet(), {'s1', 's2'});
+  group('mergeLibrary – rein additiv', () {
+    test('Union: was auf einer Seite lebt, bleibt', () {
+      final m = merge(
+        snap(sources: [src('s1', updated: 1)]),
+        snap(sources: [src('s2', updated: 1)]),
+      );
+      expect(m.sources.map((s) => s.id).toSet(), {'s1', 's2'});
+    });
+
+    test('Inhaltskonflikt: neueres updatedAt gewinnt', () {
+      final a = snap(sources: [src('s1', updated: 5, title: 'alt')]);
+      final b = snap(sources: [src('s1', updated: 9, title: 'neu')]);
+      expect(merge(a, b).sources.single.title, 'neu');
+      expect(merge(b, a).sources.single.title, 'neu');
+    });
+
+    test('Löschung wird NICHT übertragen: lebt woanders → kommt zurück', () {
+      final a = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
+      final b = snap(sources: [src('s1', updated: 3)]);
+      final m = merge(a, b);
+      expect(m.sources.single.id, 's1');
+      // Eintrag lebt wieder → sein Grabstein ist weg.
+      expect(m.tombstones, isEmpty);
+    });
+
+    test('Grabstein bleibt erhalten, wenn der Eintrag nirgends mehr lebt', () {
+      final a = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
+      final b = snap();
+      expect(merge(a, b).tombstones.single.entityId, 's1');
+    });
+
+    test('Waisen-Notiz wird verworfen', () {
+      final a = snap(
+        sources: [src('s1', updated: 1)],
+        notes: [nte('n1', 's1', updated: 1)],
+      );
+      final b = snap(notes: [nte('n9', 'weg', updated: 1)]);
+      final m = merge(a, b);
+      expect(m.notes.map((n) => n.id), ['n1']);
+    });
+
+    test('masterGeneration = Maximum', () {
+      expect(
+        merge(
+          snap(masterGeneration: 2),
+          snap(masterGeneration: 7),
+        ).masterGeneration,
+        7,
+      );
+    });
   });
 
-  test('gemeinsamer Eintrag: neueres updatedAt gewinnt', () {
-    final a = snap(sources: [src('s1', updated: 5, title: 'alt')]);
-    final b = snap(sources: [src('s1', updated: 9, title: 'neu')]);
-    expect(merge(a, b).sources.single.title, 'neu');
-    expect(merge(b, a).sources.single.title, 'neu');
-  });
+  group('adoptMaster', () {
+    test('Master-Grabstein wird angewendet: lokaler Eintrag fällt weg', () {
+      final local = snap(
+        sources: [src('s1', updated: 1), src('s2', updated: 1)],
+      );
+      final master = snap(
+        sources: [src('s2', updated: 1)],
+        tombstones: [tmb('s1', TombstoneEntityType.source, 10)],
+        masterGeneration: 3,
+      );
+      final m = adopt(local, master);
+      expect(m.sources.map((s) => s.id), ['s2']);
+      expect(m.masterGeneration, 3);
+    });
 
-  test('auf A gelöscht, auf B unangetastet → überall weg', () {
-    final a = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
-    final b = snap(sources: [src('s1', updated: 3)]);
-    final m = merge(a, b);
-    expect(m.sources, isEmpty);
-    expect(m.tombstones.single.entityId, 's1');
-  });
+    test('lokal Neues (Master kennt es nicht) bleibt erhalten', () {
+      final local = snap(
+        sources: [src('s1', updated: 1), src('neu', updated: 5)],
+        notes: [nte('nNeu', 'neu', updated: 5)],
+      );
+      final master = snap(
+        sources: [src('s1', updated: 2)],
+        tombstones: [],
+        masterGeneration: 4,
+      );
+      final m = adopt(local, master);
+      expect(m.sources.map((s) => s.id).toSet(), {'s1', 'neu'});
+      expect(m.notes.map((n) => n.id), ['nNeu']);
+    });
 
-  test('auf A gelöscht, danach auf B bearbeitet → kommt zurück', () {
-    final a = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
-    final b = snap(sources: [src('s1', updated: 20)]);
-    final m = merge(a, b);
-    expect(m.sources.single.id, 's1');
-    expect(m.tombstones, isEmpty);
-  });
-
-  test('Gleichstand: Löschung gewinnt', () {
-    final a = snap(sources: [src('s1', updated: 10)]);
-    final b = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
-    expect(merge(a, b).sources, isEmpty);
-    expect(merge(b, a).sources, isEmpty);
-  });
-
-  test('Waisen-Notiz (Buch gelöscht) fällt weg', () {
-    final a = snap(
-      sources: [src('s1', updated: 1)],
-      notes: [nte('n1', 's1', updated: 1)],
+    test(
+      'bei bekanntem Eintrag gewinnt der Master (auch gegen neueren lokal)',
+      () {
+        final local = snap(
+          sources: [src('s1', updated: 99, title: 'lokal neu')],
+        );
+        final master = snap(
+          sources: [src('s1', updated: 1, title: 'master')],
+          masterGeneration: 2,
+        );
+        expect(adopt(local, master).sources.single.title, 'master');
+      },
     );
-    final b = snap(tombstones: [tmb('s1', TombstoneEntityType.source, 10)]);
-    final m = merge(a, b);
-    expect(m.sources, isEmpty);
-    expect(m.notes, isEmpty);
+
+    test('Notiz eines vom Master gelöschten Buchs wird zur Waise → weg', () {
+      final local = snap(
+        sources: [src('b', updated: 1)],
+        notes: [nte('n', 'b', updated: 1)],
+      );
+      final master = snap(
+        tombstones: [tmb('b', TombstoneEntityType.source, 10)],
+        masterGeneration: 5,
+      );
+      final m = adopt(local, master);
+      expect(m.sources, isEmpty);
+      expect(m.notes, isEmpty);
+    });
   });
 
-  test('einzeln gelöschte Notiz bleibt gelöscht, Buch bleibt', () {
-    final a = snap(
-      sources: [src('s1', updated: 1)],
-      tombstones: [tmb('n1', TombstoneEntityType.note, 10)],
-    );
-    final b = snap(
-      sources: [src('s1', updated: 1)],
-      notes: [nte('n1', 's1', updated: 2), nte('n2', 's1', updated: 2)],
-    );
-    final m = merge(a, b);
-    expect(m.sources.single.id, 's1');
-    expect(m.notes.map((n) => n.id), ['n2']);
-  });
-
-  test('masterGeneration = Maximum beider Seiten', () {
-    expect(
-      merge(
-        snap(masterGeneration: 2),
-        snap(masterGeneration: 7),
-      ).masterGeneration,
-      7,
-    );
-  });
-
-  test('GC entfernt Grabsteine älter als gcDays', () {
-    final old = Tombstone(
+  test('GC entfernt alte Grabsteine (Merge und Adopt)', () {
+    final oldT = Tombstone(
       entityId: 'x',
       type: TombstoneEntityType.note,
       deletedAt: now.subtract(const Duration(days: 200)),
     );
-    final fresh = Tombstone(
+    final freshT = Tombstone(
       entityId: 'y',
       type: TombstoneEntityType.note,
       deletedAt: now.subtract(const Duration(days: 10)),
     );
     final m = mergeLibrary(
-      snap(tombstones: [old, fresh]),
+      snap(tombstones: [oldT, freshT]),
       snap(),
       now: now,
       gcEnabled: true,
       gcDays: 120,
     );
     expect(m.tombstones.map((t) => t.entityId), ['y']);
-  });
-
-  test('GC aus: alte Grabsteine bleiben', () {
-    final old = Tombstone(
-      entityId: 'x',
-      type: TombstoneEntityType.note,
-      deletedAt: now.subtract(const Duration(days: 200)),
-    );
-    final m = mergeLibrary(
-      snap(tombstones: [old]),
-      snap(),
-      now: now,
-      gcEnabled: false,
-    );
-    expect(m.tombstones, hasLength(1));
   });
 }

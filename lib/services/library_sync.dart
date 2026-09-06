@@ -124,18 +124,26 @@ class LibrarySync {
     final incoming = LibrarySnapshot.parse(text);
     final local = await _archive.readSnapshot();
 
-    // Master-Kurzschluss (SYNC_DESIGN.md §4.1).
+    // Master-Kurzschluss (SYNC_DESIGN.md §5): die Datei ist verbindlich,
+    // ihre Grabsteine werden angewendet – lokal Neues bleibt aber erhalten.
     if (incoming.masterGeneration >
         _settings.sync.lastConsumedMasterGeneration) {
-      await _archive.replaceWith(incoming);
+      final adopted = adoptMaster(
+        local,
+        incoming,
+        now: _clock(),
+        gcEnabled: _settings.sync.tombstoneGcEnabled,
+        gcDays: _settings.sync.tombstoneGcDays,
+      );
+      await _archive.replaceWith(adopted);
       await _settings.updateSync(
         _settings.sync.copyWith(
           lastConsumedMasterGeneration: incoming.masterGeneration,
         ),
       );
       return LibrarySyncAdoptedMaster(
-        books: incoming.sourceCount,
-        notes: incoming.noteCount,
+        books: adopted.sourceCount,
+        notes: adopted.noteCount,
         masterGeneration: incoming.masterGeneration,
       );
     }

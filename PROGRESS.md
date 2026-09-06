@@ -296,6 +296,29 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Merge-Modell überarbeitet (Nutzerentscheidung) + weitere Korrekturen
+
+- **`mergeLibrary` ist jetzt rein additiv:** Vereinigung aller lebenden Einträge,
+  bei Inhaltskonflikt neuerer `updatedAt`. **Löschungen werden im Merge nicht
+  mehr übertragen** – Grabsteine werden nur mitgeführt (und fallen weg, wenn der
+  Eintrag wieder lebt). Der frühere „neuester Fakt inkl. Löschung gewinnt"-Ansatz
+  war dem Nutzer zu riskant.
+- **Neu `adoptMaster(local, master)`:** nur hier wirken Löschungen. Master-Live
+  gewinnt (auch gegen neueren lokalen Stand), Master-Grabsteine werden
+  angewendet, lokal Neues (dem Master unbekannt) bleibt. `pickAndMerge` ruft im
+  Master-Kurzschluss jetzt `adoptMaster` statt `replaceWith(incoming)`.
+- `SYNC_DESIGN.md` §4/§5 entsprechend neu.
+- **Bestätigungen:** Export und Bibliothek-Sichern zeigen jetzt eine SnackBar
+  („… exportiert: <Datei>", „Bibliotheksdatei gesichert."), das Sheet schließt
+  sich dabei. (Nutzer hatte mehrfach gedrückt, weil keine Rückmeldung kam.)
+- **Buchtitel korrigieren:** langer Druck auf den Titel im `RecordingScreen`
+  öffnet den `BookEditDialog` (unauffällig, selten gebraucht). `RecordingScreen`
+  hält den Buchtitel jetzt in `_book` statt `widget.book`.
+- **Merge/Master-Texte** im Sync-Sheet an das additive Modell angepasst
+  („Löschungen werden hier nicht übertragen" / „Nur so werden Löschungen
+  übertragen").
+- **163 Tests grün** (`library_merge_test` neu für additiv + `adoptMaster`).
+
 ## Was in Baustein F2b + Testrunden-Korrekturen passiert ist
 
 - **Gerät löschte bei `adb install -r` die Daten**, weil `versionCode` (aus
