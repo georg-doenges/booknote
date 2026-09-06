@@ -1,3 +1,4 @@
+import 'package:sqflite/sqflite.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../models/models.dart';
@@ -81,12 +82,36 @@ class SqliteBookRepository implements BookRepository {
 
   @override
   Future<void> delete(String id) async {
-    // Notizen fallen per ON DELETE CASCADE mit (PRAGMA foreign_keys = ON).
-    final changed = await _db.db.delete(
-      _table,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final deletedAt = dbNow(_clock).millisecondsSinceEpoch;
+    final changed = await _db.db.transaction((txn) async {
+      // Notiz-IDs vor dem Löschen merken – die Zeilen fallen per
+      // ON DELETE CASCADE, aber wir brauchen für jede einen Grabstein.
+      final noteIds = (await txn.query(
+        AppDatabase.tableNotes,
+        columns: ['id'],
+        where: 'source_id = ?',
+        whereArgs: [id],
+      )).map((r) => r['id'] as String).toList();
+
+      final c = await txn.delete(_table, where: 'id = ?', whereArgs: [id]);
+      if (c > 0) {
+        final batch = txn.batch();
+        batch.insert(AppDatabase.tableTombstones, {
+          'entity_id': id,
+          'entity_type': TombstoneEntityType.source.dbValue,
+          'deleted_at': deletedAt,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+        for (final noteId in noteIds) {
+          batch.insert(AppDatabase.tableTombstones, {
+            'entity_id': noteId,
+            'entity_type': TombstoneEntityType.note.dbValue,
+            'deleted_at': deletedAt,
+          }, conflictAlgorithm: ConflictAlgorithm.replace);
+        }
+        await batch.commit(noResult: true);
+      }
+      return c;
+    });
     if (changed == 0) throw EntityNotFoundException('Book', id);
     _db.notifySources();
     _db.notifyNotes();

@@ -7,6 +7,8 @@ export 'cover_service.dart';
 export 'google_books_cover_service.dart';
 export 'german_number_parser.dart';
 export 'haptics.dart';
+export 'library_merge.dart';
+export 'library_sync.dart';
 export 'note_parser.dart';
 export 'note_recorder.dart';
 export 'open_library_cover_service.dart';

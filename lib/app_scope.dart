@@ -18,6 +18,7 @@ class AppScope extends InheritedWidget {
     required this.apiKeys,
     required this.covers,
     required this.settings,
+    required this.librarySync,
     this.parser = const NoteParser(),
     this.exporters = const [MarkdownExporter(), PlainTextExporter()],
     required super.child,
@@ -31,6 +32,9 @@ class AppScope extends InheritedWidget {
 
   /// App-Einstellungen (Theme-Modus etc.), von der UI les- und schreibbar.
   final AppSettings settings;
+
+  /// Bibliotheksdatei sichern / zwischen Geräten abgleichen (SYNC_DESIGN.md).
+  final LibrarySync librarySync;
 
   final NoteParser parser;
 
@@ -51,6 +55,7 @@ class AppScope extends InheritedWidget {
       apiKeys != old.apiKeys ||
       covers != old.covers ||
       settings != old.settings ||
+      librarySync != old.librarySync ||
       parser != old.parser ||
       exporters != old.exporters;
 }

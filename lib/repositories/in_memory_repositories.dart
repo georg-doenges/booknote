@@ -24,6 +24,12 @@ class InMemoryStore {
   final Map<String, Book> books = {};
   final Map<String, Note> notes = {};
 
+  /// Grabsteine gelöschter Einträge (für Parität mit SQLite, s. SYNC_DESIGN.md).
+  final Map<String, Tombstone> tombstones = {};
+
+  void addTombstone(String id, TombstoneEntityType type) =>
+      tombstones[id] = Tombstone(entityId: id, type: type, deletedAt: now());
+
   final _booksChanged = StreamController<void>.broadcast();
   final _notesChanged = StreamController<void>.broadcast();
 
@@ -99,7 +105,15 @@ class InMemoryBookRepository implements BookRepository {
     if (_store.books.remove(id) == null) {
       throw EntityNotFoundException('Book', id);
     }
+    final noteIds = _store.notes.values
+        .where((n) => n.sourceId == id)
+        .map((n) => n.id)
+        .toList();
     _store.notes.removeWhere((_, n) => n.sourceId == id);
+    _store.addTombstone(id, TombstoneEntityType.source);
+    for (final noteId in noteIds) {
+      _store.addTombstone(noteId, TombstoneEntityType.note);
+    }
     _store.notifyBooks();
     _store.notifyNotes();
   }
@@ -178,6 +192,7 @@ class InMemoryNoteRepository implements NoteRepository {
     if (_store.notes.remove(id) == null) {
       throw EntityNotFoundException('Note', id);
     }
+    _store.addTombstone(id, TombstoneEntityType.note);
     _store.notifyNotes();
   }
 

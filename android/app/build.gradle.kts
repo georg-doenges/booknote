@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "de.doenges.booknote"
-    compileSdk = flutter.compileSdkVersion
+    // file_picker / flutter_plugin_android_lifecycle verlangen mind. 36.
+    compileSdk = maxOf(flutter.compileSdkVersion, 36)
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

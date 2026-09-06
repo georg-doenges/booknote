@@ -35,8 +35,10 @@ Ideen für später (nicht jetzt bauen, nur architektonisch offenhalten):
 
 ```
 lib/
-  models/          Source, SourceType, Book, Note, book_query.dart (filterBooks,
-                   distinctAuthors) (+ models.dart Sammel-Export)                 ✅
+  models/          Source, SourceType, Book, Note, Tombstone, LibrarySnapshot,
+                   book_query.dart (filterBooks, distinctAuthors)
+                   (+ models.dart Sammel-Export)                                  ✅
+  repositories/sqlite/  … + LibraryArchive (Snapshot lesen/ersetzen)             ✅
   repositories/    BookRepository, NoteRepository (Interfaces) ✅, InMemory-Impl ✅,
                    watch_stream.dart (Helfer) ✅
   repositories/sqlite/  AppDatabase (Schema v1), SqliteBook/NoteRepository, Mapper ✅
@@ -46,6 +48,7 @@ lib/
                    + WhisperService ✅, ApiKeyStore (Secure + InMemory) ✅,
                    AppSettings + AppSettingsStore (SharedPrefs + InMemory) ✅,
                    SilenceDetector ✅, Haptics (Vibrator, `vibration`) ✅,
+                   mergeLibrary + LibrarySync (Geräte-Abgleich) ✅,
                    NoteRecorder (Hülle um `record`, m4a im Temp-Dir) ✅,
                    CoverService-Interface + FallbackCoverService,
                    GoogleBooksCoverService, OpenLibraryCoverService ✅
@@ -86,7 +89,8 @@ test/
 | C | Bibliothek nach Titel/Autor durchsuchen & filtern | 🔄 gebaut, wartet auf Gerätetest |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit) | 🔄 gebaut, wartet auf Gerätetest |
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | 🔄 gebaut, wartet auf Gerätetest |
-| F2 | JSON-Bibliotheksdatei + Import mit Vereinigungs-Abgleich | ⬜ (als Nächstes) |
+| F2a | Grabsteine, JSON-Snapshot, Merge, Sichern/Abgleichen | 🔄 gebaut, wartet auf Gerätetest |
+| F2b | „Als Master setzen" + GC-Felder in AppSettings | ⬜ (als Nächstes) |
 | E | Release-Signierung (App-Icon später) | ⬜ (nach F) |
 
 ## Was in Schritt 1 passiert ist
@@ -292,6 +296,43 @@ test/
   Export als TXT. Deshalb ist die Theme-Schicht bewusst über einen Seed +
   `BooknoteTheme` + `AppSettings` gekapselt.
 
+## Was in Baustein F2a (Bibliotheksdatei, Grabsteine, Abgleich) passiert ist
+
+Spezifikation: `SYNC_DESIGN.md`.
+
+- **Schema v3:** Tabellen `tombstones` (entity_id, entity_type, deleted_at) und
+  `meta` (key/value, hält `master_generation`). Migration v2→v3
+  (`_createSyncTables`), `AppDatabase.getMeta/setMeta`.
+- **`delete` schreibt Grabsteine** in einer Transaktion mit der Zeilenlöschung:
+  `SqliteNoteRepository` einen, `SqliteBookRepository` einen fürs Buch + je
+  einen für jede kaskadiert gelöschte Notiz. `InMemoryStore` führt zur Parität
+  eine `tombstones`-Map.
+- **`Tombstone` / `TombstoneEntityType`** und **`LibrarySnapshot`** (alle
+  Quellen + Notizen + Grabsteine + `masterGeneration`) neu in `lib/models/`.
+  `LibrarySnapshot` kann JSON (`booknote-library.json`, `formatVersion 1`) lesen
+  (mit Formatprüfung → `LibraryFileException`) und schreiben.
+- **`mergeLibrary(a, b, {now, gcEnabled, gcDays})`** (`lib/services/`, rein):
+  „neuester Fakt gewinnt", Löschung schlägt Gleichstand, Waisen-Notizen raus,
+  GC alter Grabsteine (Default an, 120 Tage), `masterGeneration = max`.
+  **Master-Kurzschluss ist noch nicht dabei** (F2b).
+- **`LibraryArchive`** (`lib/repositories/sqlite/`): `readSnapshot()` /
+  `replaceWith(snapshot)` (transaktionales „alles ersetzen").
+- **`LibrarySync`** (`lib/services/`): `save()` (Datei schreiben + Share-Sheet),
+  `pickAndMerge()` (Datei via `file_picker` wählen → parsen → mergen →
+  `replaceWith`), `shareSnapshot()` (gemischten Stand zurückteilen).
+  In `AppScope` als `librarySync`.
+- **UI:** Bibliothek-Overflow-Menü → „Bibliothek sichern / abgleichen …" öffnet
+  `showLibrarySyncSheet` (Sichern / Aus Datei abgleichen → Ergebnis mit Zahlen +
+  „aktualisierte Datei sichern").
+- **Android:** `file_picker` zieht `flutter_plugin_android_lifecycle`, das
+  `compileSdk ≥ 36` verlangt. `android/build.gradle.kts` hebt jedes
+  Plugin-Modul im `subprojects`-Block auf 36; `app/build.gradle.kts` nutzt
+  `maxOf(flutter.compileSdkVersion, 36)`. `VIBRATE`-Permission (von der
+  Haptik-Runde) ist schon drin.
+- **Neue Pakete:** `file_picker`. **Tests:** `library_snapshot_test.dart`,
+  `library_merge_test.dart`, `library_archive_test.dart`, `migration_test`
+  (v3), `sqlite_repositories_test` (Tabellen). **161 grün**, analyze sauber.
+
 ## Was in Baustein F1 (Export in 3 Ebenen, Markdown + Text) passiert ist
 
 - **`Exporter`-Interface umgebaut:** `export(ExportRequest) → ExportResult`.
@@ -423,8 +464,12 @@ Sitzungsnotiz antippen → bearbeiten – dazu weiterhin A/B/C).
   (BACKLOG).
 - Ohne Drive: „Sichern"/„Als Master setzen" über Share-Sheet, „Abgleichen"
   über `file_picker`, danach Hinweis „aktualisierte Datei sichern".
-- Unterteilung **F2a** (Grabsteine, Snapshot/JSON, Merge, LibraryArchive,
-  Sichern/Abgleichen) und **F2b** (Master-Modus + GC-Felder).
+- **F2a ist gebaut** (siehe oben). **F2b (als Nächstes):** Master-Kurzschluss
+  in `LibrarySync` (vergleicht `incoming.masterGeneration` mit
+  `AppSettings.lastConsumedMasterGeneration` → bei größer: `replaceWith` statt
+  Merge), Button „Als Master setzen" im Sync-Sheet, GC-Felder
+  (`tombstoneGcEnabled` Default true, `tombstoneGcDays` Default 120) in
+  `AppSettings` – Merge liest sie dann daraus statt aus den Default-Parametern.
 
 **Baustein E (Weitergabe an Tester) – nach F:** Nur die
 **Release-Signing-Konfiguration** (`key.properties` + `build.gradle`).

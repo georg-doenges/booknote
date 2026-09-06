@@ -31,7 +31,12 @@ void main() {
     );
     expect(
       tables.map((r) => r['name']),
-      containsAll([AppDatabase.tableSources, AppDatabase.tableNotes]),
+      containsAll([
+        AppDatabase.tableSources,
+        AppDatabase.tableNotes,
+        AppDatabase.tableTombstones,
+        AppDatabase.tableMeta,
+      ]),
     );
     expect(await db.db.getVersion(), AppDatabase.schemaVersion);
     await db.close();

@@ -53,6 +53,17 @@ void main() {
     await books.update(old.copyWith(author: 'Neu'));
     expect((await books.getById('b1'))!.author, 'Neu');
 
+    // v3: Sync-Tabellen sind da und benutzbar.
+    final tables = (await db.db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table'",
+    )).map((r) => r['name']);
+    expect(
+      tables,
+      containsAll([AppDatabase.tableTombstones, AppDatabase.tableMeta]),
+    );
+    await db.setMeta('k', 'v');
+    expect(await db.getMeta('k'), 'v');
+
     await db.close();
     await databaseFactoryFfi.deleteDatabase(path);
   });

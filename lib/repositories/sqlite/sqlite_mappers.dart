@@ -57,3 +57,15 @@ Note noteFromRow(Map<String, Object?> r) => Note(
   createdAt: _fromMillis(r['created_at'] as int),
   updatedAt: _fromMillis(r['updated_at'] as int),
 );
+
+Map<String, Object?> tombstoneToRow(Tombstone t) => {
+  'entity_id': t.entityId,
+  'entity_type': t.type.dbValue,
+  'deleted_at': _toMillis(t.deletedAt),
+};
+
+Tombstone tombstoneFromRow(Map<String, Object?> r) => Tombstone(
+  entityId: r['entity_id'] as String,
+  type: TombstoneEntityType.fromDbValue(r['entity_type'] as String),
+  deletedAt: _fromMillis(r['deleted_at'] as int),
+);

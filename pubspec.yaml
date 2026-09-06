@@ -35,6 +35,9 @@ dependencies:
   # Markdown-Export über Share-Sheet
   share_plus: ^12.0.1
 
+  # Bibliotheksdatei zum Abgleich auswählen (Geräte-Sync)
+  file_picker: ^8.1.4
+
   # Spürbares haptisches Signal beim Aufnehmen (Flutters HapticFeedback bleibt
   # auf manchen Geräten unbemerkt); plattformneutral (Android/iOS)
   vibration: ^3.1.3

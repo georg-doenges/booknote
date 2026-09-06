@@ -16,11 +16,13 @@ import '../repository_exceptions.dart';
 class AppDatabase {
   AppDatabase._(this._db);
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
   static const defaultFileName = 'booknote.db';
 
   static const tableSources = 'sources';
   static const tableNotes = 'notes';
+  static const tableTombstones = 'tombstones';
+  static const tableMeta = 'meta';
 
   final Database _db;
   Database get db => _db;
@@ -93,7 +95,41 @@ class AppDatabase {
     await db.execute(
       'CREATE INDEX idx_sources_created ON $tableSources(created_at)',
     );
+    await _createSyncTables(db);
   }
+
+  /// Tabellen für den Geräte-Abgleich (siehe `SYNC_DESIGN.md`).
+  static Future<void> _createSyncTables(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableTombstones (
+        entity_id   TEXT PRIMARY KEY NOT NULL,
+        entity_type TEXT NOT NULL,
+        deleted_at  INTEGER NOT NULL
+      )
+    ''');
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS $tableMeta (
+        key   TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<String?> getMeta(String key) async {
+    final rows = await _db.query(
+      tableMeta,
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: [key],
+      limit: 1,
+    );
+    return rows.isEmpty ? null : rows.first['value'] as String;
+  }
+
+  Future<void> setMeta(String key, String value) => _db.insert(tableMeta, {
+    'key': key,
+    'value': value,
+  }, conflictAlgorithm: ConflictAlgorithm.replace);
 
   /// Migrationen. Bei Schemaänderung [schemaVersion] erhöhen und hier pro
   /// Versionssprung die nötigen Schritte ergänzen (sqflite führt sie in einer
@@ -102,6 +138,7 @@ class AppDatabase {
   /// Historie:
   /// - v1: sources, notes
   /// - v2: sources.author (TEXT, nullable)
+  /// - v3: tombstones + meta (Geräte-Abgleich, siehe `SYNC_DESIGN.md`)
   static Future<void> _onUpgrade(
     Database db,
     int oldVersion,
@@ -109,6 +146,9 @@ class AppDatabase {
   ) async {
     if (oldVersion < 2) {
       await db.execute('ALTER TABLE $tableSources ADD COLUMN author TEXT');
+    }
+    if (oldVersion < 3) {
+      await _createSyncTables(db);
     }
   }
 

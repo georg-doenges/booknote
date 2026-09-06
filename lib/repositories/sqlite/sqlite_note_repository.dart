@@ -110,11 +110,19 @@ class SqliteNoteRepository implements NoteRepository {
 
   @override
   Future<void> delete(String id) async {
-    final changed = await _db.db.delete(
-      _table,
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+    final deletedAt = dbNow(_clock).millisecondsSinceEpoch;
+    final changed = await _db.db.transaction((txn) async {
+      final c = await txn.delete(_table, where: 'id = ?', whereArgs: [id]);
+      if (c > 0) {
+        // Grabstein, damit die Löschung den Geräte-Abgleich übersteht.
+        await txn.insert(AppDatabase.tableTombstones, {
+          'entity_id': id,
+          'entity_type': TombstoneEntityType.note.dbValue,
+          'deleted_at': deletedAt,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
+      }
+      return c;
+    });
     if (changed == 0) throw EntityNotFoundException('Note', id);
     _db.notifyNotes();
   }

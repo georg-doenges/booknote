@@ -7,6 +7,7 @@ import '../theme.dart';
 import '../widgets/book_cover_tile.dart';
 import 'book_detail_screen.dart';
 import 'book_search_screen.dart';
+import 'library_sync_sheet.dart';
 import 'recording_screen.dart';
 import 'settings_screen.dart';
 
@@ -102,6 +103,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     switch (v) {
                       case 'export':
                         _export();
+                      case 'sync':
+                        showLibrarySyncSheet(context);
                       case 'settings':
                         Navigator.of(context).push(
                           MaterialPageRoute(
@@ -114,6 +117,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     PopupMenuItem(
                       value: 'export',
                       child: Text('Exportieren …'),
+                    ),
+                    PopupMenuItem(
+                      value: 'sync',
+                      child: Text('Bibliothek sichern / abgleichen …'),
                     ),
                     PopupMenuItem(
                       value: 'settings',

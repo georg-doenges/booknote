@@ -25,6 +25,7 @@ Future<void> main() async {
         fallback: OpenLibraryCoverService(),
       ),
       settings: settings,
+      librarySync: LibrarySync(LibraryArchive(db)),
     ),
   );
 }
@@ -38,6 +39,7 @@ class BooknoteApp extends StatelessWidget {
     required this.transcription,
     required this.covers,
     required this.settings,
+    required this.librarySync,
   });
 
   final BookRepository books;
@@ -46,6 +48,7 @@ class BooknoteApp extends StatelessWidget {
   final TranscriptionService transcription;
   final CoverService covers;
   final AppSettings settings;
+  final LibrarySync librarySync;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +59,7 @@ class BooknoteApp extends StatelessWidget {
       transcription: transcription,
       covers: covers,
       settings: settings,
+      librarySync: librarySync,
       child: ListenableBuilder(
         listenable: settings,
         builder: (context, _) => MaterialApp(
