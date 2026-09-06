@@ -18,6 +18,12 @@ class NoteRecorder {
 
   Future<bool> get isRecording => _recorder.isRecording();
 
+  /// Laufender dBFS-Pegel (negativ; Stille ≈ -45…-60, Sprache ≈ -10…-30) im
+  /// gegebenen Intervall – für die Stille-Erkennung. Erst nach [start] nutzen.
+  Stream<double> amplitudeDbfs({
+    Duration interval = const Duration(milliseconds: 200),
+  }) => _recorder.onAmplitudeChanged(interval).map((a) => a.current);
+
   /// Startet eine Aufnahme und gibt den Zieldateipfad zurück.
   Future<String> start() async {
     final dir = await getTemporaryDirectory();

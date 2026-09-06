@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
 import '../widgets/note_tile.dart';
+import '../widgets/record_button.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
 
@@ -192,7 +193,14 @@ class _RecordingScreenState extends State<RecordingScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _RecordButton(phase: _phase, onPressed: _toggle),
+                    RecordButton(
+                      state: switch (_phase) {
+                        _Phase.recording => RecordButtonState.recording,
+                        _Phase.transcribing => RecordButtonState.busy,
+                        _Phase.idle || _Phase.error => RecordButtonState.idle,
+                      },
+                      onPressed: _toggle,
+                    ),
                     const SizedBox(height: BooknoteTheme.gap24),
                     Text(_statusLine(), style: text.titleMedium),
                     if (_phase == _Phase.recording)
@@ -273,56 +281,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     _Phase.transcribing => 'Wird transkribiert …',
     _Phase.error => 'Transkription fehlgeschlagen',
   };
-}
-
-class _RecordButton extends StatelessWidget {
-  const _RecordButton({required this.phase, required this.onPressed});
-
-  final _Phase phase;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    final recording = phase == _Phase.recording;
-    final busy = phase == _Phase.transcribing;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 150),
-      width: 184,
-      height: 184,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: recording ? scheme.errorContainer : scheme.primaryContainer,
-      ),
-      padding: const EdgeInsets.all(BooknoteTheme.gap12),
-      child: Material(
-        color: recording ? scheme.error : scheme.primary,
-        shape: const CircleBorder(),
-        elevation: 3,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: busy ? null : onPressed,
-          child: Center(
-            child: busy
-                ? SizedBox(
-                    width: 48,
-                    height: 48,
-                    child: CircularProgressIndicator(
-                      color: scheme.onPrimary,
-                      strokeWidth: 4,
-                    ),
-                  )
-                : Icon(
-                    recording ? Icons.stop : Icons.mic,
-                    size: 76,
-                    color: recording ? scheme.onError : scheme.onPrimary,
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _ErrorCard extends StatelessWidget {

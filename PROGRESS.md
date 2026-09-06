@@ -51,8 +51,9 @@ lib/
   screens/         LibraryScreen (Grid), RecordingScreen, BookDetailScreen,
                    SettingsScreen, BookSearchScreen (Cover-Auswahl)              ✅
   widgets/         BookCoverTile, NoteTile (+ noteLocationLabel), NoteEditDialog,
-                   BookEditDialog (Titel/Autor), VoiceInputButton (Mikrofon fürs
-                   Textfeld), format.dart (Datum)                                ✅
+                   BookEditDialog (Titel/Autor), RecordButton (geteilt),
+                   VoiceInputButton (Mikrofon-Sheet fürs Textfeld),
+                   format.dart (Datum)                                           ✅
   main.dart        BooknoteApp → LibraryScreen                                    ✅
 test/
   models/          Unit-Tests für das Datenmodell                                 ✅
@@ -78,8 +79,8 @@ test/
 | Baustein | Inhalt | Status |
 |----------|--------|--------|
 | A | Zentrales `lib/theme.dart`, Dark Mode + Umschalter, SafeArea, Abstände | ✅ auf Gerät |
-| B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld | 🔄 gebaut, wartet auf Gerätetest (zusammen mit A) |
-| C | Bibliothek nach Titel/Autor filtern & durchsuchen | ⬜ (als Nächstes) |
+| B | Buchsuche: ein kombiniertes Feld, Mikrofon im Suchfeld (Sheet, Puls, Auto-Stop) | 🔄 gebaut, wartet auf Gerätetest (mit A) |
+| C | Bibliothek nach Titel/Autor filtern & durchsuchen | 🔄 in Arbeit |
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, …) | ⬜ |
 | E | App-Icon, Release-Signierung für Tester | ⬜ |
 
@@ -293,17 +294,26 @@ test/
   bekommt den Text schon 1:1 als `q=` (`GoogleBooksCoverService` unverändert),
   Freitext wie „Zauberberg Mann" trifft gut. `BookSearchScreen` zeigt jetzt
   `helperText: z.B. „Zauberberg Mann"`.
-- **`lib/widgets/voice_input_button.dart` neu:** `VoiceInputButton` – Mikrofon-
-  Icon für ein Textfeld. Tippen → `NoteRecorder` nimmt auf (Dauer-SnackBar
-  „Aufnahme läuft"), nochmal tippen → `TranscriptionService.transcribe` →
-  `onResult(rawText)`. **Kein** `NoteParser` (Suchtext, keine Notiz). Fehler →
-  SnackBar; bei fehlendem/abgelehntem Key optional `onOpenSettings`.
-  Wiederverwendbar (später auch am Notiz-Textfeld).
-- `BookSearchScreen.suffixIcon` ist jetzt `[VoiceInputButton, Such-IconButton]`.
-  Spracheingabe schreibt das Ergebnis ins Feld und löst die Suche aus.
-- **Keine neuen Tests**: `VoiceInputButton` bündelt nur die schon getesteten
-  Services (`WhisperService`, `NoteRecorder`); wie beim `RecordingScreen`
-  Verifikation auf dem Gerät. Gesamt weiterhin **125 grün**, analyze sauber.
+- **`lib/widgets/voice_input_button.dart` neu:** `VoiceInputButton` – kleines
+  Mikrofon-Icon fürs Textfeld. Tippen öffnet ein **Bottom-Sheet** mit einem
+  großen Aufnahme-Button (`RecordButton`, s.u.), der während der Aufnahme
+  **pulsiert**. Stoppen: drauftippen **oder** automatisch nach ~1,3 s Stille
+  (erst nachdem gesprochen wurde; Sicherheits-Limit 20 s). Dann
+  `TranscriptionService.transcribe` → Sheet gibt den Rohtext zurück. **Kein**
+  `NoteParser` (Suchtext). Fehler bleiben im Sheet mit „Nochmal" /
+  „Einstellungen" (bei fehlendem/abgelehntem Key).
+- **`lib/widgets/record_button.dart` neu:** `RecordButton` – der große runde
+  Button, aus `recording_screen.dart` herausgezogen und geteilt (Aufnahme-Flow
+  **und** Sprach-Sheet). Zustände `idle` / `recording` / `busy`, skaliert mit
+  `size`.
+- **`lib/services/silence_detector.dart` neu:** `SilenceDetector` – reine Logik
+  „wann von selbst stoppen" (dBFS-Pegel rein, bool raus). `NoteRecorder`
+  bekam `amplitudeDbfs()` (Stream des Pegels). Tests:
+  `test/services/silence_detector_test.dart`.
+- `BookSearchScreen.suffixIcon` ist `[VoiceInputButton, Such-IconButton]`;
+  Spracheingabe schreibt ins Feld und löst die Suche aus.
+- **130 Tests grün**, analyze sauber. Sheet/Recorder wie beim `RecordingScreen`
+  nur auf dem Gerät verifizierbar.
 
 ## Nutzerwünsche (aus dem Test nach Schritt 5)
 
