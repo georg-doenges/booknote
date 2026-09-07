@@ -74,8 +74,11 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           messenger.showSnackBar(
             SnackBar(
               content: Text(
-                'Vorlage übernommen: ${result.books} Bücher, '
-                '${result.notes} Notizen.',
+                result.hard
+                    ? 'Harte Vorlage übernommen: exakt ${result.books} Bücher, '
+                          '${result.notes} Notizen.'
+                    : 'Weiche Vorlage übernommen: ${result.books} Bücher, '
+                          '${result.notes} Notizen.',
               ),
             ),
           );
@@ -120,27 +123,63 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   }
 
   Future<void> _setAsMaster() async {
+    var hard = false;
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Als Vorlage (Master) setzen?'),
-        content: const Text(
-          'Der aktuelle Stand dieses Geräts wird zur verbindlichen Vorlage. '
-          'Andere Geräte übernehmen ihn beim nächsten Abgleich – inklusive der '
-          'hier gelöschten Einträge. Was auf dem anderen Gerät ganz neu ist, '
-          'bleibt.\n\nNutze das nur, wenn du hier gerade alles konsolidiert '
-          'hast.',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('Als Vorlage (Master) setzen'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Der aktuelle Stand dieses Geräts wird zur Vorlage. Andere '
+                  'Geräte richten sich beim nächsten Abgleich danach – nur so '
+                  'werden Löschungen übertragen.',
+                ),
+                const SizedBox(height: BooknoteTheme.gap8),
+                RadioGroup<bool>(
+                  groupValue: hard,
+                  onChanged: (v) => setDialogState(() => hard = v ?? false),
+                  child: const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      RadioListTile<bool>(
+                        value: false,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Weich'),
+                        subtitle: Text(
+                          'Andere Geräte übernehmen den Stand samt Löschungen, '
+                          'behalten aber Einträge, die dort ganz neu sind.',
+                        ),
+                      ),
+                      RadioListTile<bool>(
+                        value: true,
+                        contentPadding: EdgeInsets.zero,
+                        title: Text('Hart'),
+                        subtitle: Text(
+                          'Andere Geräte werden exakt auf diesen Stand gesetzt '
+                          '– alles andere dort wird gelöscht.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text('Abbrechen'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text('Setzen'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Als Master sichern'),
-          ),
-        ],
       ),
     );
     if (ok != true || !mounted) return;
@@ -148,12 +187,16 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     try {
-      await _sync.setAsMaster();
+      await _sync.setAsMaster(hard: hard);
       navigator.pop();
       messenger.showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Als Vorlage gesichert. Andere Geräte gleichen sich an.',
+            hard
+                ? 'Als harte Vorlage gesichert. Andere Geräte werden exakt '
+                      'darauf gesetzt.'
+                : 'Als weiche Vorlage gesichert. Andere Geräte gleichen sich '
+                      'an.',
           ),
         ),
       );
@@ -259,8 +302,8 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           label: const Text('Als Vorlage (Master) setzen'),
         ),
         hint(
-          'Nur so werden Löschungen übertragen: andere Geräte übernehmen diesen '
-          'Stand komplett (ihr ganz Neues bleibt).',
+          'Der einzige Weg, Löschungen zu übertragen. Beim Setzen wählst du '
+          'weich (lokal Neues bleibt) oder hart (exakt überschreiben).',
         ),
       ],
     );

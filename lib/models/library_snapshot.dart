@@ -18,12 +18,21 @@ class LibrarySnapshot {
     this.notes = const [],
     this.tombstones = const [],
     this.masterGeneration = 0,
+    this.masterHard = false,
   });
 
   final List<Source> sources;
   final List<Note> notes;
   final List<Tombstone> tombstones;
+
+  /// Wird beim „Als Vorlage setzen" hochgezählt. Ein Gerät übernimmt eine Datei
+  /// mit höherer Generation als der zuletzt verarbeiteten (SYNC_DESIGN.md §5).
   final int masterGeneration;
+
+  /// `true` = **harte** Vorlage: übernehmende Geräte werden exakt auf diesen
+  /// Stand gesetzt. `false` = **weiche** Vorlage: Löschungen wirken, aber lokal
+  /// Neues bleibt.
+  final bool masterHard;
 
   static const formatId = 'booknote-library';
 
@@ -41,6 +50,7 @@ class LibrarySnapshot {
     'formatVersion': formatVersion,
     'exportedAt': DateTime.now().toUtc().millisecondsSinceEpoch,
     'masterGeneration': masterGeneration,
+    'masterHard': masterHard,
     'sources': sources.map(_sourceToJson).toList(),
     'notes': notes.map(_noteToJson).toList(),
     'deleted': tombstones.map(_tombstoneToJson).toList(),
@@ -73,6 +83,7 @@ class LibrarySnapshot {
     try {
       return LibrarySnapshot(
         masterGeneration: (decoded['masterGeneration'] as num?)?.toInt() ?? 0,
+        masterHard: decoded['masterHard'] as bool? ?? false,
         sources: [
           for (final s in (decoded['sources'] as List? ?? const []))
             _sourceFromJson(s as Map<String, Object?>),

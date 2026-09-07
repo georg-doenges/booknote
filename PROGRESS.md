@@ -320,6 +320,21 @@ test/
   wählt der Nutzer selbst.
 - App-Icon bleibt bewusst offen (BACKLOG).
 
+## Vorlage: weich / hart (Nutzerwunsch)
+
+- **„Als Vorlage setzen"** hat jetzt eine Auswahl: **weich** (Default,
+  `adoptMaster` – Löschungen wirken, lokal Neues bleibt) oder **hart**
+  (`replaceWith(datei)` – Zielgeräte werden exakt gesetzt, Grabsteine werden
+  dabei verworfen). Neues Feld `LibrarySnapshot.masterHard` (JSON, Default
+  false). `LibrarySync.setAsMaster({required hard})`, `pickAndMerge`
+  verzweigt auf `incoming.masterHard`.
+- Sheet: Rückfrage-Dialog mit `RadioGroup` weich/hart + kurzer Erklärung
+  („nur so werden Löschungen übertragen …"). Ergebnis-SnackBar sagt
+  „weiche/harte Vorlage übernommen".
+- `SYNC_DESIGN.md` §5 mit Tabelle weich/hart. **166 Tests grün.**
+- BACKLOG: Hilfe-Seite in der App + README im Git-Repo (Merge/Master
+  erklären – ist ungewöhnlich).
+
 ## Merge-Modell überarbeitet (Nutzerentscheidung) + weitere Korrekturen
 
 - **`mergeLibrary` ist jetzt rein additiv:** Vereinigung aller lebenden Einträge,

@@ -46,15 +46,18 @@ class LibrarySyncMerged extends LibrarySyncResult {
   int get notesAdded => notesAfter - notesBefore;
 }
 
-/// Die Datei war als **Master** markiert – der lokale Stand wurde komplett
-/// daran angeglichen (kein Merge).
+/// Die Datei war eine **Vorlage (Master)** – der lokale Stand wurde daran
+/// angeglichen (kein Merge). [hard] = exakt gesetzt; sonst weich (Löschungen
+/// wirken, lokal Neues bleibt).
 class LibrarySyncAdoptedMaster extends LibrarySyncResult {
   const LibrarySyncAdoptedMaster({
+    required this.hard,
     required this.books,
     required this.notes,
     required this.masterGeneration,
   });
 
+  final bool hard;
   final int books;
   final int notes;
   final int masterGeneration;
@@ -85,16 +88,21 @@ class LibrarySync {
       _shareSnapshot(snapshot);
 
   /// Erklärt den lokalen Stand zur Vorlage: `masterGeneration` hochzählen, den
-  /// **unveränderten** lokalen Stand als Datei schreiben und teilen. Andere
-  /// Geräte übernehmen ihn beim nächsten Abgleich komplett.
-  Future<bool> setAsMaster() async {
+  /// **unveränderten** lokalen Stand als Datei schreiben und teilen.
+  ///
+  /// [hard] `false` (weich): übernehmende Geräte wenden die Löschungen an,
+  /// behalten aber ihre eigenen neuen Einträge. `true` (hart): sie werden exakt
+  /// auf diesen Stand gesetzt; Grabsteine werden dabei verworfen (nicht mehr
+  /// nötig).
+  Future<bool> setAsMaster({required bool hard}) async {
     final local = await _archive.readSnapshot();
     final nextGen = local.masterGeneration + 1;
     final master = LibrarySnapshot(
       sources: local.sources,
       notes: local.notes,
-      tombstones: local.tombstones,
+      tombstones: hard ? const [] : local.tombstones,
       masterGeneration: nextGen,
+      masterHard: hard,
     );
     await _archive.replaceWith(master); // hält die neue Generation lokal fest
     await _settings.updateSync(
@@ -124,26 +132,28 @@ class LibrarySync {
     final incoming = LibrarySnapshot.parse(text);
     final local = await _archive.readSnapshot();
 
-    // Master-Kurzschluss (SYNC_DESIGN.md §5): die Datei ist verbindlich,
-    // ihre Grabsteine werden angewendet – lokal Neues bleibt aber erhalten.
+    // Master-Kurzschluss (SYNC_DESIGN.md §5).
     if (incoming.masterGeneration >
         _settings.sync.lastConsumedMasterGeneration) {
-      final adopted = adoptMaster(
-        local,
-        incoming,
-        now: _clock(),
-        gcEnabled: _settings.sync.tombstoneGcEnabled,
-        gcDays: _settings.sync.tombstoneGcDays,
-      );
-      await _archive.replaceWith(adopted);
+      final result = incoming.masterHard
+          ? incoming // hart: exakt übernehmen
+          : adoptMaster(
+              local,
+              incoming,
+              now: _clock(),
+              gcEnabled: _settings.sync.tombstoneGcEnabled,
+              gcDays: _settings.sync.tombstoneGcDays,
+            );
+      await _archive.replaceWith(result);
       await _settings.updateSync(
         _settings.sync.copyWith(
           lastConsumedMasterGeneration: incoming.masterGeneration,
         ),
       );
       return LibrarySyncAdoptedMaster(
-        books: adopted.sourceCount,
-        notes: adopted.noteCount,
+        hard: incoming.masterHard,
+        books: result.sourceCount,
+        notes: result.noteCount,
         masterGeneration: incoming.masterGeneration,
       );
     }

@@ -48,6 +48,18 @@ void main() {
     expect(json['formatVersion'], 1);
   });
 
+  test('masterHard: Default false, Roundtrip', () {
+    expect(const LibrarySnapshot().masterHard, isFalse);
+    final back = LibrarySnapshot.parse(
+      const LibrarySnapshot(
+        masterGeneration: 2,
+        masterHard: true,
+      ).toJsonString(),
+    );
+    expect(back.masterHard, isTrue);
+    expect(back.masterGeneration, 2);
+  });
+
   test('parse lehnt fremdes JSON ab', () {
     expect(
       () => LibrarySnapshot.parse('{"foo": 1}'),

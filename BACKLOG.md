@@ -59,6 +59,15 @@ Master, Grabsteine, GC-Felder). Deferred bleibt:
 - PROJECT.md 3b nennt als Ziel-Sync Supabase; der Datei-Abgleich ist die
   einfachere, ausreichende Variante und blockiert Supabase nicht.
 
+## Hilfe / Doku
+
+- **Hilfe-Seite in der App** und ein **README im Git-Repo**, die vor allem den
+  **Merge- vs. Master-Abgleich** erklären. Das Modell ist mächtig, aber
+  ungewöhnlich und nicht intuitiv (besonders: eine weiche Vorlage repliziert
+  nicht bloß, sondern nimmt lokal Neues des Zielgeräts noch mit auf). Quelle:
+  `SYNC_DESIGN.md`. Kurzfassung gehört an die Stellen, wo die Funktionen
+  auftauchen (teils schon als Hinweistext vorhanden).
+
 ## Cover-Suche
 
 - Sprache der Cover-Suche konfigurierbar machen (aktuell fest `de`, siehe

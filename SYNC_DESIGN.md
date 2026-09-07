@@ -120,20 +120,29 @@ kann gefahrlos komplett ersetzt werden (`LibraryArchive.replaceWith`).
 | dieselbe Notiz auf A und B bearbeitet | spätere Wall-Clock gewinnt (nur Inhalt) |
 | auf beiden gelöscht, nirgends mehr da | Grabstein bleibt (für spätere `adoptMaster`) |
 
-## 5. „Als Vorlage (Master) setzen" + `adoptMaster`
+## 5. „Als Vorlage (Master) setzen"
+
+Zwei Varianten, der Nutzer wählt beim Setzen:
+
+| | **Weich** (Default) | **Hart** |
+|---|---|---|
+| Datei-Feld | `masterHard: false` | `masterHard: true` |
+| Grabsteine in der Datei | die des Geräts | **keine** (verworfen) |
+| Übernehmende Geräte | `adoptMaster` (§5.2) | **exakter Replace** durch die Datei |
+| Lokal Neues bleibt? | ja | nein |
 
 ### 5.1 Setzen (Gerät A)
 
 - `masterGeneration := lokale masterGeneration + 1`
-- schreibt die Datei mit dem **aktuellen lokalen Stand unverändert** (inkl.
-  seiner Grabsteine, kein vorheriger Merge)
+- schreibt die Datei mit dem **aktuellen lokalen Stand unverändert** (kein
+  vorheriger Merge); bei „hart" ohne Grabsteine
 - hält die neue Generation lokal fest (`replaceWith` + `lastConsumedMasterGeneration`)
 - teilt die Datei
 
 Praxis: erst normal abgleichen, dann in Ruhe konsolidieren/aufräumen, dann „Als
 Vorlage setzen".
 
-### 5.2 Übernehmen (`adoptMaster(local, master)`, Gerät B)
+### 5.2 Übernehmen – weich (`adoptMaster(local, master)`, Gerät B)
 
 Der Master ist **verbindlich für alles, was er kennt**:
 
@@ -145,6 +154,13 @@ Der Master ist **verbindlich für alles, was er kennt**:
   als Grabstein), **bleiben** – sie sind auf B neu dazugekommen.
 - Danach Waisen-Filter, Grabstein-Invariante (§4.2.3), GC.
 - `masterGeneration := master.masterGeneration`.
+
+### 5.2b Übernehmen – hart
+
+`replaceWith(master)` ohne `adoptMaster`: die lokale DB **wird exakt die
+Datei**, inklusive leerer Grabstein-Liste. Alles, was die Datei nicht enthält,
+ist weg. Für den Fall, dass der Nutzer bewusst einen Reset auf alle Geräte
+will.
 
 ### 5.3 Grenze (dokumentieren, nicht lösen)
 
