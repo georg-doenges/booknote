@@ -1,6 +1,7 @@
 /// Sammel-Export des Datenmodells.
 library;
 
+export 'app_language.dart';
 export 'book.dart';
 export 'book_query.dart';
 export 'library_snapshot.dart';

@@ -46,7 +46,7 @@ class _ExportSheetState extends State<_ExportSheet> {
   late Exporter _exporter = AppScope.of(context).exporters.first;
   bool _busy = false;
 
-  Future<void> _run() async {
+  Future<void> _run({required bool toFile}) async {
     setState(() => _busy = true);
     final scope = AppScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -62,14 +62,19 @@ class _ExportSheetState extends State<_ExportSheet> {
       }
       final result = _exporter.export(request);
       navigator.pop();
-      await shareExport(result);
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(
-            '${_exporter.formatName} exportiert: ${result.fileName}',
+      final ok = toFile
+          ? await saveExportToFile(result)
+          : await shareExport(result);
+      if (ok) {
+        messenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              '${_exporter.formatName} '
+              '${toFile ? 'gespeichert' : 'exportiert'}: ${result.fileName}',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
       if (mounted) setState(() => _busy = false);
       messenger.showSnackBar(
@@ -198,16 +203,30 @@ class _ExportSheetState extends State<_ExportSheet> {
               padding: const EdgeInsets.symmetric(
                 horizontal: BooknoteTheme.gap12,
               ),
-              child: FilledButton.icon(
-                onPressed: _busy ? null : _run,
-                icon: _busy
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.ios_share),
-                label: const Text('Teilen'),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.tonalIcon(
+                      onPressed: _busy ? null : () => _run(toFile: false),
+                      icon: const Icon(Icons.ios_share),
+                      label: const Text('Teilen'),
+                    ),
+                  ),
+                  const SizedBox(width: BooknoteTheme.gap8),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: _busy ? null : () => _run(toFile: true),
+                      icon: _busy
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.save_alt),
+                      label: const Text('Speichern'),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

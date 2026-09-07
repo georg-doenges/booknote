@@ -82,6 +82,20 @@ class LibrarySync {
     return _shareSnapshot(snapshot);
   }
 
+  /// Wie [save], aber über den „Speichern unter"-Dialog direkt in einen Ordner
+  /// (z.B. Google Drive). `true`, wenn gespeichert wurde.
+  Future<bool> saveToFile() async {
+    final snapshot = await _archive.readSnapshot();
+    final path = await FilePicker.platform.saveFile(
+      dialogTitle: 'Speichern unter',
+      fileName: kLibraryFileName,
+      type: FileType.custom,
+      allowedExtensions: ['json'],
+      bytes: utf8.encode(snapshot.toJsonString()),
+    );
+    return path != null;
+  }
+
   /// Teilt einen bereits gemischten Stand erneut (Button „aktualisierte Datei
   /// sichern" nach einem Abgleich).
   Future<bool> shareSnapshot(LibrarySnapshot snapshot) =>

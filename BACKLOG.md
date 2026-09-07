@@ -13,13 +13,18 @@ Alles hier ist Kür.
 
 - **App-Icon.** Vom Nutzer bewusst zurückgestellt. `flutter_launcher_icons`
   (dev-dependency), ein Quell-PNG, plattformneutral.
-- **Sprache der Cover-Suche konfigurierbar.** Aktuell fest `de`
-  (`GoogleBooksCoverService.preferredLanguage`, `OpenLibraryCoverService`).
-  Schalter in die Settings-Seite oder aus der Geräte-Locale.
+- ~~Sprache der Cover-Suche konfigurierbar~~ → erledigt (Sprach-Menü in der
+  Buchsuche, `AppLanguage`).
+- ~~„Speichern unter" in einen Ordner~~ → erledigt (`FilePicker.saveFile` im
+  Export- und im Sync-Sheet).
 - **Export-Format merken.** Letztes MD/TXT als Default im Export-Sheet, über
   `AppSettings`.
-- **„Speichern unter" in einen Ordner** (`.md`/`.txt`/`.json`), zusätzlich zum
-  Share-Sheet – über `file_picker` (`getDirectoryPath` / SAF).
+- **Whisper-Parsing auch auf Englisch.** Der `NoteParser` erkennt nur deutsche
+  Muster („Seite 47 oben"). Bei englischer Aufnahme wird der Text zwar korrekt
+  transkribiert (Sprach-Menü im Aufnahme-Screen), aber „page 47" wird nicht als
+  Seite erkannt. Eine englische Parser-Variante wäre ein Folgeschritt.
+- **Sprache pro Buch** statt global: ein deutsches Buch ist immer deutsch.
+  Bräuchte ein Feld an `Source` (Schema v4). Aktuell global über die Menüs.
 - **„Feinheiten"-Runde** – der Nutzer sammelt noch kleinere Punkte.
 
 ## Mittel

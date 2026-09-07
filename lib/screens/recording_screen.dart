@@ -7,6 +7,7 @@ import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
 import '../widgets/book_edit_dialog.dart';
+import '../widgets/language_menu_button.dart';
 import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
 import '../widgets/record_button.dart';
@@ -158,7 +159,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
 
     final scope = AppScope.of(context);
     try {
-      final raw = await scope.transcription.transcribe(path);
+      final raw = await scope.transcription.transcribe(
+        path,
+        language: scope.settings.recordingLanguage.code,
+      );
       final parsed = scope.parser.parse(raw);
       final note = await scope.notes.create(
         sourceId: _book.id,
@@ -234,6 +238,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final muted = scheme.onSurfaceVariant;
+    final settings = AppScope.of(context).settings;
 
     return Scaffold(
       appBar: AppBar(
@@ -241,6 +246,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onLongPress: _editBook,
           child: Text(_book.title),
         ),
+        actions: [
+          LanguageMenuButton(
+            value: settings.recordingLanguage,
+            tooltip: 'Sprache der Spracherkennung',
+            onSelected: (l) {
+              settings.setRecordingLanguage(l);
+              setState(() {});
+            },
+          ),
+        ],
       ),
       // SafeArea unten: sonst verdeckt die System-Navigationsleiste die
       // Aktionen der Fehlerkarte („Erneut versuchen").

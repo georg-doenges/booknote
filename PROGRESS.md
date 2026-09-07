@@ -320,6 +320,26 @@ test/
   wählt der Nutzer selbst.
 - App-Icon bleibt bewusst offen (BACKLOG).
 
+## Sprache (Whisper + Cover) + „Speichern unter"
+
+- **`AppLanguage` neu** (`models/`, Enum `german`/`english`, ISO-Code + Label,
+  erweiterbar). **`AppSettings` auf ein `AppPrefs`-Wertobjekt umgestellt**
+  (`load()`/`save(AppPrefs)` statt N Getter/Setter-Paare; `==`/`hashCode` für
+  den Notify-Guard). Neu darin: `recordingLanguage`, `coverSearchLanguage`
+  (Default `german`).
+- **`LanguageMenuButton`** (`widgets/`): kompaktes AppBar-Menü „DE ▾" (kein
+  Kippschalter). Im **RecordingScreen** (steuert `transcribe(language:)`) und in
+  der **BookSearchScreen** (steuert `covers.search(query, language:)`, löst
+  Suche neu aus).
+- **`CoverService.search`** hat jetzt `{String? language}`; alle Impls +
+  `FallbackCoverService` reichen es durch (`language ?? preferredLanguage`).
+- **„Speichern unter"**: `saveExportToFile` (`share_export.dart`) und
+  `LibrarySync.saveToFile` über `FilePicker.saveFile` (System-Dialog, schreibt
+  auch nach Drive). Export-Sheet und Sync-Sheet haben jetzt je **[Teilen] /
+  [Speichern]**.
+- Tests: `app_settings_test.dart` neu (AppPrefs), `cover_service_test.dart`
+  (+Sprache). 166 grün, analyze sauber.
+
 ## Vorlage: weich / hart (Nutzerwunsch)
 
 - **„Als Vorlage setzen"** hat jetzt eine Auswahl: **weich** (Default,

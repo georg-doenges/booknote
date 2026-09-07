@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/app_language.dart';
+
 /// Einstellungen rund um den Geräte-Abgleich (siehe `SYNC_DESIGN.md`).
 class SyncSettings {
   const SyncSettings({
@@ -28,159 +30,184 @@ class SyncSettings {
     tombstoneGcEnabled: tombstoneGcEnabled ?? this.tombstoneGcEnabled,
     tombstoneGcDays: tombstoneGcDays ?? this.tombstoneGcDays,
   );
+
+  @override
+  bool operator ==(Object other) =>
+      other is SyncSettings &&
+      other.lastConsumedMasterGeneration == lastConsumedMasterGeneration &&
+      other.tombstoneGcEnabled == tombstoneGcEnabled &&
+      other.tombstoneGcDays == tombstoneGcDays;
+
+  @override
+  int get hashCode => Object.hash(
+    lastConsumedMasterGeneration,
+    tombstoneGcEnabled,
+    tombstoneGcDays,
+  );
 }
 
-/// Persistente App-Einstellungen jenseits der API-Keys (die im [ApiKeyStore]
-/// liegen).
-///
-/// Bewusst als eigenes Interface: hier stehen keine Geheimnisse, dafür Dinge
-/// wie der Theme-Modus und die Abgleich-Optionen – und später (BACKLOG.md) die
-/// Auswahl bzw. der Import eigener Farbschemata.
-abstract class AppSettingsStore {
-  Future<ThemeMode> getThemeMode();
-  Future<void> setThemeMode(ThemeMode mode);
+/// Alle nicht-geheimen App-Einstellungen als ein Wertobjekt. (API-Keys liegen
+/// im `ApiKeyStore`.)
+class AppPrefs {
+  const AppPrefs({
+    this.themeMode = ThemeMode.system,
+    this.hapticsEnabled = true,
+    this.recordingLanguage = AppLanguage.german,
+    this.coverSearchLanguage = AppLanguage.german,
+    this.sync = const SyncSettings(),
+  });
+
+  final ThemeMode themeMode;
 
   /// Haptisches Feedback beim Aufnehmen.
-  Future<bool> getHapticsEnabled();
-  Future<void> setHapticsEnabled(bool enabled);
+  final bool hapticsEnabled;
 
-  Future<SyncSettings> getSyncSettings();
-  Future<void> setSyncSettings(SyncSettings settings);
+  /// Sprache, in der Whisper transkribiert.
+  final AppLanguage recordingLanguage;
+
+  /// Bevorzugte Sprache bei der Cover-/Metadaten-Suche.
+  final AppLanguage coverSearchLanguage;
+
+  final SyncSettings sync;
+
+  AppPrefs copyWith({
+    ThemeMode? themeMode,
+    bool? hapticsEnabled,
+    AppLanguage? recordingLanguage,
+    AppLanguage? coverSearchLanguage,
+    SyncSettings? sync,
+  }) => AppPrefs(
+    themeMode: themeMode ?? this.themeMode,
+    hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
+    recordingLanguage: recordingLanguage ?? this.recordingLanguage,
+    coverSearchLanguage: coverSearchLanguage ?? this.coverSearchLanguage,
+    sync: sync ?? this.sync,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is AppPrefs &&
+      other.themeMode == themeMode &&
+      other.hapticsEnabled == hapticsEnabled &&
+      other.recordingLanguage == recordingLanguage &&
+      other.coverSearchLanguage == coverSearchLanguage &&
+      other.sync == sync;
+
+  @override
+  int get hashCode => Object.hash(
+    themeMode,
+    hapticsEnabled,
+    recordingLanguage,
+    coverSearchLanguage,
+    sync,
+  );
+}
+
+/// Lädt/speichert [AppPrefs]. Interface, damit Tests ohne echte Persistenz
+/// auskommen.
+abstract class AppSettingsStore {
+  Future<AppPrefs> load();
+  Future<void> save(AppPrefs prefs);
 }
 
 /// Produktive Implementierung über `shared_preferences` (plattformneutral).
 class SharedPrefsAppSettingsStore implements AppSettingsStore {
-  static const _themeModeKey = 'theme_mode';
-  static const _hapticsKey = 'haptics_enabled';
-  static const _masterGenKey = 'sync_last_master_generation';
-  static const _gcEnabledKey = 'sync_tombstone_gc_enabled';
-  static const _gcDaysKey = 'sync_tombstone_gc_days';
+  static const _themeMode = 'theme_mode';
+  static const _haptics = 'haptics_enabled';
+  static const _langRecording = 'lang_recording';
+  static const _langCover = 'lang_cover';
+  static const _masterGen = 'sync_last_master_generation';
+  static const _gcEnabled = 'sync_tombstone_gc_enabled';
+  static const _gcDays = 'sync_tombstone_gc_days';
 
   @override
-  Future<ThemeMode> getThemeMode() async {
-    final prefs = await SharedPreferences.getInstance();
-    return switch (prefs.getString(_themeModeKey)) {
-      'light' => ThemeMode.light,
-      'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
-    };
-  }
-
-  @override
-  Future<void> setThemeMode(ThemeMode mode) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_themeModeKey, mode.name);
-  }
-
-  @override
-  Future<bool> getHapticsEnabled() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool(_hapticsKey) ?? true;
-  }
-
-  @override
-  Future<void> setHapticsEnabled(bool enabled) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_hapticsKey, enabled);
-  }
-
-  @override
-  Future<SyncSettings> getSyncSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    const d = SyncSettings();
-    return SyncSettings(
-      lastConsumedMasterGeneration:
-          prefs.getInt(_masterGenKey) ?? d.lastConsumedMasterGeneration,
-      tombstoneGcEnabled: prefs.getBool(_gcEnabledKey) ?? d.tombstoneGcEnabled,
-      tombstoneGcDays: prefs.getInt(_gcDaysKey) ?? d.tombstoneGcDays,
+  Future<AppPrefs> load() async {
+    final p = await SharedPreferences.getInstance();
+    const d = AppPrefs();
+    return AppPrefs(
+      themeMode: switch (p.getString(_themeMode)) {
+        'light' => ThemeMode.light,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.system,
+      },
+      hapticsEnabled: p.getBool(_haptics) ?? d.hapticsEnabled,
+      recordingLanguage: AppLanguage.fromCode(p.getString(_langRecording)),
+      coverSearchLanguage: AppLanguage.fromCode(p.getString(_langCover)),
+      sync: SyncSettings(
+        lastConsumedMasterGeneration:
+            p.getInt(_masterGen) ?? d.sync.lastConsumedMasterGeneration,
+        tombstoneGcEnabled: p.getBool(_gcEnabled) ?? d.sync.tombstoneGcEnabled,
+        tombstoneGcDays: p.getInt(_gcDays) ?? d.sync.tombstoneGcDays,
+      ),
     );
   }
 
   @override
-  Future<void> setSyncSettings(SyncSettings s) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setInt(_masterGenKey, s.lastConsumedMasterGeneration);
-    await prefs.setBool(_gcEnabledKey, s.tombstoneGcEnabled);
-    await prefs.setInt(_gcDaysKey, s.tombstoneGcDays);
+  Future<void> save(AppPrefs a) async {
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_themeMode, a.themeMode.name);
+    await p.setBool(_haptics, a.hapticsEnabled);
+    await p.setString(_langRecording, a.recordingLanguage.code);
+    await p.setString(_langCover, a.coverSearchLanguage.code);
+    await p.setInt(_masterGen, a.sync.lastConsumedMasterGeneration);
+    await p.setBool(_gcEnabled, a.sync.tombstoneGcEnabled);
+    await p.setInt(_gcDays, a.sync.tombstoneGcDays);
   }
 }
 
 /// Für Tests und Entwicklung.
 class InMemoryAppSettingsStore implements AppSettingsStore {
-  InMemoryAppSettingsStore({
-    this.themeMode = ThemeMode.system,
-    this.hapticsEnabled = true,
-    this.syncSettings = const SyncSettings(),
-  });
+  InMemoryAppSettingsStore({this.prefs = const AppPrefs()});
 
-  ThemeMode themeMode;
-  bool hapticsEnabled;
-  SyncSettings syncSettings;
+  AppPrefs prefs;
 
   @override
-  Future<ThemeMode> getThemeMode() async => themeMode;
+  Future<AppPrefs> load() async => prefs;
 
   @override
-  Future<void> setThemeMode(ThemeMode mode) async => themeMode = mode;
-
-  @override
-  Future<bool> getHapticsEnabled() async => hapticsEnabled;
-
-  @override
-  Future<void> setHapticsEnabled(bool enabled) async =>
-      hapticsEnabled = enabled;
-
-  @override
-  Future<SyncSettings> getSyncSettings() async => syncSettings;
-
-  @override
-  Future<void> setSyncSettings(SyncSettings settings) async =>
-      syncSettings = settings;
+  Future<void> save(AppPrefs p) async => prefs = p;
 }
 
 /// Hält die aktuellen Einstellungen im Speicher und schreibt jede Änderung
-/// durch in den [AppSettingsStore]. `main.dart` erzeugt genau eine Instanz;
-/// die UI liest daraus und ruft die Setter. Als [ChangeNotifier], damit
-/// `MaterialApp` bei einem Theme-Wechsel sofort neu baut.
+/// durch. `main.dart` erzeugt genau eine Instanz; die UI liest daraus und ruft
+/// die Setter. [ChangeNotifier], damit `MaterialApp` bei einem Theme-Wechsel
+/// sofort neu baut.
 class AppSettings extends ChangeNotifier {
-  AppSettings(this._store, this._themeMode, this._hapticsEnabled, this._sync);
+  AppSettings(this._store, this._prefs);
 
-  /// Lädt den gespeicherten Stand und baut daraus die Instanz.
-  static Future<AppSettings> load(AppSettingsStore store) async => AppSettings(
-    store,
-    await store.getThemeMode(),
-    await store.getHapticsEnabled(),
-    await store.getSyncSettings(),
-  );
+  /// Lädt den gespeicherten Stand.
+  static Future<AppSettings> load(AppSettingsStore store) async =>
+      AppSettings(store, await store.load());
 
   final AppSettingsStore _store;
+  AppPrefs _prefs;
 
-  ThemeMode _themeMode;
-  ThemeMode get themeMode => _themeMode;
+  AppPrefs get prefs => _prefs;
+  ThemeMode get themeMode => _prefs.themeMode;
+  bool get hapticsEnabled => _prefs.hapticsEnabled;
+  AppLanguage get recordingLanguage => _prefs.recordingLanguage;
+  AppLanguage get coverSearchLanguage => _prefs.coverSearchLanguage;
+  SyncSettings get sync => _prefs.sync;
 
-  bool _hapticsEnabled;
-  bool get hapticsEnabled => _hapticsEnabled;
-
-  SyncSettings _sync;
-  SyncSettings get sync => _sync;
-
-  Future<void> setThemeMode(ThemeMode mode) async {
-    if (mode == _themeMode) return;
-    _themeMode = mode;
+  Future<void> _update(AppPrefs next) async {
+    if (next == _prefs) return;
+    _prefs = next;
     notifyListeners();
-    await _store.setThemeMode(mode);
+    await _store.save(next);
   }
 
-  Future<void> setHapticsEnabled(bool enabled) async {
-    if (enabled == _hapticsEnabled) return;
-    _hapticsEnabled = enabled;
-    notifyListeners();
-    await _store.setHapticsEnabled(enabled);
-  }
+  Future<void> setThemeMode(ThemeMode mode) =>
+      _update(_prefs.copyWith(themeMode: mode));
 
-  Future<void> updateSync(SyncSettings settings) async {
-    _sync = settings;
-    notifyListeners();
-    await _store.setSyncSettings(settings);
-  }
+  Future<void> setHapticsEnabled(bool enabled) =>
+      _update(_prefs.copyWith(hapticsEnabled: enabled));
+
+  Future<void> setRecordingLanguage(AppLanguage language) =>
+      _update(_prefs.copyWith(recordingLanguage: language));
+
+  Future<void> setCoverSearchLanguage(AppLanguage language) =>
+      _update(_prefs.copyWith(coverSearchLanguage: language));
+
+  Future<void> updateSync(SyncSettings settings) =>
+      _update(_prefs.copyWith(sync: settings));
 }

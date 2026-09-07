@@ -26,7 +26,7 @@ class OpenLibraryCoverService implements CoverService {
   final Duration timeout;
 
   @override
-  Future<CoverSearchResult> search(String query) async {
+  Future<CoverSearchResult> search(String query, {String? language}) async {
     final q = query.trim();
     if (q.isEmpty) return const CoverSearchResult([]);
 
@@ -35,7 +35,7 @@ class OpenLibraryCoverService implements CoverService {
         'q': q,
         'limit': '$maxResults',
         'fields': 'title,author_name,cover_i',
-        'lang': ?preferredLanguage,
+        'lang': ?(language ?? preferredLanguage),
       },
     );
 

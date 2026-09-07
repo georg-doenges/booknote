@@ -35,16 +35,18 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   void _snack(String text) =>
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
-  Future<void> _save() async {
+  Future<void> _save({required bool toFile}) async {
     setState(() => _phase = _Phase.working);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     try {
-      await _sync.save();
+      final ok = toFile ? await _sync.saveToFile() : await _sync.save();
       navigator.pop();
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Bibliotheksdatei gesichert.')),
-      );
+      if (ok) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Bibliotheksdatei gesichert.')),
+        );
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -275,12 +277,29 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        FilledButton.tonalIcon(
-          onPressed: busy ? null : _save,
-          icon: const Icon(Icons.save_outlined),
-          label: const Text('Sichern (Datei erstellen)'),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: busy ? null : () => _save(toFile: false),
+                icon: const Icon(Icons.ios_share),
+                label: const Text('Teilen'),
+              ),
+            ),
+            const SizedBox(width: BooknoteTheme.gap8),
+            Expanded(
+              child: FilledButton.tonalIcon(
+                onPressed: busy ? null : () => _save(toFile: true),
+                icon: const Icon(Icons.save_alt),
+                label: const Text('Speichern'),
+              ),
+            ),
+          ],
         ),
-        hint('Schreibt eine Datei mit dem aktuellen Stand.'),
+        hint(
+          'Schreibt eine Datei mit dem aktuellen Stand – zum Teilen oder direkt '
+          'in einen Ordner (z.B. Google Drive).',
+        ),
         FilledButton.icon(
           onPressed: busy ? null : _merge,
           icon: busy

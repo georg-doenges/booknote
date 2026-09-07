@@ -55,7 +55,10 @@ class CoverSearchResult {
 abstract class CoverService {
   /// Liefert bis zu ~10 Treffer, beste zuerst. Leere Liste = nichts gefunden.
   /// Wirft [CoverSearchException] bei Netzwerk-/API-Fehlern.
-  Future<CoverSearchResult> search(String query);
+  ///
+  /// [language] (ISO 639-1, z.B. `de`/`en`): bevorzugte Ausgabe-Sprache. `null`
+  /// = die Voreinstellung der Implementierung.
+  Future<CoverSearchResult> search(String query, {String? language});
 }
 
 /// Fragt [primary]; wenn das leer bleibt **oder fehlschlägt**, [fallback].
@@ -67,16 +70,16 @@ class FallbackCoverService implements CoverService {
   final CoverService fallback;
 
   @override
-  Future<CoverSearchResult> search(String query) async {
+  Future<CoverSearchResult> search(String query, {String? language}) async {
     CoverSearchException? primaryError;
     try {
-      final result = await primary.search(query);
+      final result = await primary.search(query, language: language);
       if (!result.isEmpty) return result;
     } on CoverSearchException catch (e) {
       primaryError = e;
     }
     try {
-      final result = await fallback.search(query);
+      final result = await fallback.search(query, language: language);
       if (primaryError == null) return result;
       return CoverSearchResult(
         result.candidates,

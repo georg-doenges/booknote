@@ -10,10 +10,12 @@ class _Fixed implements CoverService {
   final List<CoverCandidate> result;
   final CoverSearchException? error;
   int calls = 0;
+  String? lastLanguage;
 
   @override
-  Future<CoverSearchResult> search(String query) async {
+  Future<CoverSearchResult> search(String query, {String? language}) async {
     calls++;
+    lastLanguage = language;
     if (error != null) throw error!;
     return CoverSearchResult(result);
   }
@@ -46,6 +48,17 @@ void main() {
       final r = await FallbackCoverService(primary: p, fallback: f).search('q');
       expect(r.candidates.length, 1);
       expect(r.warning, contains('down.'));
+    });
+
+    test('reicht die Sprache an beide Quellen weiter', () async {
+      final p = _Fixed([]);
+      final f = _Fixed([_c]);
+      await FallbackCoverService(
+        primary: p,
+        fallback: f,
+      ).search('q', language: 'en');
+      expect(p.lastLanguage, 'en');
+      expect(f.lastLanguage, 'en');
     });
 
     test('beide fehlerhaft → Fehler der Primärquelle', () async {

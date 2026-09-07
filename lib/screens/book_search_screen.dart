@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../app_scope.dart';
 import '../services/services.dart';
 import '../theme.dart';
+import '../widgets/language_menu_button.dart';
 import '../widgets/voice_input_button.dart';
 import 'settings_screen.dart';
 
@@ -85,8 +86,12 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       _loading = true;
       _error = null;
     });
+    final scope = AppScope.of(context);
     try {
-      final r = await AppScope.of(context).covers.search(q);
+      final r = await scope.covers.search(
+        q,
+        language: scope.settings.coverSearchLanguage.code,
+      );
       if (!mounted || id != _requestId) return;
       setState(() {
         _results = r.candidates;
@@ -125,8 +130,22 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final settings = AppScope.of(context).settings;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          LanguageMenuButton(
+            value: settings.coverSearchLanguage,
+            tooltip: 'Sprache der Cover-Suche',
+            onSelected: (l) {
+              settings.setCoverSearchLanguage(l);
+              setState(() {});
+              _search();
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(

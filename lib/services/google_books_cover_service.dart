@@ -34,12 +34,12 @@ class GoogleBooksCoverService implements CoverService {
   final Duration timeout;
 
   @override
-  Future<CoverSearchResult> search(String query) async {
+  Future<CoverSearchResult> search(String query, {String? language}) async {
     final q = query.trim();
     if (q.isEmpty) return const CoverSearchResult([]);
 
     final key = await _keys.getGoogleBooksKey();
-    final lang = preferredLanguage;
+    final lang = language ?? preferredLanguage;
     if (lang == null) return CoverSearchResult(await _query(q, key, null));
 
     final preferred = await _query(q, key, lang);

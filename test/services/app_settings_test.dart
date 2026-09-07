@@ -1,29 +1,45 @@
+import 'package:booknote/models/models.dart';
 import 'package:booknote/services/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  group('InMemoryAppSettingsStore', () {
-    test('Standard ist ThemeMode.system', () async {
-      expect(await InMemoryAppSettingsStore().getThemeMode(), ThemeMode.system);
+  group('AppPrefs', () {
+    test('Defaults', () {
+      const p = AppPrefs();
+      expect(p.themeMode, ThemeMode.system);
+      expect(p.hapticsEnabled, isTrue);
+      expect(p.recordingLanguage, AppLanguage.german);
+      expect(p.coverSearchLanguage, AppLanguage.german);
+      expect(p.sync.tombstoneGcDays, 120);
     });
 
-    test('speichert und liest den Modus zurück', () async {
-      final store = InMemoryAppSettingsStore();
-      await store.setThemeMode(ThemeMode.dark);
-      expect(await store.getThemeMode(), ThemeMode.dark);
+    test('== / copyWith', () {
+      const a = AppPrefs();
+      expect(a, a.copyWith());
+      expect(a == a.copyWith(hapticsEnabled: false), isFalse);
+      expect(
+        a.copyWith(recordingLanguage: AppLanguage.english).recordingLanguage,
+        AppLanguage.english,
+      );
     });
   });
 
   group('AppSettings', () {
-    test('load() übernimmt den gespeicherten Modus', () async {
-      final store = InMemoryAppSettingsStore(themeMode: ThemeMode.light);
+    test('load() übernimmt den gespeicherten Stand', () async {
+      final store = InMemoryAppSettingsStore(
+        prefs: const AppPrefs(
+          themeMode: ThemeMode.light,
+          recordingLanguage: AppLanguage.english,
+        ),
+      );
       final settings = await AppSettings.load(store);
       expect(settings.themeMode, ThemeMode.light);
+      expect(settings.recordingLanguage, AppLanguage.english);
     });
 
-    test('setThemeMode benachrichtigt Listener und schreibt durch', () async {
+    test('setThemeMode benachrichtigt und schreibt durch', () async {
       final store = InMemoryAppSettingsStore();
       final settings = await AppSettings.load(store);
       var notified = 0;
@@ -33,54 +49,59 @@ void main() {
 
       expect(settings.themeMode, ThemeMode.dark);
       expect(notified, 1);
-      expect(store.themeMode, ThemeMode.dark);
+      expect(store.prefs.themeMode, ThemeMode.dark);
     });
 
-    test('gleicher Modus löst keine Benachrichtigung aus', () async {
+    test('unveränderter Wert löst keine Benachrichtigung aus', () async {
       final settings = await AppSettings.load(InMemoryAppSettingsStore());
       var notified = 0;
       settings.addListener(() => notified++);
 
       await settings.setThemeMode(ThemeMode.system);
+      await settings.setHapticsEnabled(true);
 
       expect(notified, 0);
     });
 
-    test('Haptik: Default an, abschaltbar, wird durchgeschrieben', () async {
+    test('Sprachen und GC-Tage lassen sich setzen', () async {
       final store = InMemoryAppSettingsStore();
       final settings = await AppSettings.load(store);
-      expect(settings.hapticsEnabled, isTrue);
 
-      await settings.setHapticsEnabled(false);
-      expect(settings.hapticsEnabled, isFalse);
-      expect(store.hapticsEnabled, isFalse);
-    });
-
-    test('GC-Einstellungen: Default an / 120 Tage, änderbar', () async {
-      final store = InMemoryAppSettingsStore();
-      final settings = await AppSettings.load(store);
-      expect(settings.sync.tombstoneGcEnabled, isTrue);
-      expect(settings.sync.tombstoneGcDays, 120);
-
+      await settings.setRecordingLanguage(AppLanguage.english);
+      await settings.setCoverSearchLanguage(AppLanguage.english);
       await settings.updateSync(settings.sync.copyWith(tombstoneGcDays: 30));
-      expect(store.syncSettings.tombstoneGcDays, 30);
+
+      expect(store.prefs.recordingLanguage, AppLanguage.english);
+      expect(store.prefs.coverSearchLanguage, AppLanguage.english);
+      expect(store.prefs.sync.tombstoneGcDays, 30);
     });
   });
 
   group('SharedPrefsAppSettingsStore', () {
     setUp(() => SharedPreferences.setMockInitialValues({}));
 
-    test('ohne gespeicherten Wert → system', () async {
-      expect(
-        await SharedPrefsAppSettingsStore().getThemeMode(),
-        ThemeMode.system,
-      );
+    test('leerer Speicher → Defaults', () async {
+      final p = await SharedPrefsAppSettingsStore().load();
+      expect(p.themeMode, ThemeMode.system);
+      expect(p.recordingLanguage, AppLanguage.german);
     });
 
-    test('Runde: dark schreiben, dark lesen', () async {
+    test('Roundtrip', () async {
       final store = SharedPrefsAppSettingsStore();
-      await store.setThemeMode(ThemeMode.dark);
-      expect(await store.getThemeMode(), ThemeMode.dark);
+      await store.save(
+        const AppPrefs(
+          themeMode: ThemeMode.dark,
+          hapticsEnabled: false,
+          recordingLanguage: AppLanguage.english,
+          sync: SyncSettings(tombstoneGcEnabled: false, tombstoneGcDays: 60),
+        ),
+      );
+      final p = await store.load();
+      expect(p.themeMode, ThemeMode.dark);
+      expect(p.hapticsEnabled, isFalse);
+      expect(p.recordingLanguage, AppLanguage.english);
+      expect(p.sync.tombstoneGcEnabled, isFalse);
+      expect(p.sync.tombstoneGcDays, 60);
     });
   });
 }

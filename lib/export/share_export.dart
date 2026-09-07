@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -25,4 +27,17 @@ Future<bool> shareExport(ExportResult result) async {
     ),
   );
   return share.status == ShareResultStatus.success;
+}
+
+/// Öffnet den „Speichern unter"-Dialog des Systems und legt die Datei dort ab
+/// (auch Google Drive, Dateien-App usw.). `true`, wenn gespeichert wurde.
+Future<bool> saveExportToFile(ExportResult result) async {
+  final path = await FilePicker.platform.saveFile(
+    dialogTitle: 'Speichern unter',
+    fileName: result.fileName,
+    type: FileType.custom,
+    allowedExtensions: [result.fileName.split('.').last],
+    bytes: utf8.encode(result.content),
+  );
+  return path != null;
 }
