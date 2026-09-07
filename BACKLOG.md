@@ -44,12 +44,13 @@ Custom-Themes). Alles hier ist Kür.
   - **Theme-File mit hell + dunkel in einem** – folgt dann optional dem System.
     Aktuell ist ein Custom-Theme ein fester Look.
   - Auswahl-UI mit größerer Vorschau.
-- **Importe: Fremdformate ausblenden statt ausgrauen.** Der Android-Systemwähler
-  (SAF/DocumentsUI) zeigt Nicht-JSON-Dateien nur **ausgegraut**, blendet sie
-  nicht aus. Der Filter wirkt (nur JSON wählbar), aber „gar nicht anzeigen"
-  bräuchte einen eigenen, auf einen Ordner beschränkten In-App-Dateibrowser –
-  mit Scoped-Storage-Aufwand. Rein kosmetisch. Betrifft Theme- und
-  Bibliotheks-Import.
+- **Eigener In-App-Dateibrowser für Importe.** Der Android-Systemwähler
+  (SAF/DocumentsUI) bestimmt Anzeige *und* Ansicht: Nicht-JSON-Dateien werden
+  nur **ausgegraut** (nicht ausgeblendet), und Liste vs. Kacheln lässt sich
+  nicht vorgeben. Der Filter wirkt (nur JSON wählbar). „Aufgeräumter" ginge nur
+  mit einem eigenen, auf einen Ordner beschränkten Browser – mit
+  Scoped-Storage-Aufwand (`ACTION_OPEN_DOCUMENT_TREE` + `DocumentFile` oder ein
+  SAF-Paket). Rein kosmetisch. Betrifft Theme- und Bibliotheks-Import.
 
 ## Groß (echte spätere Stufen, PROJECT.md §9)
 

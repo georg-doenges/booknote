@@ -80,9 +80,10 @@ void main() {
 
   test('das mitgelieferte Blue-Gold-Asset ist gültig', () {
     final json = File('assets/themes/blue_gold.json').readAsStringSync();
-    final t = CustomTheme.parse(json, builtIn: true);
+    final t = CustomTheme.parse(json);
     expect(t.id, 'blue_gold');
-    expect(t.builtIn, isTrue);
+    expect(t.name, 'Blue Gold');
+    expect(t.brightness, Brightness.dark);
     expect(t.overrides['surface'], isNotNull);
     expect(t.overrides['primary'], isNotNull);
   });

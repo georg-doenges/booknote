@@ -17,7 +17,6 @@ class CustomTheme {
     required this.seed,
     this.overrides = const {},
     this.background,
-    this.builtIn = false,
   });
 
   final String id;
@@ -32,9 +31,6 @@ class CustomTheme {
   final Map<String, Color> overrides;
 
   final ThemeBackground? background;
-
-  /// Mitgeliefert (Asset), nicht löschbar.
-  final bool builtIn;
 
   static const formatId = 'booknote-theme';
   static const formatVersion = 1;
@@ -74,19 +70,9 @@ class CustomTheme {
     'scrim',
   };
 
-  CustomTheme copyWith({bool? builtIn}) => CustomTheme(
-    id: id,
-    name: name,
-    brightness: brightness,
-    seed: seed,
-    overrides: overrides,
-    background: background,
-    builtIn: builtIn ?? this.builtIn,
-  );
-
   // ---- JSON ----
 
-  static CustomTheme parse(String text, {bool builtIn = false}) {
+  static CustomTheme parse(String text) {
     final Object? decoded;
     try {
       decoded = jsonDecode(text);
@@ -131,7 +117,6 @@ class CustomTheme {
                 (decoded['background'] as Map).cast<String, Object?>(),
               )
             : null,
-        builtIn: builtIn,
       );
     } on CustomThemeException {
       rethrow;

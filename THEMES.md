@@ -71,9 +71,12 @@ Farben als `#RRGGBB` oder `#AARRGGBB`.
 
 ## Wo die Dateien liegen
 
-- **Mitgeliefert:** `assets/themes/*.json` (im Repo, `pubspec.yaml`).
-- **Importiert:** `<App-Dokumente>/themes/<id>.json` (nicht im Git, nicht im
-  Bibliotheks-Abgleich).
+- Alle Schemata liegen als `<App-Dokumente>/themes/<id>.json` (nicht im Git,
+  nicht im Bibliotheks-Abgleich). Alle sind gleichwertig und **löschbar**.
+- Die mitgelieferten (`assets/themes/*.json`, im Repo + `pubspec.yaml`) werden
+  beim **Erststart einmalig** dorthin kopiert (Marker `.initialized`). Ein
+  danach gelöschtes mitgeliefertes Schema holt „… wiederherstellen" in den
+  Einstellungen aus den Assets zurück.
 
 ## Später (BACKLOG)
 

@@ -321,7 +321,7 @@ test/
   wählt der Nutzer selbst.
 - App-Icon bleibt bewusst offen (BACKLOG).
 
-## Eigene Farbschemata (Custom Themes) — `0.1.0+17`
+## Eigene Farbschemata (Custom Themes) — `0.1.0+18`
 
 Nutzerwunsch: ladbare Farbschemata, unaufdringlich in den Einstellungen, als
 Erstes „Blue Gold" (nach dem Screenshot einer anderen App: Navy + Messing/Gold).
@@ -331,11 +331,12 @@ Erstes „Blue Gold" (nach dem Screenshot einer anderen App: Navy + Messing/Gold
   optionale Overrides einzelner Material-Rollen (Whitelist ~30 Rollen, alles
   andere wird ignoriert) + optionaler `background` (Bild als data-URI
   eingebettet). Format-Doku: `THEMES.md`.
-- **`CustomThemeStore`** (`services/`, `ChangeNotifier`): mitgelieferte Themes
-  aus `assets/themes/*.json` (nicht löschbar) + importierte aus
-  `<App-Dokumente>/themes/<id>.json`. Nach ID entdoppelt (mitgeliefert ist
-  kanonisch). Import validiert die Datei und schreibt sie; Löschen nur bei
-  importierten.
+- **`CustomThemeStore`** (`services/`, `ChangeNotifier`): **alle** Themes liegen
+  als `<App-Dokumente>/themes/<id>.json` und sind gleichwertig – auch die
+  mitgelieferten lassen sich löschen. `assets/themes/*.json` werden beim
+  Erststart einmalig dorthin kopiert (Marker `.initialized`). `restorable` +
+  `restore(id)` holen ein gelöschtes mitgeliefertes Schema aus den Assets
+  zurück. Nach ID entdoppelt. Import validiert und schreibt die Datei.
 - **`BooknoteTheme.custom(CustomTheme)`** (`theme.dart`): Schema aus dem Seed,
   dann die gesetzten Rollen per `ColorScheme.copyWith`. Ein Custom-Theme ist
   **ein fester Look** – folgt nicht System-Hell/Dunkel (v1; „hell + dunkel in
@@ -348,20 +349,28 @@ Erstes „Blue Gold" (nach dem Screenshot einer anderen App: Navy + Messing/Gold
 - **`AppPrefs.activeCustomThemeId`**: aktives Custom-Theme; System/Hell/Dunkel
   wählen setzt es auf `null`. UI in `SettingsScreen` → Darstellung:
   Segment-Umschalter (leer, wenn Custom aktiv) + Liste „Eigene Farbschemata"
-  (RadioGroup, Swatch-Vorschau) + „Importieren …" + Mülleimer fürs aktive
-  importierte Theme.
+  (RadioGroup, Swatch-Vorschau) + „Importieren …" + Mülleimer fürs **aktive**
+  Schema + „… wiederherstellen" je fehlendem mitgelieferten Schema.
 - **`assets/themes/blue_gold.json`** mitgeliefert.
 
-Gerätetest (`0.1.0+17`, Daten erhalten):
+Gerätetest 1 (`0.1.0+17`, Daten erhalten): 1 Cover beim Start, 2 „x Notizen"
+ohne Overflow, 3 Notiz-Badges, 5 „Blue Gold" an/aus, 6 Import einer eigenen
+Datei (`sepia.json`): alles **bestätigt**.
 
-- 1 Cover beim Start, 2 „x Notizen"-Button ohne Overflow, 3 Notiz-Badges:
-  **bestätigt**.
-- 5 „Blue Gold" aktivieren/deaktivieren, 6 Import + Löschen einer eigenen
-  Datei (`sepia.json`): **bestätigt**.
-- 4 Der Dateiwähler zeigt Fremdformate **ausgegraut** statt sie auszublenden –
-  das ist die Grenze des Android-Dateiwählers (SAF/DocumentsUI). Der Filter
-  wirkt (nur JSON wählbar, PDFs & Co. gesperrt), vollständiges Ausblenden
-  bräuchte einen eigenen In-App-Dateibrowser → BACKLOG.
+Nachbesserung (`0.1.0+18`), aus Gerätetest 1:
+
+- **Alle Schemata löschbar, auch mitgelieferte.** Vorher war „Blue Gold" fest;
+  der Nutzer wollte „alles unter Eigene Farbschemata muss löschbar sein". Jetzt
+  wird `blue_gold` beim Erststart in `<docs>/themes/` kopiert und ist wie jedes
+  importierte Schema löschbar. Fehlt ein mitgeliefertes Schema, erscheint
+  „„Blue Gold" wiederherstellen". `CustomTheme.builtIn` entfernt.
+  Auf Gerät bestätigt (Liste zeigt Blue Gold + Sepia, beide löschbar,
+  Wiederherstellen erscheint nur bei Lücke, Daten erhalten).
+- **Punkt 4 (Dateiwähler):** bleibt. Der Android-Systemwähler (SAF/DocumentsUI)
+  bestimmt Anzeige *und* Ansicht (Liste/Kacheln) – eine App kann Fremdformate
+  nur **sperren** (passiert, ausgegraut), nicht ausblenden, und die Ansicht
+  nicht vorgeben. Echtes Ausblenden bräuchte einen eigenen In-App-Dateibrowser
+  (Scoped Storage). → BACKLOG, rein kosmetisch.
 - 7/8 (Neustart-Persistenz, kaputte Datei) vom Nutzer nicht geprüft, als ok
   angenommen.
 - 173 Tests grün, `flutter analyze` sauber.

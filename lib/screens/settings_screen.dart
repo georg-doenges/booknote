@@ -215,12 +215,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Builder(
                   builder: (context) {
                     final active = store.byId(settings.activeCustomThemeId);
-                    if (active == null || active.builtIn) {
-                      return const SizedBox.shrink();
-                    }
+                    if (active == null) return const SizedBox.shrink();
                     return IconButton(
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Aktives Theme löschen',
+                      tooltip: 'Aktives Schema löschen',
                       onPressed: () => _deleteTheme(active),
                     );
                   },
@@ -228,6 +226,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
+        for (final t in store.restorable)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+              BooknoteTheme.gap8,
+              0,
+              BooknoteTheme.gap16,
+              0,
+            ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: () => store.restore(t.id),
+                icon: const Icon(Icons.restore),
+                label: Text('„${t.name}" wiederherstellen'),
+              ),
+            ),
+          ),
       ],
     );
   }
