@@ -4,6 +4,7 @@ library;
 export 'api_key_store.dart';
 export 'app_settings.dart';
 export 'cover_service.dart';
+export 'custom_theme_store.dart';
 export 'google_books_cover_service.dart';
 export 'german_number_parser.dart';
 export 'haptics.dart';

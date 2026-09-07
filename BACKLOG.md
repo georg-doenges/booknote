@@ -4,8 +4,8 @@ Nicht jetzt bauen, aber bei Architektur­entscheidungen mitdenken. Arbeitsstand:
 `PROGRESS.md`. Grundspezifikation: `PROJECT.md` (Abschnitt 9 = die großen
 späteren Stufen). Abgleich-Modell: `SYNC_DESIGN.md`.
 
-Stand: **Stufe 1 ist fertig** (A–D, F1, F2, E-Signierung, Settings-Seite).
-Alles hier ist Kür.
+Stand: **Stufe 1 ist fertig** (A–D, F1, F2, E-Signierung, Settings-Seite,
+Custom-Themes). Alles hier ist Kür.
 
 ---
 
@@ -34,12 +34,22 @@ Alles hier ist Kür.
   (eine *weiche* Vorlage repliziert nicht bloß, sondern nimmt lokal Neues des
   Zielgeräts mit auf). Quelle: `SYNC_DESIGN.md`. Kurz-Erklärtexte an den
   UI-Stellen gibt es teils schon.
-- **Importierbare Farbschemata.** Der Entwickler stellt Theme-Dateien bereit
-  (z.B. „Blau & Gold"), die Nutzer laden. Vorbereitet: `lib/theme.dart` baut
-  hell/dunkel aus **einem Seed** in `BooknoteTheme`; `AppSettings` /
-  `AppSettingsStore` sind der Andockpunkt für ein `themeId` bzw. eine geladene
-  Palette. Offen: Dateiformat (JSON: Seed + optionale Overrides?), Ablageort,
-  Auswahl-UI, mitgelieferte Presets.
+- ~~**Importierbare Farbschemata.**~~ → erledigt: `CustomTheme` +
+  `CustomThemeStore`, JSON-Import in den Einstellungen, „Blue Gold"
+  mitgeliefert, Hintergrund-Layer in Struktur + Rendering angelegt. Format:
+  `THEMES.md`. **Offen:**
+  - **Theme-Repository auf GitHub.** Eigenes Repo mit `themes/`-Unterordner, aus
+    dem Nutzer Farbschemata (auch „Blue Gold") herunterladen und teilen können.
+    Danach „Blue Gold" evtl. aus dem App-Bundle lösen und nur als Download.
+  - **Theme-File mit hell + dunkel in einem** – folgt dann optional dem System.
+    Aktuell ist ein Custom-Theme ein fester Look.
+  - Auswahl-UI mit größerer Vorschau.
+- **Importe: Fremdformate ausblenden statt ausgrauen.** Der Android-Systemwähler
+  (SAF/DocumentsUI) zeigt Nicht-JSON-Dateien nur **ausgegraut**, blendet sie
+  nicht aus. Der Filter wirkt (nur JSON wählbar), aber „gar nicht anzeigen"
+  bräuchte einen eigenen, auf einen Ordner beschränkten In-App-Dateibrowser –
+  mit Scoped-Storage-Aufwand. Rein kosmetisch. Betrifft Theme- und
+  Bibliotheks-Import.
 
 ## Groß (echte spätere Stufen, PROJECT.md §9)
 

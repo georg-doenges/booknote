@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_scope.dart';
+import 'models/models.dart';
 import 'repositories/repositories.dart';
 import 'screens/library_screen.dart';
 import 'services/services.dart';
@@ -16,6 +17,9 @@ Future<void> main() async {
   Haptics.enabled = settings.hapticsEnabled;
   settings.addListener(() => Haptics.enabled = settings.hapticsEnabled);
 
+  final customThemes = CustomThemeStore();
+  await customThemes.refresh();
+
   runApp(
     BooknoteApp(
       books: SqliteBookRepository(db),
@@ -27,6 +31,7 @@ Future<void> main() async {
         fallback: OpenLibraryCoverService(),
       ),
       settings: settings,
+      customThemes: customThemes,
       librarySync: LibrarySync(LibraryArchive(db), settings),
     ),
   );
@@ -41,6 +46,7 @@ class BooknoteApp extends StatelessWidget {
     required this.transcription,
     required this.covers,
     required this.settings,
+    required this.customThemes,
     required this.librarySync,
   });
 
@@ -50,6 +56,7 @@ class BooknoteApp extends StatelessWidget {
   final TranscriptionService transcription;
   final CoverService covers;
   final AppSettings settings;
+  final CustomThemeStore customThemes;
   final LibrarySync librarySync;
 
   @override
@@ -61,17 +68,72 @@ class BooknoteApp extends StatelessWidget {
       transcription: transcription,
       covers: covers,
       settings: settings,
+      customThemes: customThemes,
       librarySync: librarySync,
       child: ListenableBuilder(
-        listenable: settings,
-        builder: (context, _) => MaterialApp(
-          title: 'Booknote',
-          theme: BooknoteTheme.light(),
-          darkTheme: BooknoteTheme.dark(),
-          themeMode: settings.themeMode,
-          home: const LibraryScreen(),
-        ),
+        listenable: Listenable.merge([settings, customThemes]),
+        builder: (context, _) {
+          final custom = customThemes.byId(settings.activeCustomThemeId);
+          final ThemeData theme = custom != null
+              ? BooknoteTheme.custom(custom)
+              : BooknoteTheme.light();
+          final background = custom?.background;
+
+          return MaterialApp(
+            title: 'Booknote',
+            theme: theme,
+            darkTheme: custom != null ? theme : BooknoteTheme.dark(),
+            themeMode: custom != null ? ThemeMode.light : settings.themeMode,
+            builder: background != null && background.hasImage
+                ? (context, child) =>
+                      _ThemeBackground(background: background, child: child!)
+                : null,
+            home: const LibraryScreen(),
+          );
+        },
       ),
+    );
+  }
+}
+
+/// Zeichnet das Hintergrundbild eines Custom-Themes hinter den App-Inhalten.
+/// AppBar und System-Leisten bleiben undurchsichtig (eigene Flächenfarbe).
+class _ThemeBackground extends StatelessWidget {
+  const _ThemeBackground({required this.background, required this.child});
+
+  final ThemeBackground background;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Stack(
+      children: [
+        Positioned.fill(child: ColoredBox(color: scheme.surface)),
+        Positioned.fill(
+          child: Opacity(
+            opacity: background.opacity,
+            child: background.tile
+                ? Image.memory(
+                    background.imageBytes!,
+                    repeat: ImageRepeat.repeat,
+                    filterQuality: FilterQuality.medium,
+                  )
+                : Image.memory(
+                    background.imageBytes!,
+                    fit: BoxFit.cover,
+                    filterQuality: FilterQuality.medium,
+                  ),
+          ),
+        ),
+        if (background.dim > 0)
+          Positioned.fill(
+            child: ColoredBox(
+              color: Colors.black.withValues(alpha: background.dim),
+            ),
+          ),
+        Positioned.fill(child: child),
+      ],
     );
   }
 }

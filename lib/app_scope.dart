@@ -18,6 +18,7 @@ class AppScope extends InheritedWidget {
     required this.apiKeys,
     required this.covers,
     required this.settings,
+    required this.customThemes,
     required this.librarySync,
     this.parser = const NoteParser(),
     this.exporters = const [MarkdownExporter(), PlainTextExporter()],
@@ -32,6 +33,9 @@ class AppScope extends InheritedWidget {
 
   /// App-Einstellungen (Theme-Modus etc.), von der UI les- und schreibbar.
   final AppSettings settings;
+
+  /// Importierte + mitgelieferte Farbschemata (THEMES.md).
+  final CustomThemeStore customThemes;
 
   /// Bibliotheksdatei sichern / zwischen Geräten abgleichen (SYNC_DESIGN.md).
   final LibrarySync librarySync;
@@ -55,6 +59,7 @@ class AppScope extends InheritedWidget {
       apiKeys != old.apiKeys ||
       covers != old.covers ||
       settings != old.settings ||
+      customThemes != old.customThemes ||
       librarySync != old.librarySync ||
       parser != old.parser ||
       exporters != old.exporters;

@@ -78,7 +78,7 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | 🔄 A–D + F auf Gerät bestätigt; E + Settings-Seite offen |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | ✅ A–H auf Gerät bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer) |
 
 ### Schritt 8 in Bausteinen
 
@@ -91,7 +91,8 @@ test/
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
 | E | Release-Signierung (App-Icon → BACKLOG) | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
-| G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | 🔄 gebaut, wartet auf Gerätetest |
+| G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | ✅ auf Gerät bestätigt |
+| H | Eigene Farbschemata (JSON-Import, „Blue Gold", Hintergrund-Layer angelegt) | ✅ auf Gerät bestätigt |
 
 ## Was in Schritt 1 passiert ist
 
@@ -319,6 +320,55 @@ test/
   anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
   wählt der Nutzer selbst.
 - App-Icon bleibt bewusst offen (BACKLOG).
+
+## Eigene Farbschemata (Custom Themes) — `0.1.0+17`
+
+Nutzerwunsch: ladbare Farbschemata, unaufdringlich in den Einstellungen, als
+Erstes „Blue Gold" (nach dem Screenshot einer anderen App: Navy + Messing/Gold).
+
+- **`CustomTheme` + `ThemeBackground`** (`models/custom_theme.dart`): eine
+  portable JSON-Datei (`format: booknote-theme`, `formatVersion: 1`), `seed` +
+  optionale Overrides einzelner Material-Rollen (Whitelist ~30 Rollen, alles
+  andere wird ignoriert) + optionaler `background` (Bild als data-URI
+  eingebettet). Format-Doku: `THEMES.md`.
+- **`CustomThemeStore`** (`services/`, `ChangeNotifier`): mitgelieferte Themes
+  aus `assets/themes/*.json` (nicht löschbar) + importierte aus
+  `<App-Dokumente>/themes/<id>.json`. Nach ID entdoppelt (mitgeliefert ist
+  kanonisch). Import validiert die Datei und schreibt sie; Löschen nur bei
+  importierten.
+- **`BooknoteTheme.custom(CustomTheme)`** (`theme.dart`): Schema aus dem Seed,
+  dann die gesetzten Rollen per `ColorScheme.copyWith`. Ein Custom-Theme ist
+  **ein fester Look** – folgt nicht System-Hell/Dunkel (v1; „hell + dunkel in
+  einem File" steht im BACKLOG).
+- **Hintergrund-Layer** ist in Datenstruktur **und** Rendering angelegt
+  (`_ThemeBackground` in `main.dart`: Fläche → Bild (cover/tile) → optionaler
+  Dim-Schleier → Inhalt; Scaffold wird bei Bild transparent, AppBar/Leisten
+  bleiben deckend). „Blue Gold" nutzt keinen Hintergrund – ein Theme mit Bild
+  liefe aber ohne weitere Änderung.
+- **`AppPrefs.activeCustomThemeId`**: aktives Custom-Theme; System/Hell/Dunkel
+  wählen setzt es auf `null`. UI in `SettingsScreen` → Darstellung:
+  Segment-Umschalter (leer, wenn Custom aktiv) + Liste „Eigene Farbschemata"
+  (RadioGroup, Swatch-Vorschau) + „Importieren …" + Mülleimer fürs aktive
+  importierte Theme.
+- **`assets/themes/blue_gold.json`** mitgeliefert.
+
+Gerätetest (`0.1.0+17`, Daten erhalten):
+
+- 1 Cover beim Start, 2 „x Notizen"-Button ohne Overflow, 3 Notiz-Badges:
+  **bestätigt**.
+- 5 „Blue Gold" aktivieren/deaktivieren, 6 Import + Löschen einer eigenen
+  Datei (`sepia.json`): **bestätigt**.
+- 4 Der Dateiwähler zeigt Fremdformate **ausgegraut** statt sie auszublenden –
+  das ist die Grenze des Android-Dateiwählers (SAF/DocumentsUI). Der Filter
+  wirkt (nur JSON wählbar, PDFs & Co. gesperrt), vollständiges Ausblenden
+  bräuchte einen eigenen In-App-Dateibrowser → BACKLOG.
+- 7/8 (Neustart-Persistenz, kaputte Datei) vom Nutzer nicht geprüft, als ok
+  angenommen.
+- 173 Tests grün, `flutter analyze` sauber.
+
+Offen (BACKLOG): Theme-Repository auf GitHub mit `themes/`-Unterordner zum
+Herunterladen/Teilen (auch „Blue Gold"); „Blue Gold" dann evtl. aus dem
+App-Bundle lösen.
 
 ## Testrunden-Korrekturen (Cover-Cache, Overflow, Badges, Dateifilter)
 

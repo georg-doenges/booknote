@@ -1,6 +1,9 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 
 import '../app_scope.dart';
+import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
 
@@ -72,7 +75,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           : SafeArea(
               top: false,
               child: ListenableBuilder(
-                listenable: settings,
+                listenable: Listenable.merge([
+                  settings,
+                  AppScope.of(context).customThemes,
+                ]),
                 builder: (context, _) => ListView(
                   padding: const EdgeInsets.only(bottom: BooknoteTheme.gap24),
                   children: [
@@ -89,29 +95,142 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // ---- Darstellung ----
 
-  Widget _appearanceSection(AppSettings settings) => _Section(
-    title: 'Darstellung',
-    children: [
-      Padding(
-        padding: const EdgeInsets.fromLTRB(
-          BooknoteTheme.gap16,
-          BooknoteTheme.gap4,
-          BooknoteTheme.gap16,
-          BooknoteTheme.gap8,
+  Future<void> _importTheme() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final store = AppScope.of(context).customThemes;
+    final settings = AppScope.of(context).settings;
+    FilePickerResult? picked;
+    try {
+      picked = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Theme-Datei wählen',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+    } on PlatformException {
+      picked = await FilePicker.platform.pickFiles(
+        dialogTitle: 'Theme-Datei wählen',
+        withData: true,
+      );
+    }
+    final bytes = picked?.files.firstOrNull?.bytes;
+    if (bytes == null) return;
+    try {
+      final theme = await store.import(bytes);
+      await settings.setActiveCustomTheme(theme.id);
+      messenger.showSnackBar(
+        SnackBar(content: Text('„${theme.name}" geladen und aktiviert.')),
+      );
+    } on CustomThemeException catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Future<void> _deleteTheme(CustomTheme t) async {
+    final store = AppScope.of(context).customThemes;
+    final settings = AppScope.of(context).settings;
+    if (settings.activeCustomThemeId == t.id) {
+      await settings.setThemeMode(settings.themeMode);
+    }
+    await store.delete(t.id);
+  }
+
+  Widget _appearanceSection(AppSettings settings) {
+    final store = AppScope.of(context).customThemes;
+    final customActive = settings.activeCustomThemeId != null;
+    final caption = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    return _Section(
+      title: 'Darstellung',
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            BooknoteTheme.gap16,
+            BooknoteTheme.gap4,
+            BooknoteTheme.gap16,
+            BooknoteTheme.gap8,
+          ),
+          child: SegmentedButton<ThemeMode>(
+            segments: const [
+              ButtonSegment(value: ThemeMode.system, label: Text('System')),
+              ButtonSegment(value: ThemeMode.light, label: Text('Hell')),
+              ButtonSegment(value: ThemeMode.dark, label: Text('Dunkel')),
+            ],
+            selected: customActive ? const {} : {settings.themeMode},
+            emptySelectionAllowed: true,
+            showSelectedIcon: false,
+            onSelectionChanged: (s) => settings.setThemeMode(s.first),
+          ),
         ),
-        child: SegmentedButton<ThemeMode>(
-          segments: const [
-            ButtonSegment(value: ThemeMode.system, label: Text('System')),
-            ButtonSegment(value: ThemeMode.light, label: Text('Hell')),
-            ButtonSegment(value: ThemeMode.dark, label: Text('Dunkel')),
-          ],
-          selected: {settings.themeMode},
-          showSelectedIcon: false,
-          onSelectionChanged: (s) => settings.setThemeMode(s.first),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            BooknoteTheme.gap16,
+            BooknoteTheme.gap8,
+            BooknoteTheme.gap16,
+            0,
+          ),
+          child: Text('Eigene Farbschemata', style: caption),
         ),
-      ),
-    ],
-  );
+        RadioGroup<String>(
+          groupValue: settings.activeCustomThemeId,
+          onChanged: (id) => settings.setActiveCustomTheme(id),
+          child: Column(
+            children: [
+              for (final t in store.themes)
+                RadioListTile<String>(
+                  value: t.id,
+                  secondary: _Swatch(theme: t),
+                  title: Text(t.name),
+                  subtitle: Text(
+                    t.brightness == Brightness.dark ? 'Dunkel' : 'Hell',
+                    style: caption,
+                  ),
+                ),
+              if (store.themes.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: BooknoteTheme.gap16,
+                  ),
+                  child: Text('Noch keine geladen.', style: caption),
+                ),
+            ],
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            BooknoteTheme.gap16,
+            BooknoteTheme.gap8,
+            BooknoteTheme.gap16,
+            0,
+          ),
+          child: Row(
+            children: [
+              OutlinedButton.icon(
+                onPressed: _importTheme,
+                icon: const Icon(Icons.file_download_outlined),
+                label: const Text('Importieren …'),
+              ),
+              const Spacer(),
+              if (customActive)
+                Builder(
+                  builder: (context) {
+                    final active = store.byId(settings.activeCustomThemeId);
+                    if (active == null || active.builtIn) {
+                      return const SizedBox.shrink();
+                    }
+                    return IconButton(
+                      icon: const Icon(Icons.delete_outline),
+                      tooltip: 'Aktives Theme löschen',
+                      onPressed: () => _deleteTheme(active),
+                    );
+                  },
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
   // ---- Aufnahme ----
 
@@ -235,6 +354,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Kleine Farbvorschau eines Custom-Themes (Fläche + Primärfarbe).
+class _Swatch extends StatelessWidget {
+  const _Swatch({required this.theme});
+  final CustomTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    final surface =
+        theme.overrides['surface'] ??
+        (theme.brightness == Brightness.dark
+            ? const Color(0xFF121212)
+            : const Color(0xFFFDFDFD));
+    final primary = theme.overrides['primary'] ?? theme.seed;
+    return Container(
+      width: 34,
+      height: 34,
+      decoration: BoxDecoration(
+        color: surface,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
+      ),
+      alignment: Alignment.center,
+      child: Container(
+        width: 16,
+        height: 16,
+        decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
+      ),
     );
   }
 }

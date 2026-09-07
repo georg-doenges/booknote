@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_language.dart';
 
+const Object _unset = Object();
+
 /// Einstellungen rund um den Geräte-Abgleich (siehe `SYNC_DESIGN.md`).
 class SyncSettings {
   const SyncSettings({
@@ -51,6 +53,7 @@ class SyncSettings {
 class AppPrefs {
   const AppPrefs({
     this.themeMode = ThemeMode.system,
+    this.activeCustomThemeId,
     this.hapticsEnabled = true,
     this.recordingLanguage = AppLanguage.german,
     this.coverSearchLanguage = AppLanguage.german,
@@ -58,6 +61,9 @@ class AppPrefs {
   });
 
   final ThemeMode themeMode;
+
+  /// ID eines aktiven importierten Farbschemas. `null` = [themeMode] gilt.
+  final String? activeCustomThemeId;
 
   /// Haptisches Feedback beim Aufnehmen.
   final bool hapticsEnabled;
@@ -72,12 +78,16 @@ class AppPrefs {
 
   AppPrefs copyWith({
     ThemeMode? themeMode,
+    Object? activeCustomThemeId = _unset,
     bool? hapticsEnabled,
     AppLanguage? recordingLanguage,
     AppLanguage? coverSearchLanguage,
     SyncSettings? sync,
   }) => AppPrefs(
     themeMode: themeMode ?? this.themeMode,
+    activeCustomThemeId: activeCustomThemeId == _unset
+        ? this.activeCustomThemeId
+        : activeCustomThemeId as String?,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
     recordingLanguage: recordingLanguage ?? this.recordingLanguage,
     coverSearchLanguage: coverSearchLanguage ?? this.coverSearchLanguage,
@@ -88,6 +98,7 @@ class AppPrefs {
   bool operator ==(Object other) =>
       other is AppPrefs &&
       other.themeMode == themeMode &&
+      other.activeCustomThemeId == activeCustomThemeId &&
       other.hapticsEnabled == hapticsEnabled &&
       other.recordingLanguage == recordingLanguage &&
       other.coverSearchLanguage == coverSearchLanguage &&
@@ -96,6 +107,7 @@ class AppPrefs {
   @override
   int get hashCode => Object.hash(
     themeMode,
+    activeCustomThemeId,
     hapticsEnabled,
     recordingLanguage,
     coverSearchLanguage,
@@ -113,6 +125,7 @@ abstract class AppSettingsStore {
 /// Produktive Implementierung über `shared_preferences` (plattformneutral).
 class SharedPrefsAppSettingsStore implements AppSettingsStore {
   static const _themeMode = 'theme_mode';
+  static const _customTheme = 'active_custom_theme';
   static const _haptics = 'haptics_enabled';
   static const _langRecording = 'lang_recording';
   static const _langCover = 'lang_cover';
@@ -130,6 +143,7 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
         'dark' => ThemeMode.dark,
         _ => ThemeMode.system,
       },
+      activeCustomThemeId: p.getString(_customTheme),
       hapticsEnabled: p.getBool(_haptics) ?? d.hapticsEnabled,
       recordingLanguage: AppLanguage.fromCode(p.getString(_langRecording)),
       coverSearchLanguage: AppLanguage.fromCode(p.getString(_langCover)),
@@ -146,6 +160,11 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
   Future<void> save(AppPrefs a) async {
     final p = await SharedPreferences.getInstance();
     await p.setString(_themeMode, a.themeMode.name);
+    if (a.activeCustomThemeId == null) {
+      await p.remove(_customTheme);
+    } else {
+      await p.setString(_customTheme, a.activeCustomThemeId!);
+    }
     await p.setBool(_haptics, a.hapticsEnabled);
     await p.setString(_langRecording, a.recordingLanguage.code);
     await p.setString(_langCover, a.coverSearchLanguage.code);
@@ -184,6 +203,7 @@ class AppSettings extends ChangeNotifier {
 
   AppPrefs get prefs => _prefs;
   ThemeMode get themeMode => _prefs.themeMode;
+  String? get activeCustomThemeId => _prefs.activeCustomThemeId;
   bool get hapticsEnabled => _prefs.hapticsEnabled;
   AppLanguage get recordingLanguage => _prefs.recordingLanguage;
   AppLanguage get coverSearchLanguage => _prefs.coverSearchLanguage;
@@ -196,8 +216,13 @@ class AppSettings extends ChangeNotifier {
     await _store.save(next);
   }
 
+  /// Wählt einen eingebauten Modus – deaktiviert dabei ein aktives Custom-Theme.
   Future<void> setThemeMode(ThemeMode mode) =>
-      _update(_prefs.copyWith(themeMode: mode));
+      _update(_prefs.copyWith(themeMode: mode, activeCustomThemeId: null));
+
+  /// Aktiviert ein importiertes Farbschema (`null` → zurück zu [themeMode]).
+  Future<void> setActiveCustomTheme(String? id) =>
+      _update(_prefs.copyWith(activeCustomThemeId: id));
 
   Future<void> setHapticsEnabled(bool enabled) =>
       _update(_prefs.copyWith(hapticsEnabled: enabled));

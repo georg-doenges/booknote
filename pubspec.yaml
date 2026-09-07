@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # +N (build number) bei jedem Gerät-Build hochzählen: sonst behandeln manche
 # Android-Geräte ein `adb install -r` als Neuinstallation und löschen App-Daten.
-version: 0.1.0+15
+version: 0.1.0+17
 
 environment:
   sdk: ^3.13.2
@@ -56,3 +56,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/themes/
