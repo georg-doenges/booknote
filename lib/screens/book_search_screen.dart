@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
@@ -277,10 +278,12 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                     color: scheme.surfaceContainerHighest,
                     child: const Icon(Icons.menu_book),
                   )
-                : Image.network(
-                    c.coverUrl!,
+                : CachedNetworkImage(
+                    imageUrl: c.coverUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
+                    placeholder: (_, _) =>
+                        ColoredBox(color: scheme.surfaceContainerHighest),
+                    errorWidget: (_, _, _) => Container(
                       color: scheme.surfaceContainerHighest,
                       child: const Icon(Icons.broken_image_outlined),
                     ),

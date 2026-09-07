@@ -1,18 +1,22 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../models/models.dart';
 import '../theme.dart';
 
 /// Cover-Kachel für das Bibliotheks-Grid. Ohne Cover: Platzhalter mit Titel.
+/// [noteCount] > 0 zeigt oben rechts eine kleine Zahl.
 class BookCoverTile extends StatelessWidget {
   const BookCoverTile({
     super.key,
     required this.book,
+    this.noteCount = 0,
     this.onTap,
     this.onLongPress,
   });
 
   final Book book;
+  final int noteCount;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
 
@@ -31,22 +35,37 @@ class BookCoverTile extends StatelessWidget {
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(BooknoteTheme.cardRadius),
-                child: Container(
-                  color: scheme.surfaceContainerHighest,
-                  child: book.coverUrl == null
-                      ? _Placeholder(title: book.title)
-                      : Image.network(
-                          book.coverUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) =>
-                              _Placeholder(title: book.title),
-                          loadingBuilder: (_, child, progress) =>
-                              progress == null
-                              ? child
-                              : const Center(
-                                  child: CircularProgressIndicator(),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ColoredBox(
+                      color: scheme.surfaceContainerHighest,
+                      child: book.coverUrl == null
+                          ? _Placeholder(title: book.title)
+                          : CachedNetworkImage(
+                              imageUrl: book.coverUrl!,
+                              fit: BoxFit.cover,
+                              fadeInDuration: const Duration(milliseconds: 150),
+                              placeholder: (_, _) => const Center(
+                                child: SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
                                 ),
-                        ),
+                              ),
+                              errorWidget: (_, _, _) =>
+                                  _Placeholder(title: book.title),
+                            ),
+                    ),
+                    if (noteCount > 0)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: _CountBadge(count: noteCount),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -69,6 +88,30 @@ class BookCoverTile extends StatelessWidget {
               ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge({required this.count});
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: scheme.primary,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        '$count',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall
+            ?.copyWith(color: scheme.onPrimary, fontWeight: FontWeight.w600),
       ),
     );
   }

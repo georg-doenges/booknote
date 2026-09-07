@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -89,8 +90,6 @@ class LibrarySync {
     final path = await FilePicker.platform.saveFile(
       dialogTitle: 'Speichern unter',
       fileName: kLibraryFileName,
-      type: FileType.custom,
-      allowedExtensions: ['json'],
       bytes: utf8.encode(snapshot.toJsonString()),
     );
     return path != null;
@@ -129,12 +128,7 @@ class LibrarySync {
   /// Merge, oder – wenn die Datei eine neuere Master-Generation trägt –
   /// vollständige Übernahme. Wirft [LibraryFileException] bei kaputter Datei.
   Future<LibrarySyncResult> pickAndMerge() async {
-    final picked = await FilePicker.platform.pickFiles(
-      dialogTitle: 'Bibliotheksdatei wählen',
-      type: FileType.custom,
-      allowedExtensions: ['json'],
-      withData: true,
-    );
+    final picked = await _pickLibraryFile();
     if (picked == null || picked.files.isEmpty) {
       return const LibrarySyncCancelled();
     }
@@ -188,6 +182,25 @@ class LibrarySync {
       notesAfter: merged.noteCount,
       merged: merged,
     );
+  }
+
+  /// Dateiwähler, auf `.json` beschränkt. Manche Android-Geräte kennen den
+  /// MIME-Typ für `json` nicht – dann wirft `FileType.custom` und wir fallen
+  /// auf „alle Dateien" zurück (die Datei wird ohnehin beim Parsen geprüft).
+  Future<FilePickerResult?> _pickLibraryFile() async {
+    try {
+      return await FilePicker.platform.pickFiles(
+        dialogTitle: 'Bibliotheksdatei wählen',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        withData: true,
+      );
+    } on PlatformException {
+      return FilePicker.platform.pickFiles(
+        dialogTitle: 'Bibliotheksdatei wählen',
+        withData: true,
+      );
+    }
   }
 
   Future<bool> _shareSnapshot(LibrarySnapshot snapshot) async {

@@ -27,6 +27,10 @@ abstract class NoteRepository {
   /// Anzahl der Notizen einer Quelle (für Badges in der Bibliothek).
   Future<int> countBySource(String sourceId);
 
+  /// Notizzahl je Quelle (`sourceId` → Anzahl), nur Quellen mit ≥ 1 Notiz.
+  /// Reaktiv – für die Zahlen auf den Bibliotheks-Kacheln.
+  Stream<Map<String, int>> watchCounts();
+
   /// Legt eine Notiz an und gibt sie mit vergebener ID zurück.
   /// [rawTranscript] ist der ungeparste Whisper-Text und wird nie verändert.
   Future<Note> create({

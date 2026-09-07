@@ -35,8 +35,6 @@ Future<bool> saveExportToFile(ExportResult result) async {
   final path = await FilePicker.platform.saveFile(
     dialogTitle: 'Speichern unter',
     fileName: result.fileName,
-    type: FileType.custom,
-    allowedExtensions: [result.fileName.split('.').last],
     bytes: utf8.encode(result.content),
   );
   return path != null;

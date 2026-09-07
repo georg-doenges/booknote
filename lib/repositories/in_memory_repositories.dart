@@ -145,6 +145,18 @@ class InMemoryNoteRepository implements NoteRepository {
   Future<int> countBySource(String sourceId) async =>
       _store.notes.values.where((n) => n.sourceId == sourceId).length;
 
+  Map<String, int> _counts() {
+    final m = <String, int>{};
+    for (final n in _store.notes.values) {
+      m[n.sourceId] = (m[n.sourceId] ?? 0) + 1;
+    }
+    return m;
+  }
+
+  @override
+  Stream<Map<String, int>> watchCounts() =>
+      watchStream(_store.onNotesChanged, _counts);
+
   @override
   Future<Note> create({
     required String sourceId,

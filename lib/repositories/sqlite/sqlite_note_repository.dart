@@ -57,6 +57,17 @@ class SqliteNoteRepository implements NoteRepository {
     return n ?? 0;
   }
 
+  Future<Map<String, int>> _counts() async {
+    final rows = await _db.db.rawQuery(
+      'SELECT source_id, COUNT(*) AS c FROM $_table GROUP BY source_id',
+    );
+    return {for (final r in rows) r['source_id'] as String: r['c'] as int};
+  }
+
+  @override
+  Stream<Map<String, int>> watchCounts() =>
+      watchStreamAsync(_db.onNotesChanged, _counts);
+
   @override
   Future<Note> create({
     required String sourceId,

@@ -320,6 +320,25 @@ test/
   wählt der Nutzer selbst.
 - App-Icon bleibt bewusst offen (BACKLOG).
 
+## Testrunden-Korrekturen (Cover-Cache, Overflow, Badges, Dateifilter)
+
+- **Cover erschienen erst nach Umweg** → `cached_network_image` (Platten-Cache,
+  zuverlässige Anzeige, offline). Ersetzt `Image.network` in `BookCoverTile`
+  und der Trefferliste der Buchsuche.
+- **„6.6 px overflow" im RecordingScreen** → der zentrale Bereich ist jetzt
+  `LayoutBuilder` → `SingleChildScrollView` → `ConstrainedBox(minHeight)` →
+  `IntrinsicHeight` → `Column`: zentriert, scrollt bei Bedarf, läuft nie über.
+- **Notiz-Zahl auf den Kacheln** → `NoteRepository.watchCounts()`
+  (`Stream<Map<sourceId,int>>`, SQLite `GROUP BY` + InMemory), `LibraryScreen`
+  reicht sie an `BookCoverTile.noteCount` durch → kleines Badge oben rechts,
+  bei 0 nichts. Vertragstest erweitert.
+- **Dateiwähler** beim Abgleich: `pickFiles(FileType.custom, ['json'])` mit
+  Fallback auf `FileType.any`, falls das Gerät den JSON-MIME-Typ nicht kennt
+  (`PlatformException`). Die `saveFile`-Dialoge filtern nicht mehr (bei
+  „Neu anlegen" wenig sinnvoll). Google Drives eigener Wähler ignoriert
+  MIME-Filter ohnehin – nur der lokale Speicher lässt sich einschränken.
+- 168 Tests grün.
+
 ## Sprache (Whisper + Cover) + „Speichern unter"
 
 - **`AppLanguage` neu** (`models/`, Enum `german`/`english`, ISO-Code + Label,

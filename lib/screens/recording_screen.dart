@@ -265,71 +265,85 @@ class _RecordingScreenState extends State<RecordingScreen> {
           children: [
             Expanded(
               flex: 3,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    RecordButton(
-                      state: switch (_phase) {
-                        _Phase.recording => RecordButtonState.recording,
-                        _Phase.transcribing => RecordButtonState.busy,
-                        _Phase.idle || _Phase.error => RecordButtonState.idle,
-                      },
-                      onPressed: _toggle,
-                    ),
-                    const SizedBox(height: BooknoteTheme.gap24),
-                    Text(_statusLine(), style: text.titleMedium),
-                    if (_phase == _Phase.recording) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
-                        child: Text(
-                          _fmt(_elapsed),
-                          style: text.headlineSmall?.copyWith(
-                            fontFeatures: const [FontFeature.tabularFigures()],
+              child: LayoutBuilder(
+                builder: (context, c) => SingleChildScrollView(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(minHeight: c.maxHeight),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: BooknoteTheme.gap8),
+                          RecordButton(
+                            state: switch (_phase) {
+                              _Phase.recording => RecordButtonState.recording,
+                              _Phase.transcribing => RecordButtonState.busy,
+                              _Phase.idle ||
+                              _Phase.error => RecordButtonState.idle,
+                            },
+                            onPressed: _toggle,
                           ),
-                        ),
-                      ),
-                      if (_elapsed >= _longRecordingHint)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(
-                            BooknoteTheme.gap24,
-                            BooknoteTheme.gap4,
-                            BooknoteTheme.gap24,
-                            0,
-                          ),
-                          child: Text(
-                            'Lange Aufnahme – Whisper transkribiert alles am '
-                            'Stück.',
-                            textAlign: TextAlign.center,
-                            style: text.bodySmall?.copyWith(
-                              color: scheme.tertiary,
+                          const SizedBox(height: BooknoteTheme.gap24),
+                          Text(_statusLine(), style: text.titleMedium),
+                          if (_phase == _Phase.recording) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: BooknoteTheme.gap4,
+                              ),
+                              child: Text(
+                                _fmt(_elapsed),
+                                style: text.headlineSmall?.copyWith(
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                    ],
-                    if (_phase == _Phase.idle && _session.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          BooknoteTheme.gap24,
-                          BooknoteTheme.gap12,
-                          BooknoteTheme.gap24,
-                          0,
-                        ),
-                        child: Text(
-                          'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
-                          'Autor, dass …"',
-                          textAlign: TextAlign.center,
-                          style: text.bodyMedium?.copyWith(color: muted),
-                        ),
+                            if (_elapsed >= _longRecordingHint)
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  BooknoteTheme.gap24,
+                                  BooknoteTheme.gap4,
+                                  BooknoteTheme.gap24,
+                                  0,
+                                ),
+                                child: Text(
+                                  'Lange Aufnahme – Whisper transkribiert alles am '
+                                  'Stück.',
+                                  textAlign: TextAlign.center,
+                                  style: text.bodySmall?.copyWith(
+                                    color: scheme.tertiary,
+                                  ),
+                                ),
+                              ),
+                          ],
+                          if (_phase == _Phase.idle && _session.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                BooknoteTheme.gap24,
+                                BooknoteTheme.gap12,
+                                BooknoteTheme.gap24,
+                                0,
+                              ),
+                              child: Text(
+                                'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
+                                'Autor, dass …"',
+                                textAlign: TextAlign.center,
+                                style: text.bodyMedium?.copyWith(color: muted),
+                              ),
+                            ),
+                          if (_phase == _Phase.idle || _phase == _Phase.error)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                top: BooknoteTheme.gap24,
+                              ),
+                              child: _AllNotesButton(bookId: _book.id),
+                            ),
+                          const SizedBox(height: BooknoteTheme.gap8),
+                        ],
                       ),
-                    if (_phase == _Phase.idle || _phase == _Phase.error)
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          top: BooknoteTheme.gap24,
-                        ),
-                        child: _AllNotesButton(bookId: _book.id),
-                      ),
-                  ],
+                    ),
+                  ),
                 ),
               ),
             ),

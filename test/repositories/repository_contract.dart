@@ -149,6 +149,21 @@ void runRepositoryContract(
         expect(await r.notes.countBySource(b.id), 1);
       });
 
+      test('watchCounts liefert Notizzahl je Quelle', () async {
+        final a = await r.books.create(title: 'A');
+        final b = await r.books.create(title: 'B');
+        final events = <Map<String, int>>[];
+        final sub = r.notes.watchCounts().listen(events.add);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await r.notes.create(sourceId: a.id, text: '1', rawTranscript: 'r');
+        await r.notes.create(sourceId: a.id, text: '2', rawTranscript: 'r');
+        await r.notes.create(sourceId: b.id, text: '3', rawTranscript: 'r');
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        await sub.cancel();
+        expect(events.first, isEmpty);
+        expect(events.last, {a.id: 2, b.id: 1});
+      });
+
       test('Sortierung nach createdAt und nach Seite', () async {
         final a = await r.books.create(title: 'A');
         Future<void> add(String? page, String text) async {

@@ -175,7 +175,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           _authorFilter = null;
                         }),
                       )
-                    : _BookGrid(books: visible),
+                    : StreamBuilder<Map<String, int>>(
+                        stream: scope.notes.watchCounts(),
+                        builder: (context, snap) => _BookGrid(
+                          books: visible,
+                          noteCounts: snap.data ?? const {},
+                        ),
+                      ),
               ),
             ],
           );
@@ -191,9 +197,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
 }
 
 class _BookGrid extends StatelessWidget {
-  const _BookGrid({required this.books});
+  const _BookGrid({required this.books, this.noteCounts = const {}});
 
   final List<Book> books;
+  final Map<String, int> noteCounts;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +225,7 @@ class _BookGrid extends StatelessWidget {
         final book = books[i];
         return BookCoverTile(
           book: book,
+          noteCount: noteCounts[book.id] ?? 0,
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => RecordingScreen(book: book)),
           ),
