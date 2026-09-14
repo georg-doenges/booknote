@@ -17,7 +17,10 @@ import '../models/models.dart';
 class CustomThemeStore extends ChangeNotifier {
   CustomThemeStore([this._bundled = _bundledAssets]);
 
-  static const _bundledAssets = ['assets/themes/blue_gold.json'];
+  static const _bundledAssets = [
+    'assets/themes/blue_gold.json',
+    'assets/themes/tequila_sunrise.json',
+  ];
   static const _dirName = 'themes';
   static const _markerName = '.initialized';
 

@@ -78,7 +78,7 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | ✅ A–H auf Gerät bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer) |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | 🔄 A–I bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer); J wartet auf Gerätetest |
 
 ### Schritt 8 in Bausteinen
 
@@ -90,9 +90,11 @@ test/
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit, Titel-Edit) | ✅ auf Gerät bestätigt |
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
-| E | Release-Signierung (App-Icon → BACKLOG) | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
+| E | Release-Signierung | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
 | G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | ✅ auf Gerät bestätigt |
-| H | Eigene Farbschemata (JSON-Import, „Blue Gold", Hintergrund-Layer angelegt) | ✅ auf Gerät bestätigt |
+| H | Eigene Farbschemata (JSON-Import, Blue Gold + Tequila Sunrise, Hintergrund-Layer) | ✅ auf Gerät bestätigt |
+| I | App-Icon (Nutzer-Entwurf) + Theme-Logos | ✅ auf Gerät bestätigt (Icon); Logos + Sprache/Englisch-Parser warten auf Gerätetest |
+| J | Sprache pro Buch + englischer NoteParser | 🔄 gebaut, `flutter analyze`/Tests grün, wartet auf Gerätetest |
 
 ## Was in Schritt 1 passiert ist
 
@@ -319,7 +321,78 @@ test/
 - **`SIGNING.md`**: Schritt-für-Schritt für den Nutzer (Keystore per `keytool`
   anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
   wählt der Nutzer selbst.
-- App-Icon bleibt bewusst offen (BACKLOG).
+- App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
+
+## App-Icon, Theme-Logos, Sprache pro Buch, Englisch-Parser — `0.1.0+21`
+
+Vier Punkte aus einer Session: der Nutzer hat mit ChatGPT ein Icon-Motiv
+erstellt (aufgeschlagenes Buch + goldener Notizzettel, Navy/Messing/Gold) und
+als PNG geliefert; dazu drei Testrunden-Rückmeldungen.
+
+**App-Icon** (`assets/icon/source.png`, 1254×1254, vom Nutzer geliefert):
+- `assets/icon/icon_legacy.png` (volles Motiv, Rahmen) + `icon_foreground.png`
+  (Motiv ohne Rahmen, neu zentriert, für Androids adaptives Icon) via
+  `flutter_launcher_icons` (neue Dev-Dependency). Border wird beim Zuschnitt
+  entfernt (Diagonal-Scan gegen die Eckenrundung, nicht nur den geraden Rand).
+  `adaptive_icon_foreground` bleibt **full-bleed** – Android/das Paket legen
+  selbst 16 % Sicherheitsrand an; doppelt geschrumpft sah es zu klein aus.
+- Auf Gerät bestätigt: Icon erscheint korrekt in Kachel-Vorschau (Task-Switcher),
+  Daten beim Reinstall erhalten.
+
+**Theme-Logos** (Nutzerwunsch: Icon soll die Farben des aktiven Skins tragen):
+- Android kann das echte Homescreen-Icon nicht ohne Weiteres pro In-App-Theme
+  umschalten (bräuchte `<activity-alias>` + natives `PackageManager`-Umschalten,
+  launcherabhängig) → als eigener, größerer Punkt ins BACKLOG. Stattdessen:
+  **das App-Icon-Motiv wird pixelgenau umgefärbt** (`assets/icon/recolor.js`:
+  jeder Pixel wird den zwei nächsten von vier Referenzfarben zugeordnet und
+  dorthin linear verschoben – Geometrie/Antialiasing bleiben exakt erhalten,
+  nur der Farbton ändert sich).
+  - **Braun** (Marken-Standard, kein Custom-Theme aktiv) → das echte App-Icon.
+  - **Blue Gold** / **Tequila Sunrise** → je ein neues `logo`-Feld in der
+    Theme-JSON (Base64, wie `background.image`), als Vorschau in der
+    Farbschema-Liste der Einstellungen (`_Swatch` zeigt das Logo statt der
+    abstrakten Farbkachel, wenn eins da ist).
+  - `CustomTheme.logoBytes` + `decodeDataUri()`-Hilfsfunktion (auch von
+    `ThemeBackground.fromJson` genutzt).
+
+**Sprache pro Buch** (`Source.language`, Schema v4, Default Deutsch):
+- Dialog beim Anlegen eines Buchs (`showBookLanguageDialog`, neu in
+  `library_screen.dart`), bevor `books.create(..., language:)` läuft.
+- `RecordingScreen` startet mit `_book.language`; das Sprachmenü in der AppBar
+  übersteuert nur die aktuelle Sitzung (lokaler State), ohne die Buch-Vorgabe
+  zu ändern – beim nächsten Öffnen gilt wieder sie.
+- `Note.language` speichert, in welcher Sprache **diese** Notiz tatsächlich
+  aufgenommen wurde (kann von der Buch-Vorgabe abweichen). Steuert „S." vs.
+  „p." bei der Seitenangabe (`pagePrefix()` in `widgets/format.dart`,
+  genutzt von `noteLocationLabel` + beiden Exportern).
+- `AppSettings.recordingLanguage` (global) ersatzlos entfernt – überflüssig,
+  seit die Sprache am Buch hängt. `coverSearchLanguage` bleibt (unabhängiges
+  Setting für die Cover-Suche).
+- `LibrarySnapshot` (Sync-Datei) trägt `language` für Sources und Notes mit;
+  fehlt es (alte Datei), gilt Deutsch.
+
+**Englischer NoteParser** (`EnglishNumberParser` + `NoteParser._parseEnglish`):
+- Eigenes Regelwerk: `page 47`, `on page 5`, `p. 9`, Zahlwörter als ein
+  zusammenhängendes/mit Bindestrich verbundenes Wort (`forty-seven`).
+  `top`/`middle`/`center`/`centre`/`bottom`, `line 10`. `following`/`following
+  page(s)`/`onwards` → f./ff. (im Englischen wie im Deutschen ein gültiges
+  Zitierkürzel). Bekannte Lücke: unverbundene Zahlwörter mit Leerzeichen
+  („forty seven") erkennt der Satz-Parser nicht (der einzelne Zahlwort-Parser
+  schon) – in der Praxis unkritisch, da Whisper englische Zahlen fast immer zu
+  Ziffern normalisiert.
+- German-Pfad unverändert (eigene Methode `_parseGerman`, keine gemeinsame
+  Logik erzwungen – die deutsche „f."/„ff."-Unterscheidung nach *Wortlaut*,
+  nicht nach Regel-Gruppe, wollte ich nicht anfassen).
+
+Vor dem Aufspielen zusätzlich geprüft: `flutter build apk --release` läuft
+sauber durch (fällt mangels Keystore auf Debug-Signierung zurück) – die
+Release-Pipeline selbst (R8/Minifizierung) ist also unabhängig vom Keystore
+schon mal verifiziert.
+
+232 Tests grün (u.a. neue Gruppen für `EnglishNumberParser`,
+„NoteParser (Englisch)", `note_tile_test.dart`, Sprache in
+`repository_contract.dart` + `migration_test.dart`), `flutter analyze` sauber.
+Schema-Migration v3→v4 auf dem echten Gerät gefahren (Daten erhalten).
 
 ## Eigene Farbschemata (Custom Themes) — `0.1.0+18`
 

@@ -1,3 +1,4 @@
+import 'app_language.dart';
 import 'source.dart';
 import 'source_type.dart';
 
@@ -11,6 +12,7 @@ class Book extends Source {
     required super.title,
     super.author,
     super.coverUrl,
+    super.language,
     required super.createdAt,
     required super.updatedAt,
   }) : super(sourceType: SourceType.book);
@@ -25,6 +27,7 @@ class Book extends Source {
       title: source.title,
       author: source.author,
       coverUrl: source.coverUrl,
+      language: source.language,
       createdAt: source.createdAt,
       updatedAt: source.updatedAt,
     );
@@ -37,6 +40,7 @@ class Book extends Source {
     bool clearAuthor = false,
     String? coverUrl,
     bool clearCoverUrl = false,
+    AppLanguage? language,
     DateTime? updatedAt,
   }) {
     return Book(
@@ -44,6 +48,7 @@ class Book extends Source {
       title: title ?? this.title,
       author: clearAuthor ? null : (author ?? this.author),
       coverUrl: clearCoverUrl ? null : (coverUrl ?? this.coverUrl),
+      language: language ?? this.language,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

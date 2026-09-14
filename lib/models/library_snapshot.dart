@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'app_language.dart';
 import 'note.dart';
 import 'source.dart';
 import 'source_type.dart';
@@ -112,16 +113,19 @@ class LibrarySnapshot {
     'title': s.title,
     'author': s.author,
     'coverUrl': s.coverUrl,
+    'language': s.language.code,
     'createdAt': _ms(s.createdAt),
     'updatedAt': _ms(s.updatedAt),
   };
 
+  // Fehlt 'language' (Datei aus einer älteren App-Version), gilt Deutsch.
   static Source _sourceFromJson(Map<String, Object?> j) => Source(
     id: j['id'] as String,
     sourceType: SourceType.fromDbValue(j['sourceType'] as String),
     title: j['title'] as String,
     author: j['author'] as String?,
     coverUrl: j['coverUrl'] as String?,
+    language: AppLanguage.fromCode(j['language'] as String?),
     createdAt: _dt(j['createdAt']),
     updatedAt: _dt(j['updatedAt']),
   );
@@ -133,6 +137,7 @@ class LibrarySnapshot {
     'position': n.position,
     'text': n.text,
     'rawTranscript': n.rawTranscript,
+    'language': n.language.code,
     'createdAt': _ms(n.createdAt),
     'updatedAt': _ms(n.updatedAt),
   };
@@ -144,6 +149,7 @@ class LibrarySnapshot {
     position: j['position'] as String?,
     text: j['text'] as String,
     rawTranscript: j['rawTranscript'] as String? ?? '',
+    language: AppLanguage.fromCode(j['language'] as String?),
     createdAt: _dt(j['createdAt']),
     updatedAt: _dt(j['updatedAt']),
   );

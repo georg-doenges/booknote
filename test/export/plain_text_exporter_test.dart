@@ -17,6 +17,7 @@ void main() {
     String sourceId = 'b',
     String? position,
     int minute = 0,
+    AppLanguage language = AppLanguage.german,
   }) => Note(
     id: id,
     sourceId: sourceId,
@@ -24,6 +25,7 @@ void main() {
     position: position,
     text: text,
     rawTranscript: 'raw',
+    language: language,
     createdAt: t0.add(Duration(minutes: minute)),
     updatedAt: t0,
   );
@@ -87,5 +89,14 @@ Bibliothek
   Notizen
     S. 7: zwei
 ''');
+  });
+
+  test('englische Notiz: "p." statt "S."', () {
+    final r = txt.export(
+      ExportRequest.single(book(), [
+        note('1', '20', 'nice quote', language: AppLanguage.english),
+      ]),
+    );
+    expect(r.content, contains('p. 20: nice quote'));
   });
 }

@@ -61,6 +61,16 @@ void main() {
     expect(utf8.decode(t.background!.imageBytes!), 'PNGDATA');
   });
 
+  test('logo wird aus data-URI dekodiert, fehlt sonst', () {
+    expect(CustomTheme.parse(file()).logoBytes, isNull);
+
+    final bytes = utf8.encode('LOGODATA');
+    final t = CustomTheme.parse(
+      file(extra: {'logo': 'data:image/png;base64,${base64Encode(bytes)}'}),
+    );
+    expect(utf8.decode(t.logoBytes!), 'LOGODATA');
+  });
+
   test('falsches Format / kaputte Farbe wirft', () {
     expect(
       () => CustomTheme.parse('{"format":"x"}'),
@@ -78,13 +88,39 @@ void main() {
     );
   });
 
+  test('alle mitgelieferten Theme-Assets sind gültig', () {
+    final dir = Directory('assets/themes');
+    final files =
+        dir
+            .listSync()
+            .whereType<File>()
+            .where((f) => f.path.toLowerCase().endsWith('.json'))
+            .toList()
+          ..sort((a, b) => a.path.compareTo(b.path));
+    expect(files, isNotEmpty);
+    for (final f in files) {
+      final t = CustomTheme.parse(f.readAsStringSync());
+      expect(t.name, isNotEmpty, reason: f.path);
+      expect(t.overrides['surface'], isNotNull, reason: f.path);
+      expect(t.overrides['primary'], isNotNull, reason: f.path);
+    }
+  });
+
   test('das mitgelieferte Blue-Gold-Asset ist gültig', () {
     final json = File('assets/themes/blue_gold.json').readAsStringSync();
     final t = CustomTheme.parse(json);
     expect(t.id, 'blue_gold');
     expect(t.name, 'Blue Gold');
     expect(t.brightness, Brightness.dark);
-    expect(t.overrides['surface'], isNotNull);
-    expect(t.overrides['primary'], isNotNull);
+    expect(t.logoBytes, isNotNull);
+  });
+
+  test('das mitgelieferte Tequila-Sunrise-Asset ist gültig', () {
+    final json = File('assets/themes/tequila_sunrise.json').readAsStringSync();
+    final t = CustomTheme.parse(json);
+    expect(t.id, 'tequila_sunrise');
+    expect(t.name, 'Tequila Sunrise');
+    expect(t.brightness, Brightness.dark);
+    expect(t.logoBytes, isNotNull);
   });
 }

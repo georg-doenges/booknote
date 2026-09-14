@@ -3,13 +3,14 @@ import 'package:flutter/material.dart';
 import '../models/models.dart';
 import 'format.dart';
 
-/// Kurzform der Fundstelle: "S. 47 (oben)", "S. 88f.", "Ohne Seite".
+/// Kurzform der Fundstelle: "S. 47 (oben)" / "p. 47 (top)", "S. 88f.",
+/// "Ohne Seite". Das Präfix richtet sich nach der Sprache der Notiz.
 String noteLocationLabel(Note n) {
   if (n.page == null) {
     return n.position == null ? 'Ohne Seitenangabe' : n.position!;
   }
   final pos = n.position == null ? '' : ' (${n.position})';
-  return 'S. ${n.page}$pos';
+  return '${pagePrefix(n.language)} ${n.page}$pos';
 }
 
 /// Eine Notiz in der Liste (BookDetail) oder als Feedback (Recording).

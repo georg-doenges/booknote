@@ -1,3 +1,4 @@
+import 'app_language.dart';
 import 'source_type.dart';
 
 /// Generische Notiz-Quelle (Buch, später Video, Ideen-Notizbuch, ...).
@@ -12,6 +13,7 @@ class Source {
     required this.title,
     this.author,
     this.coverUrl,
+    this.language = AppLanguage.german,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -26,6 +28,11 @@ class Source {
   /// URL des Coverbilds, `null` = Platzhalter anzeigen.
   final String? coverUrl;
 
+  /// Default-Sprache für Aufnahmen zu dieser Quelle (steuert Whisper +
+  /// `NoteParser`). Wird beim Anlegen festgelegt; eine einzelne Aufnahme kann
+  /// das im `RecordingScreen` trotzdem übersteuern, ohne dies hier zu ändern.
+  final AppLanguage language;
+
   final DateTime createdAt;
 
   /// Zeitpunkt der letzten Änderung. Wird für spätere Sync-Konfliktauflösung
@@ -38,6 +45,7 @@ class Source {
     bool clearAuthor = false,
     String? coverUrl,
     bool clearCoverUrl = false,
+    AppLanguage? language,
     DateTime? updatedAt,
   }) {
     return Source(
@@ -46,6 +54,7 @@ class Source {
       title: title ?? this.title,
       author: clearAuthor ? null : (author ?? this.author),
       coverUrl: clearCoverUrl ? null : (coverUrl ?? this.coverUrl),
+      language: language ?? this.language,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -59,6 +68,7 @@ class Source {
       other.title == title &&
       other.author == author &&
       other.coverUrl == coverUrl &&
+      other.language == language &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt;
 
@@ -69,6 +79,7 @@ class Source {
     title,
     author,
     coverUrl,
+    language,
     createdAt,
     updatedAt,
   );

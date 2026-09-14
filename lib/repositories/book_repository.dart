@@ -1,3 +1,4 @@
+import '../models/app_language.dart';
 import '../models/book.dart';
 
 /// Datenzugriff für Bücher.
@@ -18,10 +19,13 @@ abstract class BookRepository {
   Future<Book?> getById(String id);
 
   /// Legt ein neues Buch an und gibt es mit vergebener ID zurück.
+  /// [language] ist die Default-Sprache für Aufnahmen zu diesem Buch
+  /// (Deutsch, wenn nicht angegeben).
   Future<Book> create({
     required String title,
     String? author,
     String? coverUrl,
+    AppLanguage language = AppLanguage.german,
   });
 
   /// Speichert Titel/Autor/Cover eines bestehenden Buchs. `updatedAt` setzt das

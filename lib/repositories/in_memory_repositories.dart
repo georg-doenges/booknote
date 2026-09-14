@@ -70,6 +70,7 @@ class InMemoryBookRepository implements BookRepository {
     required String title,
     String? author,
     String? coverUrl,
+    AppLanguage language = AppLanguage.german,
   }) async {
     final now = _store.now();
     final book = Book(
@@ -77,6 +78,7 @@ class InMemoryBookRepository implements BookRepository {
       title: title,
       author: author,
       coverUrl: coverUrl,
+      language: language,
       createdAt: now,
       updatedAt: now,
     );
@@ -164,6 +166,7 @@ class InMemoryNoteRepository implements NoteRepository {
     String? position,
     required String text,
     required String rawTranscript,
+    AppLanguage language = AppLanguage.german,
   }) async {
     if (!_store.books.containsKey(sourceId)) {
       throw EntityNotFoundException('Source', sourceId);
@@ -176,6 +179,7 @@ class InMemoryNoteRepository implements NoteRepository {
       position: position,
       text: text,
       rawTranscript: rawTranscript,
+      language: language,
       createdAt: now,
       updatedAt: now,
     );

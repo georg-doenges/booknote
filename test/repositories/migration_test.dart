@@ -1,3 +1,4 @@
+import 'package:booknote/models/models.dart';
 import 'package:booknote/repositories/repositories.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -49,6 +50,8 @@ void main() {
     final old = (await books.getById('b1'))!;
     expect(old.title, 'Alt');
     expect(old.author, isNull);
+    // v4: language-Spalte fehlte in v1 → Default Deutsch für Altdaten.
+    expect(old.language, AppLanguage.german);
 
     await books.update(old.copyWith(author: 'Neu'));
     expect((await books.getById('b1'))!.author, 'Neu');
@@ -63,6 +66,22 @@ void main() {
     );
     await db.setMeta('k', 'v');
     expect(await db.getMeta('k'), 'v');
+
+    // v4: notes.language ist nutzbar (Default Deutsch, explizit Englisch).
+    final notes = SqliteNoteRepository(db);
+    final note = await notes.create(
+      sourceId: 'b1',
+      text: 'x',
+      rawTranscript: 'x',
+    );
+    expect(note.language, AppLanguage.german);
+    final enNote = await notes.create(
+      sourceId: 'b1',
+      text: 'y',
+      rawTranscript: 'y',
+      language: AppLanguage.english,
+    );
+    expect(enNote.language, AppLanguage.english);
 
     await db.close();
     await databaseFactoryFfi.deleteDatabase(path);

@@ -48,6 +48,7 @@ class SqliteBookRepository implements BookRepository {
     required String title,
     String? author,
     String? coverUrl,
+    AppLanguage language = AppLanguage.german,
   }) async {
     final now = dbNow(_clock);
     final book = Book(
@@ -55,6 +56,7 @@ class SqliteBookRepository implements BookRepository {
       title: title,
       author: author,
       coverUrl: coverUrl,
+      language: language,
       createdAt: now,
       updatedAt: now,
     );

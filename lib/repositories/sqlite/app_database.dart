@@ -16,7 +16,7 @@ import '../repository_exceptions.dart';
 class AppDatabase {
   AppDatabase._(this._db);
 
-  static const schemaVersion = 3;
+  static const schemaVersion = 4;
   static const defaultFileName = 'booknote.db';
 
   static const tableSources = 'sources';
@@ -72,6 +72,7 @@ class AppDatabase {
         title       TEXT NOT NULL,
         author      TEXT,
         cover_url   TEXT,
+        language    TEXT NOT NULL DEFAULT 'de',
         created_at  INTEGER NOT NULL,
         updated_at  INTEGER NOT NULL
       )
@@ -85,6 +86,7 @@ class AppDatabase {
         position       TEXT,
         text           TEXT NOT NULL,
         raw_transcript TEXT NOT NULL,
+        language       TEXT NOT NULL DEFAULT 'de',
         created_at     INTEGER NOT NULL,
         updated_at     INTEGER NOT NULL
       )
@@ -139,6 +141,8 @@ class AppDatabase {
   /// - v1: sources, notes
   /// - v2: sources.author (TEXT, nullable)
   /// - v3: tombstones + meta (Geräte-Abgleich, siehe `SYNC_DESIGN.md`)
+  /// - v4: sources.language + notes.language (TEXT, Default 'de') – Sprache
+  ///   pro Buch statt nur global, siehe BACKLOG.md
   static Future<void> _onUpgrade(
     Database db,
     int oldVersion,
@@ -149,6 +153,14 @@ class AppDatabase {
     }
     if (oldVersion < 3) {
       await _createSyncTables(db);
+    }
+    if (oldVersion < 4) {
+      await db.execute(
+        "ALTER TABLE $tableSources ADD COLUMN language TEXT NOT NULL DEFAULT 'de'",
+      );
+      await db.execute(
+        "ALTER TABLE $tableNotes ADD COLUMN language TEXT NOT NULL DEFAULT 'de'",
+      );
     }
   }
 

@@ -55,7 +55,6 @@ class AppPrefs {
     this.themeMode = ThemeMode.system,
     this.activeCustomThemeId,
     this.hapticsEnabled = true,
-    this.recordingLanguage = AppLanguage.german,
     this.coverSearchLanguage = AppLanguage.german,
     this.sync = const SyncSettings(),
   });
@@ -68,10 +67,9 @@ class AppPrefs {
   /// Haptisches Feedback beim Aufnehmen.
   final bool hapticsEnabled;
 
-  /// Sprache, in der Whisper transkribiert.
-  final AppLanguage recordingLanguage;
-
-  /// Bevorzugte Sprache bei der Cover-/Metadaten-Suche.
+  /// Bevorzugte Sprache bei der Cover-/Metadaten-Suche. Die
+  /// Aufnahmesprache ist seit der Buch-Sprache (`Source.language`) kein
+  /// globaler Wert mehr, siehe `RecordingScreen`.
   final AppLanguage coverSearchLanguage;
 
   final SyncSettings sync;
@@ -80,7 +78,6 @@ class AppPrefs {
     ThemeMode? themeMode,
     Object? activeCustomThemeId = _unset,
     bool? hapticsEnabled,
-    AppLanguage? recordingLanguage,
     AppLanguage? coverSearchLanguage,
     SyncSettings? sync,
   }) => AppPrefs(
@@ -89,7 +86,6 @@ class AppPrefs {
         ? this.activeCustomThemeId
         : activeCustomThemeId as String?,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
-    recordingLanguage: recordingLanguage ?? this.recordingLanguage,
     coverSearchLanguage: coverSearchLanguage ?? this.coverSearchLanguage,
     sync: sync ?? this.sync,
   );
@@ -100,7 +96,6 @@ class AppPrefs {
       other.themeMode == themeMode &&
       other.activeCustomThemeId == activeCustomThemeId &&
       other.hapticsEnabled == hapticsEnabled &&
-      other.recordingLanguage == recordingLanguage &&
       other.coverSearchLanguage == coverSearchLanguage &&
       other.sync == sync;
 
@@ -109,7 +104,6 @@ class AppPrefs {
     themeMode,
     activeCustomThemeId,
     hapticsEnabled,
-    recordingLanguage,
     coverSearchLanguage,
     sync,
   );
@@ -127,7 +121,6 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
   static const _themeMode = 'theme_mode';
   static const _customTheme = 'active_custom_theme';
   static const _haptics = 'haptics_enabled';
-  static const _langRecording = 'lang_recording';
   static const _langCover = 'lang_cover';
   static const _masterGen = 'sync_last_master_generation';
   static const _gcEnabled = 'sync_tombstone_gc_enabled';
@@ -145,7 +138,6 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
       },
       activeCustomThemeId: p.getString(_customTheme),
       hapticsEnabled: p.getBool(_haptics) ?? d.hapticsEnabled,
-      recordingLanguage: AppLanguage.fromCode(p.getString(_langRecording)),
       coverSearchLanguage: AppLanguage.fromCode(p.getString(_langCover)),
       sync: SyncSettings(
         lastConsumedMasterGeneration:
@@ -166,7 +158,6 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
       await p.setString(_customTheme, a.activeCustomThemeId!);
     }
     await p.setBool(_haptics, a.hapticsEnabled);
-    await p.setString(_langRecording, a.recordingLanguage.code);
     await p.setString(_langCover, a.coverSearchLanguage.code);
     await p.setInt(_masterGen, a.sync.lastConsumedMasterGeneration);
     await p.setBool(_gcEnabled, a.sync.tombstoneGcEnabled);
@@ -205,7 +196,6 @@ class AppSettings extends ChangeNotifier {
   ThemeMode get themeMode => _prefs.themeMode;
   String? get activeCustomThemeId => _prefs.activeCustomThemeId;
   bool get hapticsEnabled => _prefs.hapticsEnabled;
-  AppLanguage get recordingLanguage => _prefs.recordingLanguage;
   AppLanguage get coverSearchLanguage => _prefs.coverSearchLanguage;
   SyncSettings get sync => _prefs.sync;
 
@@ -226,9 +216,6 @@ class AppSettings extends ChangeNotifier {
 
   Future<void> setHapticsEnabled(bool enabled) =>
       _update(_prefs.copyWith(hapticsEnabled: enabled));
-
-  Future<void> setRecordingLanguage(AppLanguage language) =>
-      _update(_prefs.copyWith(recordingLanguage: language));
 
   Future<void> setCoverSearchLanguage(AppLanguage language) =>
       _update(_prefs.copyWith(coverSearchLanguage: language));

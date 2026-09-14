@@ -17,6 +17,7 @@ class CustomTheme {
     required this.seed,
     this.overrides = const {},
     this.background,
+    this.logoBytes,
   });
 
   final String id;
@@ -31,6 +32,12 @@ class CustomTheme {
   final Map<String, Color> overrides;
 
   final ThemeBackground? background;
+
+  /// Optionales, zum Schema passend eingefärbtes App-Logo (aus einem
+  /// data-URI dekodiert), z.B. für die Vorschau in den Einstellungen. `null` =
+  /// die abstrakte Farbkachel wird gezeigt. Ändert nichts am App-Icon selbst –
+  /// Android kann das nicht pro Theme umschalten.
+  final Uint8List? logoBytes;
 
   static const formatId = 'booknote-theme';
   static const formatVersion = 1;
@@ -117,6 +124,7 @@ class CustomTheme {
                 (decoded['background'] as Map).cast<String, Object?>(),
               )
             : null,
+        logoBytes: decodeDataUri(decoded['logo']),
       );
     } on CustomThemeException {
       rethrow;
@@ -139,6 +147,15 @@ class CustomTheme {
       .toLowerCase()
       .replaceAll(RegExp(r'[^a-z0-9]+'), '_')
       .replaceAll(RegExp(r'^_+|_+$'), '');
+}
+
+/// Dekodiert ein Bild aus einem `data:image/...;base64,...`-URI (oder reinem
+/// Base64). `null`/leer/kein String → `null`.
+Uint8List? decodeDataUri(Object? value) {
+  if (value is! String || value.isEmpty) return null;
+  final comma = value.indexOf(',');
+  final b64 = comma >= 0 ? value.substring(comma + 1) : value;
+  return base64Decode(b64.trim());
 }
 
 /// Hintergrund eines [CustomTheme]. Liegt hinter den großen Flächen der App,
@@ -166,15 +183,8 @@ class ThemeBackground {
   bool get hasImage => imageBytes != null && imageBytes!.isNotEmpty;
 
   static ThemeBackground fromJson(Map<String, Object?> j) {
-    Uint8List? bytes;
-    final img = j['image'];
-    if (img is String && img.isNotEmpty) {
-      final comma = img.indexOf(',');
-      final b64 = comma >= 0 ? img.substring(comma + 1) : img;
-      bytes = base64Decode(b64.trim());
-    }
     return ThemeBackground(
-      imageBytes: bytes,
+      imageBytes: decodeDataUri(j['image']),
       tile: j['fit'] == 'tile' || j['tile'] == true,
       opacity: ((j['opacity'] as num?)?.toDouble() ?? 1).clamp(0.0, 1.0),
       dim: ((j['dim'] as num?)?.toDouble() ?? 0).clamp(0.0, 1.0),

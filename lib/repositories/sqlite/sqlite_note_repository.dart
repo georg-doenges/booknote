@@ -75,6 +75,7 @@ class SqliteNoteRepository implements NoteRepository {
     String? position,
     required String text,
     required String rawTranscript,
+    AppLanguage language = AppLanguage.german,
   }) async {
     final now = dbNow(_clock);
     final note = Note(
@@ -84,6 +85,7 @@ class SqliteNoteRepository implements NoteRepository {
       position: position,
       text: text,
       rawTranscript: rawTranscript,
+      language: language,
       createdAt: now,
       updatedAt: now,
     );

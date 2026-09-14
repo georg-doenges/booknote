@@ -20,6 +20,7 @@ Map<String, Object?> sourceToRow(Source s) => {
   'title': s.title,
   'author': s.author,
   'cover_url': s.coverUrl,
+  'language': s.language.code,
   'created_at': _toMillis(s.createdAt),
   'updated_at': _toMillis(s.updatedAt),
 };
@@ -30,6 +31,7 @@ Source sourceFromRow(Map<String, Object?> r) => Source(
   title: r['title'] as String,
   author: r['author'] as String?,
   coverUrl: r['cover_url'] as String?,
+  language: AppLanguage.fromCode(r['language'] as String?),
   createdAt: _fromMillis(r['created_at'] as int),
   updatedAt: _fromMillis(r['updated_at'] as int),
 );
@@ -43,6 +45,7 @@ Map<String, Object?> noteToRow(Note n) => {
   'position': n.position,
   'text': n.text,
   'raw_transcript': n.rawTranscript,
+  'language': n.language.code,
   'created_at': _toMillis(n.createdAt),
   'updated_at': _toMillis(n.updatedAt),
 };
@@ -54,6 +57,7 @@ Note noteFromRow(Map<String, Object?> r) => Note(
   position: r['position'] as String?,
   text: r['text'] as String,
   rawTranscript: r['raw_transcript'] as String,
+  language: AppLanguage.fromCode(r['language'] as String?),
   createdAt: _fromMillis(r['created_at'] as int),
   updatedAt: _fromMillis(r['updated_at'] as int),
 );

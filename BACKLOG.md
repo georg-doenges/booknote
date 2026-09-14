@@ -11,20 +11,25 @@ Custom-Themes). Alles hier ist Kür.
 
 ## Klein / überschaubar
 
-- **App-Icon.** Vom Nutzer bewusst zurückgestellt. `flutter_launcher_icons`
-  (dev-dependency), ein Quell-PNG, plattformneutral.
+- ~~**App-Icon.**~~ → erledigt: Nutzer-Entwurf (`assets/icon/source.png`) via
+  `flutter_launcher_icons`, Android adaptiv + iOS. Braune Systemfarben als
+  Standard; Blue Gold/Tequila Sunrise tragen ihr eigenes Logo im Theme-File
+  (siehe THEMES.md „App-Icon vs. Theme-Logo").
 - ~~Sprache der Cover-Suche konfigurierbar~~ → erledigt (Sprach-Menü in der
   Buchsuche, `AppLanguage`).
 - ~~„Speichern unter" in einen Ordner~~ → erledigt (`FilePicker.saveFile` im
   Export- und im Sync-Sheet).
 - **Export-Format merken.** Letztes MD/TXT als Default im Export-Sheet, über
   `AppSettings`.
-- **Whisper-Parsing auch auf Englisch.** Der `NoteParser` erkennt nur deutsche
-  Muster („Seite 47 oben"). Bei englischer Aufnahme wird der Text zwar korrekt
-  transkribiert (Sprach-Menü im Aufnahme-Screen), aber „page 47" wird nicht als
-  Seite erkannt. Eine englische Parser-Variante wäre ein Folgeschritt.
-- **Sprache pro Buch** statt global: ein deutsches Buch ist immer deutsch.
-  Bräuchte ein Feld an `Source` (Schema v4). Aktuell global über die Menüs.
+- ~~**Whisper-Parsing auch auf Englisch.**~~ → erledigt: `NoteParser.parse(raw,
+  language:)` mit eigenem englischen Regelwerk + `EnglishNumberParser`
+  (`page 47`, `top/middle/bottom`, `line 10`, `following`/`onwards` → f./ff.).
+  `RecordingScreen` reicht `settings.recordingLanguage` durch.
+- ~~**Sprache pro Buch** statt global~~ → erledigt: `Source.language` (Schema
+  v4, Default Deutsch), Sprach-Dialog beim Anlegen, `RecordingScreen` startet
+  damit und kann pro Aufnahme übersteuern (ohne die Buch-Vorgabe zu ändern).
+  `Note.language` speichert die tatsächlich genutzte Sprache je Notiz (steuert
+  „S." vs. „p." bei der Seitenangabe).
 - **„Feinheiten"-Runde** – der Nutzer sammelt noch kleinere Punkte.
 
 ## Mittel
@@ -44,6 +49,12 @@ Custom-Themes). Alles hier ist Kür.
   - **Theme-File mit hell + dunkel in einem** – folgt dann optional dem System.
     Aktuell ist ein Custom-Theme ein fester Look.
   - Auswahl-UI mit größerer Vorschau.
+  - **Echtes Homescreen-Icon pro Theme.** Bisher trägt nur die Theme-Datei ein
+    eingefärbtes Logo (Vorschau in den Einstellungen) – das App-Icon selbst
+    bleibt Braun (System-Standard), weil Android das nicht einfach zur
+    Laufzeit umschaltet. Ginge über mehrere `<activity-alias>`-Einträge im
+    Manifest + natives Umschalten per `PackageManager`, launcherabhängig.
+    Eigener, größerer Baustein.
 - **Eigener In-App-Dateibrowser für Importe.** Der Android-Systemwähler
   (SAF/DocumentsUI) bestimmt Anzeige *und* Ansicht: Nicht-JSON-Dateien werden
   nur **ausgegraut** (nicht ausgeblendet), und Liste vs. Kacheln lässt sich

@@ -1,3 +1,4 @@
+import 'package:booknote/models/models.dart';
 import 'package:booknote/repositories/repositories.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -55,6 +56,17 @@ void runRepositoryContract(
         final a = await r.books.create(title: 'A');
         expect(await r.books.getById(a.id), a);
         expect(await r.books.getById('nope'), isNull);
+      });
+
+      test('language: Deutsch als Default, explizit setzbar', () async {
+        final a = await r.books.create(title: 'A');
+        expect(a.language, AppLanguage.german);
+        final b = await r.books.create(
+          title: 'B',
+          language: AppLanguage.english,
+        );
+        expect(b.language, AppLanguage.english);
+        expect((await r.books.getById(b.id))!.language, AppLanguage.english);
       });
 
       test('update ändert Titel/Autor/Cover und updatedAt', () async {
@@ -124,6 +136,24 @@ void runRepositoryContract(
           () => r.notes.create(sourceId: 'nope', text: 't', rawTranscript: 'r'),
           throwsA(isA<EntityNotFoundException>()),
         );
+      });
+
+      test('language: Deutsch als Default, explizit setzbar', () async {
+        final a = await r.books.create(title: 'A');
+        final de = await r.notes.create(
+          sourceId: a.id,
+          text: 'x',
+          rawTranscript: 'x',
+        );
+        expect(de.language, AppLanguage.german);
+        final en = await r.notes.create(
+          sourceId: a.id,
+          text: 'y',
+          rawTranscript: 'y',
+          language: AppLanguage.english,
+        );
+        expect(en.language, AppLanguage.english);
+        expect((await r.notes.getById(en.id))!.language, AppLanguage.english);
       });
 
       test('create/getBySource/count', () async {

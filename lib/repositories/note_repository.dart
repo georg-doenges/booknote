@@ -1,3 +1,4 @@
+import '../models/app_language.dart';
 import '../models/note.dart';
 
 /// Sortierung von Notizlisten.
@@ -33,12 +34,15 @@ abstract class NoteRepository {
 
   /// Legt eine Notiz an und gibt sie mit vergebener ID zurück.
   /// [rawTranscript] ist der ungeparste Whisper-Text und wird nie verändert.
+  /// [language] ist die Sprache, in der diese eine Aufnahme tatsächlich
+  /// erfolgt ist (kann von der Buch-Vorgabe abweichen).
   Future<Note> create({
     required String sourceId,
     String? page,
     String? position,
     required String text,
     required String rawTranscript,
+    AppLanguage language = AppLanguage.german,
   });
 
   /// Speichert Seite/Position/Text einer bestehenden Notiz.

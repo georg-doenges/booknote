@@ -17,6 +17,7 @@ void main() {
     String sourceId = 'b',
     String? position,
     int minute = 0,
+    AppLanguage language = AppLanguage.german,
   }) => Note(
     id: id,
     sourceId: sourceId,
@@ -24,6 +25,7 @@ void main() {
     position: position,
     text: text,
     rawTranscript: 'raw',
+    language: language,
     createdAt: t0.add(Duration(minutes: minute)),
     updatedAt: t0,
   );
@@ -146,6 +148,15 @@ _Keine Notizen mit Seitenangabe._
 ''');
     },
   );
+
+  test('englische Notiz: "p." statt "S."', () {
+    final r = md.export(
+      ExportRequest.single(book(), [
+        note('1', '20', 'nice quote', language: AppLanguage.english),
+      ]),
+    );
+    expect(r.content, contains('- **p. 20:** nice quote'));
+  });
 
   test('safeFileName entfernt Sonderzeichen und kürzt', () {
     expect(safeFileName('Was: ist / das?'), 'Was ist das');

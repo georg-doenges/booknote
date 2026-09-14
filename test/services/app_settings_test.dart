@@ -10,7 +10,6 @@ void main() {
       const p = AppPrefs();
       expect(p.themeMode, ThemeMode.system);
       expect(p.hapticsEnabled, isTrue);
-      expect(p.recordingLanguage, AppLanguage.german);
       expect(p.coverSearchLanguage, AppLanguage.german);
       expect(p.sync.tombstoneGcDays, 120);
     });
@@ -20,7 +19,9 @@ void main() {
       expect(a, a.copyWith());
       expect(a == a.copyWith(hapticsEnabled: false), isFalse);
       expect(
-        a.copyWith(recordingLanguage: AppLanguage.english).recordingLanguage,
+        a
+            .copyWith(coverSearchLanguage: AppLanguage.english)
+            .coverSearchLanguage,
         AppLanguage.english,
       );
     });
@@ -31,12 +32,12 @@ void main() {
       final store = InMemoryAppSettingsStore(
         prefs: const AppPrefs(
           themeMode: ThemeMode.light,
-          recordingLanguage: AppLanguage.english,
+          coverSearchLanguage: AppLanguage.english,
         ),
       );
       final settings = await AppSettings.load(store);
       expect(settings.themeMode, ThemeMode.light);
-      expect(settings.recordingLanguage, AppLanguage.english);
+      expect(settings.coverSearchLanguage, AppLanguage.english);
     });
 
     test('setThemeMode benachrichtigt und schreibt durch', () async {
@@ -63,15 +64,13 @@ void main() {
       expect(notified, 0);
     });
 
-    test('Sprachen und GC-Tage lassen sich setzen', () async {
+    test('Cover-Sprache und GC-Tage lassen sich setzen', () async {
       final store = InMemoryAppSettingsStore();
       final settings = await AppSettings.load(store);
 
-      await settings.setRecordingLanguage(AppLanguage.english);
       await settings.setCoverSearchLanguage(AppLanguage.english);
       await settings.updateSync(settings.sync.copyWith(tombstoneGcDays: 30));
 
-      expect(store.prefs.recordingLanguage, AppLanguage.english);
       expect(store.prefs.coverSearchLanguage, AppLanguage.english);
       expect(store.prefs.sync.tombstoneGcDays, 30);
     });
@@ -83,7 +82,7 @@ void main() {
     test('leerer Speicher → Defaults', () async {
       final p = await SharedPrefsAppSettingsStore().load();
       expect(p.themeMode, ThemeMode.system);
-      expect(p.recordingLanguage, AppLanguage.german);
+      expect(p.coverSearchLanguage, AppLanguage.german);
     });
 
     test('Roundtrip', () async {
@@ -92,14 +91,14 @@ void main() {
         const AppPrefs(
           themeMode: ThemeMode.dark,
           hapticsEnabled: false,
-          recordingLanguage: AppLanguage.english,
+          coverSearchLanguage: AppLanguage.english,
           sync: SyncSettings(tombstoneGcEnabled: false, tombstoneGcDays: 60),
         ),
       );
       final p = await store.load();
       expect(p.themeMode, ThemeMode.dark);
       expect(p.hapticsEnabled, isFalse);
-      expect(p.recordingLanguage, AppLanguage.english);
+      expect(p.coverSearchLanguage, AppLanguage.english);
       expect(p.sync.tombstoneGcEnabled, isFalse);
       expect(p.sync.tombstoneGcDays, 60);
     });

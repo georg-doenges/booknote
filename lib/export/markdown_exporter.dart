@@ -82,7 +82,8 @@ class MarkdownExporter implements Exporter {
     for (final n in withPage) {
       final pos = n.position == null ? '' : ' (${_inline(n.position!)})';
       b.writeln(
-        '- **S. ${_inline(n.page!)}$pos:** ${_body(n, includeTimestamps)}',
+        '- **${pagePrefix(n.language)} ${_inline(n.page!)}$pos:** '
+        '${_body(n, includeTimestamps)}',
       );
     }
 

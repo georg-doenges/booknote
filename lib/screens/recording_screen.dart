@@ -39,6 +39,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// Anfangs `widget.book`; nach „Titel bearbeiten" der aktualisierte Stand.
   late Book _book = widget.book;
 
+  /// Sprache dieser Aufnahme-Sitzung. Start ist immer die Buch-Vorgabe
+  /// (`_book.language`); das Menü hier übersteuert nur diese eine Sitzung,
+  /// ohne die Buch-Vorgabe zu ändern – beim nächsten Öffnen gilt wieder sie.
+  late AppLanguage _language = _book.language;
+
   _Phase _phase = _Phase.idle;
   String? _pendingAudio; // bleibt bei Fehlern erhalten → „Erneut versuchen"
   TranscriptionException? _error;
@@ -161,15 +166,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
     try {
       final raw = await scope.transcription.transcribe(
         path,
-        language: scope.settings.recordingLanguage.code,
+        language: _language.code,
       );
-      final parsed = scope.parser.parse(raw);
+      final parsed = scope.parser.parse(raw, language: _language);
       final note = await scope.notes.create(
         sourceId: _book.id,
         page: parsed.page,
         position: parsed.position,
         text: parsed.text,
         rawTranscript: parsed.rawTranscript,
+        language: _language,
       );
       await NoteRecorder.discard(path);
       _pendingAudio = null;
@@ -238,7 +244,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
     final scheme = Theme.of(context).colorScheme;
     final text = Theme.of(context).textTheme;
     final muted = scheme.onSurfaceVariant;
-    final settings = AppScope.of(context).settings;
 
     return Scaffold(
       appBar: AppBar(
@@ -248,12 +253,11 @@ class _RecordingScreenState extends State<RecordingScreen> {
         ),
         actions: [
           LanguageMenuButton(
-            value: settings.recordingLanguage,
-            tooltip: 'Sprache der Spracherkennung',
-            onSelected: (l) {
-              settings.setRecordingLanguage(l);
-              setState(() {});
-            },
+            value: _language,
+            tooltip:
+                'Sprache dieser Aufnahme (Buch-Vorgabe: '
+                '${_book.language.label})',
+            onSelected: (l) => setState(() => _language = l),
           ),
         ],
       ),

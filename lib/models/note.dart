@@ -1,3 +1,5 @@
+import 'app_language.dart';
+
 /// Eine einzelne Notiz zu einer Quelle (Buch).
 ///
 /// [page] und [position] sind bewusst freie Strings (`"47"`, `"47f."`,
@@ -11,6 +13,7 @@ class Note {
     this.position,
     required this.text,
     required this.rawTranscript,
+    this.language = AppLanguage.german,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -31,6 +34,11 @@ class Note {
 
   /// Ungeparster Transkript-Text, wird nie verändert.
   final String rawTranscript;
+
+  /// Sprache, in der diese Notiz aufgenommen/geparst wurde (kann von der
+  /// Buch-Vorgabe abweichen, wenn diese eine Aufnahme übersteuert hat).
+  /// Bestimmt z.B. „S." vs. „p." bei der Seitenangabe.
+  final AppLanguage language;
 
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -59,6 +67,7 @@ class Note {
       position: clearPosition ? null : (position ?? this.position),
       text: text ?? this.text,
       rawTranscript: rawTranscript,
+      language: language,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -73,6 +82,7 @@ class Note {
       other.position == position &&
       other.text == text &&
       other.rawTranscript == rawTranscript &&
+      other.language == language &&
       other.createdAt == createdAt &&
       other.updatedAt == updatedAt;
 
@@ -84,6 +94,7 @@ class Note {
     position,
     text,
     rawTranscript,
+    language,
     createdAt,
     updatedAt,
   );

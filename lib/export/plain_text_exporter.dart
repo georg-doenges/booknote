@@ -85,7 +85,8 @@ class PlainTextExporter implements Exporter {
     for (final n in withPage) {
       final pos = n.position == null ? '' : ' (${_inline(n.position!)})';
       b.writeln(
-        '$pad  S. ${_inline(n.page!)}$pos: ${_body(n, includeTimestamps)}',
+        '$pad  ${pagePrefix(n.language)} ${_inline(n.page!)}$pos: '
+        '${_body(n, includeTimestamps)}',
       );
     }
 

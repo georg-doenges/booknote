@@ -373,13 +373,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-/// Kleine Farbvorschau eines Custom-Themes (Fläche + Primärfarbe).
+/// Vorschau eines Custom-Themes: das zum Schema eingefärbte Logo, wenn eines
+/// mitgeliefert ist – sonst eine abstrakte Farbkachel (Fläche + Primärfarbe).
 class _Swatch extends StatelessWidget {
   const _Swatch({required this.theme});
   final CustomTheme theme;
 
   @override
   Widget build(BuildContext context) {
+    final logo = theme.logoBytes;
+    if (logo != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.memory(logo, width: 34, height: 34, fit: BoxFit.cover),
+      );
+    }
     final surface =
         theme.overrides['surface'] ??
         (theme.brightness == Brightness.dark

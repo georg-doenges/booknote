@@ -3,7 +3,7 @@
 Eine Theme-Datei ist **eine portable JSON-Datei**. Der Nutzer legt sie z.B. in
 den Download-Ordner und lädt sie über **Einstellungen → Darstellung → Eigene
 Farbschemata → Importieren …**. Mitgelieferte Themes (Assets) stehen dort
-ebenfalls; „Blue Gold" ist das erste.
+ebenfalls; „Blue Gold" und „Tequila Sunrise" sind dabei.
 
 Ein Custom-Theme ist **ein fester Look** – es folgt nicht dem Hell/Dunkel des
 Systems. Wählt man wieder System / Hell / Dunkel, ist es aus.
@@ -41,7 +41,13 @@ Systems. Wählt man wieder System / Hell / Dunkel, ist es aus.
     "fit": "cover",     // "cover" (formatfüllend) | "tile" (kacheln)
     "opacity": 1.0,     // 0..1
     "dim": 0.15         // 0..1 – zusätzlicher dunkler Schleier für Kontrast
-  }
+  },
+
+  // Optional: zum Schema passend eingefärbtes App-Logo, als data-URI direkt
+  // im File. Wird nur als Vorschau in der Theme-Liste der Einstellungen
+  // gezeigt (statt der abstrakten Farbkachel) – ändert nichts am echten
+  // App-Icon, das kann Android nicht pro Theme umschalten.
+  "logo": "data:image/png;base64,iVBORw0KGgo…"
 }
 ```
 
@@ -78,7 +84,25 @@ Farben als `#RRGGBB` oder `#AARRGGBB`.
   danach gelöschtes mitgeliefertes Schema holt „… wiederherstellen" in den
   Einstellungen aus den Assets zurück.
 
+## App-Icon vs. Theme-Logo
+
+Das echte App-Icon (Homescreen) ist **eine** statische Android/iOS-Ressource
+(`assets/icon/icon_legacy.png` + `icon_foreground.png`, via
+`flutter_launcher_icons`) und lässt sich nicht einfach zur Laufzeit pro
+gewähltem Theme austauschen – dafür bräuchte es mehrere `<activity-alias>`-
+Einträge im Manifest plus natives Umschalten per `PackageManager`, mit
+launcherabhängigen Eigenheiten. Deshalb: das App-Icon trägt das **braune
+Standard-Farbschema** (System/Hell/Dunkel), unabhängig vom gewählten
+Custom-Theme. Jedes Custom-Theme kann stattdessen sein eigenes, passend
+eingefärbtes Logo im `logo`-Feld mitbringen – sichtbar als Vorschau in der
+Theme-Liste der Einstellungen. Alle drei (Braun/Blue Gold/Tequila Sunrise)
+sind dieselbe Grafik, nur umgefärbt (`recolor.js`-Ansatz: pro Pixel dem
+nächsten von vier Referenzfarben zuordnen und dorthin verschieben – Kanten und
+Bézier-Formen bleiben exakt erhalten).
+
 ## Später (BACKLOG)
 
 - Theme-File mit *hell + dunkel* in einem (folgt dann optional dem System).
 - Auswahl-UI mit größerer Vorschau.
+- Echtes Umschalten des Homescreen-Icons pro Theme (`activity-alias` +
+  natives Umschalten) – eigener, größerer Baustein.
