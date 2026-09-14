@@ -289,8 +289,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
                           ),
                           const SizedBox(height: BooknoteTheme.gap24),
                           Text(_statusLine(), style: text.titleMedium),
-                          if (_phase == _Phase.recording) ...[
-                            Padding(
+                          // Ab hier: fester Platz für alle folgenden Blöcke
+                          // (immer gerendert, nur ein-/ausgeblendet) – sonst
+                          // ändert sich die Höhe der zentrierten Spalte mit
+                          // dem Inhalt und der Button rutscht bei jedem
+                          // Phasenwechsel ein Stück.
+                          Visibility(
+                            visible: _phase == _Phase.recording,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: Padding(
                               padding: const EdgeInsets.only(
                                 top: BooknoteTheme.gap4,
                               ),
@@ -303,26 +312,37 @@ class _RecordingScreenState extends State<RecordingScreen> {
                                 ),
                               ),
                             ),
-                            if (_elapsed >= _longRecordingHint)
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  BooknoteTheme.gap24,
-                                  BooknoteTheme.gap4,
-                                  BooknoteTheme.gap24,
-                                  0,
-                                ),
-                                child: Text(
-                                  'Lange Aufnahme – Whisper transkribiert alles am '
-                                  'Stück.',
-                                  textAlign: TextAlign.center,
-                                  style: text.bodySmall?.copyWith(
-                                    color: scheme.tertiary,
-                                  ),
+                          ),
+                          Visibility(
+                            visible:
+                                _phase == _Phase.recording &&
+                                _elapsed >= _longRecordingHint,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                BooknoteTheme.gap24,
+                                BooknoteTheme.gap4,
+                                BooknoteTheme.gap24,
+                                0,
+                              ),
+                              child: Text(
+                                'Lange Aufnahme – Whisper transkribiert alles am '
+                                'Stück.',
+                                textAlign: TextAlign.center,
+                                style: text.bodySmall?.copyWith(
+                                  color: scheme.tertiary,
                                 ),
                               ),
-                          ],
-                          if (_phase == _Phase.idle && _session.isEmpty)
-                            Padding(
+                            ),
+                          ),
+                          Visibility(
+                            visible: _phase == _Phase.idle && _session.isEmpty,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: Padding(
                               padding: const EdgeInsets.fromLTRB(
                                 BooknoteTheme.gap24,
                                 BooknoteTheme.gap12,
@@ -336,13 +356,20 @@ class _RecordingScreenState extends State<RecordingScreen> {
                                 style: text.bodyMedium?.copyWith(color: muted),
                               ),
                             ),
-                          if (_phase == _Phase.idle || _phase == _Phase.error)
-                            Padding(
+                          ),
+                          Visibility(
+                            visible:
+                                _phase == _Phase.idle || _phase == _Phase.error,
+                            maintainSize: true,
+                            maintainAnimation: true,
+                            maintainState: true,
+                            child: Padding(
                               padding: const EdgeInsets.only(
                                 top: BooknoteTheme.gap24,
                               ),
                               child: _AllNotesButton(bookId: _book.id),
                             ),
+                          ),
                           const SizedBox(height: BooknoteTheme.gap8),
                         ],
                       ),

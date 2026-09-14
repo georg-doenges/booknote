@@ -78,7 +78,7 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | 🔄 A–I bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer); J wartet auf Gerätetest |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | ✅ A–J auf Gerät bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer) |
 
 ### Schritt 8 in Bausteinen
 
@@ -93,8 +93,8 @@ test/
 | E | Release-Signierung | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
 | G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | ✅ auf Gerät bestätigt |
 | H | Eigene Farbschemata (JSON-Import, Blue Gold + Tequila Sunrise, Hintergrund-Layer) | ✅ auf Gerät bestätigt |
-| I | App-Icon (Nutzer-Entwurf) + Theme-Logos | ✅ auf Gerät bestätigt (Icon); Logos + Sprache/Englisch-Parser warten auf Gerätetest |
-| J | Sprache pro Buch + englischer NoteParser | 🔄 gebaut, `flutter analyze`/Tests grün, wartet auf Gerätetest |
+| I | App-Icon (Nutzer-Entwurf) + Theme-Logos | ✅ auf Gerät bestätigt |
+| J | Sprache pro Buch (Wahl beim Anlegen) + englischer NoteParser | ✅ auf Gerät bestätigt, nach zwei Korrekturrunden (siehe unten) |
 
 ## Was in Schritt 1 passiert ist
 
@@ -322,6 +322,39 @@ test/
   anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
   wählt der Nutzer selbst.
 - App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
+
+## Testrunde: Aufnahme-Button, Sprachwahl-Platzierung — `0.1.0+22`/`+23`
+
+Zwei Korrekturen aus dem Gerätetest der vorigen Runde.
+
+**Aufnahme-Button verrutschte** (neu seit dem Overflow-Fix): die zentrierte
+Spalte im `RecordingScreen` ändert ihre Gesamthöhe je nach Phase (Leerlauf mit
+Hinweistext + „Alle Notizen"-Button, Aufnahme mit Timer, Transkribieren fast
+leer) – da die ganze Spalte zentriert wird, wanderte der Button mit. Fix: die
+Blöcke unter dem Button (Timer, Lang-Aufnahme-Hinweis, Erstnutzer-Tipp,
+„Alle Notizen") stecken jetzt in `Visibility(maintainSize: true, …)` – sie
+belegen **immer** denselben Platz, werden nur ein-/ausgeblendet. Gesamthöhe
+bleibt phasenunabhängig konstant, Button bewegt sich nicht mehr.
+
+**Sprachwahl beim Buch-Anlegen** – zwei Anläufe:
+1. Erst ein extra Dialog nach der Cover-Auswahl + eine prominente
+   Sprachauswahl auf dem `RecordingScreen` (nur beim ersten Aufruf via
+   `justCreated`-Flag). Nutzer-Feedback: der Dialog ist ein überflüssiger
+   Extra-Schritt, und die prominente Auswahl blieb fälschlich für *jede*
+   Notiz derselben Sitzung sichtbar statt nur einmalig.
+2. Beides zurückgebaut. Stattdessen: `BookSearchScreen` (Titel-/Autor-Eingabe,
+   `newBook`-Flag default `true`) zeigt direkt unter dem Titelfeld „Sprache
+   für Aufnahmen zu diesem Buch" (`SegmentedButton<AppLanguage>`, Deutsch
+   vorbelegt) – bei „Cover suchen" für ein bestehendes Buch
+   (`BookDetailScreen._changeCover`, `newBook: false`) nicht. `BookSearchResult`
+   trägt jetzt `language` zurück an `LibraryScreen._addBook`, das direkt an
+   `books.create(language:)` reicht. `showBookLanguageDialog` +
+   `book_language_dialog.dart` wieder entfernt; `RecordingScreen.justCreated`
+   ebenfalls – dort bleibt nur die kleine AppBar-Sprachauswahl für die
+   gelegentliche Einzelaufnahme-Übersteuerung.
+
+232 Tests grün (unverändert – reine Screen-Verdrahtung, keine Logikänderung),
+`flutter analyze` sauber. Beide Punkte auf dem Gerät bestätigt.
 
 ## App-Icon, Theme-Logos, Sprache pro Buch, Englisch-Parser — `0.1.0+21`
 

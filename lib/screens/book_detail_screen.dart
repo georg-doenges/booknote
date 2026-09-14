@@ -50,6 +50,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           initialQuery: book.title,
           title: 'Cover suchen',
           allowWithoutCover: false,
+          newBook: false,
         ),
       ),
     );

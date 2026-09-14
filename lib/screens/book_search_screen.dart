@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
 import '../widgets/language_menu_button.dart';
@@ -11,12 +12,19 @@ import '../widgets/voice_input_button.dart';
 import 'settings_screen.dart';
 
 /// Ergebnis der Buchsuche: entweder ein ausgewählter Treffer oder der vom
-/// Nutzer eingetippte Titel ohne Cover.
+/// Nutzer eingetippte Titel ohne Cover. [language] ist nur bei einem neuen
+/// Buch relevant (siehe [BookSearchScreen.newBook]).
 class BookSearchResult {
-  const BookSearchResult({required this.title, this.author, this.coverUrl});
+  const BookSearchResult({
+    required this.title,
+    this.author,
+    this.coverUrl,
+    this.language = AppLanguage.german,
+  });
   final String title;
   final String? author;
   final String? coverUrl;
+  final AppLanguage language;
 }
 
 /// Titel eingeben → Google Books / Open Library abfragen → Treffer mit Cover
@@ -28,6 +36,7 @@ class BookSearchScreen extends StatefulWidget {
     this.initialQuery = '',
     this.title = 'Neues Buch',
     this.allowWithoutCover = true,
+    this.newBook = true,
   });
 
   final String initialQuery;
@@ -35,6 +44,12 @@ class BookSearchScreen extends StatefulWidget {
 
   /// Zeigt „Ohne Cover anlegen" mit dem eingetippten Titel.
   final bool allowWithoutCover;
+
+  /// `true`: ein neues Buch entsteht hier → Sprachwahl für Aufnahmen zu
+  /// diesem Buch wird angeboten (Default Deutsch). `false`: nur ein Cover für
+  /// ein bestehendes Buch suchen (`BookDetailScreen._changeCover`) – dessen
+  /// Sprache bleibt unangetastet.
+  final bool newBook;
 
   @override
   State<BookSearchScreen> createState() => _BookSearchScreenState();
@@ -49,6 +64,10 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   String? _warning;
   bool _loading = false;
   String? _error;
+
+  /// Nur relevant, wenn [BookSearchScreen.newBook] – Default für Aufnahmen
+  /// zu diesem Buch.
+  AppLanguage _language = AppLanguage.german;
 
   @override
   void initState() {
@@ -109,7 +128,12 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   }
 
   void _pick(CoverCandidate c) => Navigator.of(context).pop(
-    BookSearchResult(title: c.title, author: c.author, coverUrl: c.coverUrl),
+    BookSearchResult(
+      title: c.title,
+      author: c.author,
+      coverUrl: c.coverUrl,
+      language: _language,
+    ),
   );
 
   void _onVoice(String text) {
@@ -125,7 +149,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   void _withoutCover() {
     final t = _query.text.trim();
     if (t.isEmpty) return;
-    Navigator.of(context).pop(BookSearchResult(title: t));
+    Navigator.of(context).pop(BookSearchResult(title: t, language: _language));
   }
 
   @override
@@ -184,6 +208,36 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               ),
             ),
           ),
+          if (widget.newBook)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                BooknoteTheme.gap16,
+                0,
+                BooknoteTheme.gap16,
+                BooknoteTheme.gap8,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sprache für Aufnahmen zu diesem Buch',
+                    style: Theme.of(context).textTheme.bodySmall
+                        ?.copyWith(color: scheme.onSurfaceVariant),
+                  ),
+                  const SizedBox(height: BooknoteTheme.gap4),
+                  SegmentedButton<AppLanguage>(
+                    segments: [
+                      for (final l in AppLanguage.values)
+                        ButtonSegment(value: l, label: Text(l.label)),
+                    ],
+                    selected: {_language},
+                    showSelectedIcon: false,
+                    onSelectionChanged: (s) =>
+                        setState(() => _language = s.first),
+                  ),
+                ],
+              ),
+            ),
           if (widget.allowWithoutCover)
             Align(
               alignment: Alignment.centerRight,

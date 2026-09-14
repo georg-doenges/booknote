@@ -5,7 +5,6 @@ import '../export/export.dart';
 import '../models/models.dart';
 import '../theme.dart';
 import '../widgets/book_cover_tile.dart';
-import '../widgets/book_language_dialog.dart';
 import 'book_detail_screen.dart';
 import 'book_search_screen.dart';
 import 'library_sync_sheet.dart';
@@ -40,13 +39,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       MaterialPageRoute(builder: (_) => const BookSearchScreen()),
     );
     if (result == null || !mounted) return;
-    final language = await showBookLanguageDialog(context);
-    if (language == null || !mounted) return;
     final book = await AppScope.of(context).books.create(
       title: result.title,
       author: result.author,
       coverUrl: result.coverUrl,
-      language: language,
+      language: result.language,
     );
     if (!mounted) return;
     Navigator.of(context)
