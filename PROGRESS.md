@@ -78,7 +78,7 @@ test/
 | 5 | UI: Library, Recording, BookDetail, Settings | ✅ auf Gerät getestet, Whisper + Parser funktionieren |
 | 6 | CoverService (Google Books + Open Library) + Autor + Zeitstempel | ✅ auf Gerät getestet |
 | 7 | Markdown-Export | ✅ auf Gerät getestet (Share-Sheet funktioniert) |
-| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | ✅ A–J auf Gerät bestätigt (E: Signier-Verdrahtung, Keystore beim Nutzer) |
+| 8 | Feinschliff (Design/Theme, Aufnahme-Flow, Export, Geräte-Abgleich) | ✅ A–J auf Gerät bestätigt, inkl. Release-Signierung (E) |
 
 ### Schritt 8 in Bausteinen
 
@@ -90,9 +90,9 @@ test/
 | D | Feinschliff Aufnahme-Flow (Haptik, Kurz-/Langaufnahme, Notiz-Edit, Titel-Edit) | ✅ auf Gerät bestätigt |
 | F1 | Export: 3 Ebenen (Buch/Autor/Bibliothek) × Markdown/Text | ✅ auf Gerät bestätigt |
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
-| E | Release-Signierung | ✅ Gradle-Verdrahtung + `SIGNING.md`; Keystore legt der Nutzer an |
+| E | Release-Signierung | ✅ Keystore angelegt, Release-Build (`0.1.0+23`) mit `apksigner` als echt signiert verifiziert |
 | G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | ✅ auf Gerät bestätigt |
-| H | Eigene Farbschemata (JSON-Import, Blue Gold + Tequila Sunrise, Hintergrund-Layer) | ✅ auf Gerät bestätigt |
+| H | Eigene Farbschemata (JSON-Import, Blue Gold + Old Library, Hintergrund-Layer, Schrift pro Theme) | ✅ auf Gerät bestätigt |
 | I | App-Icon (Nutzer-Entwurf) + Theme-Logos | ✅ auf Gerät bestätigt |
 | J | Sprache pro Buch (Wahl beim Anlegen) + englischer NoteParser | ✅ auf Gerät bestätigt, nach zwei Korrekturrunden (siehe unten) |
 
@@ -322,6 +322,48 @@ test/
   anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
   wählt der Nutzer selbst.
 - App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
+
+## Settings-Trennung, Old-Library-Theme, Schrift pro Theme, README — `0.1.0+24`/`+25`
+
+**Settings-Screen:** „Darstellung" in zwei eigenständige `_Section`s
+aufgeteilt – **Anzeige** (System/Hell/Dunkel) und **Eigene Farbschemata** –,
+jede mit eigenem Erklärtext. Vorher ein gemeinsamer Block, in dem nicht klar
+war, dass beides sich gegenseitig ausschließt.
+
+**„Old Library" ersetzt „Tequila Sunrise"** (`assets/themes/old_library.json`,
+`CustomThemeStore._bundledAssets`): helles Pergament/Leder-Farbschema, Logo
+wie gehabt per `recolor.js` erzeugt (neue Palette `old_library` dort).
+Erster Entwurf hatte den Bordeaux-Ton (`#9C4B3A`) nur auf `tertiary` gelegt –
+in Material 3 eine kaum sichtbare Rolle. Nutzer-Feedback („Akzent nicht
+gefunden") → Farben getauscht: Bordeaux ist jetzt `primary` (Aufnahme-Button,
+Titel, Häkchen), das Leder-Braun `secondary`. `error` bewusst auf einen davon
+klar unterscheidbaren Rotton gelegt.
+
+**Schrift pro Theme, neu:** `CustomTheme.fontFamily` (JSON-Feld `font`, nur
+ein Name – anders als `logo`/`background` keine eingebettete Datei, dafür zu
+groß). `BooknoteTheme._themeFrom` reicht ihn als `ThemeData.fontFamily`
+durch, wirkt dadurch appweit ohne Screen-Anpassungen. Erste Nutzung:
+**Tinos** (Google, SIL OFL 1.1, metrisch zu Times New Roman kompatibel;
+`assets/fonts/Tinos-*.ttf`, ~2,2 MB, von `github.com/google/fonts`
+heruntergeladen) für „Old Library". Unbekannter `font`-Name → stille
+Rückfalllösung auf die Systemschrift.
+
+**Stolperstein dokumentiert** (`THEMES.md`): mitgelieferte Theme-Dateien
+werden nur **einmalig beim Erststart** aufs Gerät kopiert – Änderungen an der
+Asset-Datei (z.B. ein neu ergänztes `logo`-Feld) erreichen ein schon
+initialisiertes Gerät nie automatisch. Einzige Auffrischung: löschen +
+„… wiederherstellen".
+
+**README neu geschrieben** (vorher Flutter-Boilerplate): jetzt eine
+Tester-Anleitung – ganz einfache Übersicht zuerst (Kernnutzen, ein Satz),
+dann APK-Installation, dann eine laienfreundliche Schritt-für-Schritt-
+Anleitung für den eigenen OpenAI-API-Key (Link, Hinweis auf ~5 $ Guthaben,
+Konto selbst kostenlos/Nutzung kostenpflichtig). Geräte-Abgleich bewusst nur
+als ein Bullet-Punkt mit Verweis auf `SYNC_DESIGN.md`, nicht ausführlich
+erklärt – zu komplex für den Einstieg.
+
+235 Tests grün, `flutter analyze` sauber. Auf Gerät installiert
+(`0.1.0+25`), vom Nutzer freigegeben.
 
 ## Testrunde: Aufnahme-Button, Sprachwahl-Platzierung — `0.1.0+22`/`+23`
 

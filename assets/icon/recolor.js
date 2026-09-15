@@ -10,7 +10,7 @@
 // - default_brown → auf 1024 skalieren als icon_legacy.png, Rahmen
 //   wegschneiden + neu zentrieren als icon_foreground.png (Basis für
 //   `flutter_launcher_icons`, siehe pubspec.yaml).
-// - blue_gold / tequila_sunrise → auf ~256px verkleinern, als Base64 in das
+// - blue_gold / old_library → auf ~256px verkleinern, als Base64 in das
 //   `logo`-Feld der jeweiligen `assets/themes/*.json` einbetten.
 const sharp = require('sharp');
 const path = require('path');
@@ -91,11 +91,11 @@ const PALETTES = {
     accent: [0xc6, 0x8a, 0x3d],
     dark: [0x1c, 0x0f, 0x08],
   },
-  tequila_sunrise: {
-    bg: [0x2a, 0x14, 0x20],
-    outline: [0xff, 0xdc, 0xc5],
-    accent: [0xff, 0x7a, 0x3d],
-    dark: [0x3a, 0x14, 0x00],
+  old_library: {
+    bg: [0xe3, 0xd2, 0xae],
+    outline: [0x3b, 0x2a, 0x18],
+    accent: [0x9c, 0x4b, 0x3a],
+    dark: [0x24, 0x15, 0x05],
   },
 };
 

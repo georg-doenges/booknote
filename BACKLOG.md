@@ -13,7 +13,7 @@ Custom-Themes). Alles hier ist Kür.
 
 - ~~**App-Icon.**~~ → erledigt: Nutzer-Entwurf (`assets/icon/source.png`) via
   `flutter_launcher_icons`, Android adaptiv + iOS. Braune Systemfarben als
-  Standard; Blue Gold/Tequila Sunrise tragen ihr eigenes Logo im Theme-File
+  Standard; Blue Gold/Old Library tragen ihr eigenes Logo im Theme-File
   (siehe THEMES.md „App-Icon vs. Theme-Logo").
 - ~~Sprache der Cover-Suche konfigurierbar~~ → erledigt (Sprach-Menü in der
   Buchsuche, `AppLanguage`).

@@ -1,3 +1,4 @@
+import 'package:booknote/models/models.dart';
 import 'package:booknote/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -35,6 +36,33 @@ void main() {
       );
       expect(app.themeMode, ThemeMode.system);
       expect(app.darkTheme, same(dark));
+    });
+
+    test('Custom-Theme ohne font-Feld nutzt die Default-Schrift', () {
+      const t = CustomTheme(
+        id: 'x',
+        name: 'X',
+        brightness: Brightness.light,
+        seed: Color(0xFF6D4C41),
+      );
+      expect(
+        BooknoteTheme.custom(t).textTheme.bodyMedium?.fontFamily,
+        BooknoteTheme.light().textTheme.bodyMedium?.fontFamily,
+      );
+    });
+
+    test('Custom-Theme mit font-Feld reicht die Schriftfamilie durch', () {
+      const t = CustomTheme(
+        id: 'old_library',
+        name: 'Old Library',
+        brightness: Brightness.light,
+        seed: Color(0xFF9C4B3A),
+        fontFamily: 'Tinos',
+      );
+      expect(
+        BooknoteTheme.custom(t).textTheme.bodyMedium?.fontFamily,
+        'Tinos',
+      );
     });
   });
 }

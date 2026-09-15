@@ -82,7 +82,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (context, _) => ListView(
                   padding: const EdgeInsets.only(bottom: BooknoteTheme.gap24),
                   children: [
-                    _appearanceSection(settings),
+                    _displayModeSection(settings),
+                    _customThemesSection(settings),
                     _recordingSection(settings),
                     _apiKeysSection(),
                     _syncSection(settings),
@@ -135,20 +136,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await store.delete(t.id);
   }
 
-  Widget _appearanceSection(AppSettings settings) {
-    final store = AppScope.of(context).customThemes;
+  Widget _displayModeSection(AppSettings settings) {
     final customActive = settings.activeCustomThemeId != null;
-    final caption = Theme.of(context).textTheme.bodySmall
-        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
     return _Section(
-      title: 'Darstellung',
+      title: 'Anzeige',
+      caption: customActive
+          ? 'Aktuell überschrieben durch ein eigenes Farbschema (siehe unten).'
+          : 'Hell/Dunkel automatisch nach System – oder fest gewählt.',
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
             BooknoteTheme.gap16,
             BooknoteTheme.gap4,
             BooknoteTheme.gap16,
-            BooknoteTheme.gap8,
+            0,
           ),
           child: SegmentedButton<ThemeMode>(
             segments: const [
@@ -162,15 +163,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onSelectionChanged: (s) => settings.setThemeMode(s.first),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(
-            BooknoteTheme.gap16,
-            BooknoteTheme.gap8,
-            BooknoteTheme.gap16,
-            0,
-          ),
-          child: Text('Eigene Farbschemata', style: caption),
-        ),
+      ],
+    );
+  }
+
+  Widget _customThemesSection(AppSettings settings) {
+    final store = AppScope.of(context).customThemes;
+    final customActive = settings.activeCustomThemeId != null;
+    final caption = Theme.of(context).textTheme.bodySmall
+        ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
+    return _Section(
+      title: 'Eigene Farbschemata',
+      caption:
+          'Ein fester Look statt Hell/Dunkel oben – bis dort wieder System, '
+          'Hell oder Dunkel gewählt wird.',
+      children: [
         RadioGroup<String>(
           groupValue: settings.activeCustomThemeId,
           onChanged: (id) => settings.setActiveCustomTheme(id),

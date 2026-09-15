@@ -71,6 +71,19 @@ void main() {
     expect(utf8.decode(t.logoBytes!), 'LOGODATA');
   });
 
+  test('font-Feld wird übernommen, fehlt sonst', () {
+    expect(CustomTheme.parse(file()).fontFamily, isNull);
+    expect(
+      CustomTheme.parse(file(extra: {'font': 'Tinos'})).fontFamily,
+      'Tinos',
+    );
+    expect(
+      CustomTheme.parse(file(extra: {'font': ''})).fontFamily,
+      isNull,
+      reason: 'leerer Name zählt wie kein Feld',
+    );
+  });
+
   test('falsches Format / kaputte Farbe wirft', () {
     expect(
       () => CustomTheme.parse('{"format":"x"}'),
@@ -115,12 +128,13 @@ void main() {
     expect(t.logoBytes, isNotNull);
   });
 
-  test('das mitgelieferte Tequila-Sunrise-Asset ist gültig', () {
-    final json = File('assets/themes/tequila_sunrise.json').readAsStringSync();
+  test('das mitgelieferte Old-Library-Asset ist gültig', () {
+    final json = File('assets/themes/old_library.json').readAsStringSync();
     final t = CustomTheme.parse(json);
-    expect(t.id, 'tequila_sunrise');
-    expect(t.name, 'Tequila Sunrise');
-    expect(t.brightness, Brightness.dark);
+    expect(t.id, 'old_library');
+    expect(t.name, 'Old Library');
+    expect(t.brightness, Brightness.light);
     expect(t.logoBytes, isNotNull);
+    expect(t.fontFamily, 'Tinos');
   });
 }

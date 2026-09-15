@@ -18,6 +18,7 @@ class CustomTheme {
     this.overrides = const {},
     this.background,
     this.logoBytes,
+    this.fontFamily,
   });
 
   final String id;
@@ -38,6 +39,12 @@ class CustomTheme {
   /// die abstrakte Farbkachel wird gezeigt. Ändert nichts am App-Icon selbst –
   /// Android kann das nicht pro Theme umschalten.
   final Uint8List? logoBytes;
+
+  /// Optionale Schriftfamilie (z.B. `"Tinos"`). Anders als [logoBytes]/
+  /// [background] wird keine Schrift-Datei eingebettet – es zählt nur ein
+  /// Name, den die App bereits mitbringt (siehe `pubspec.yaml` → `fonts:`).
+  /// Unbekannter Name → Flutter fällt lautlos auf die Systemschrift zurück.
+  final String? fontFamily;
 
   static const formatId = 'booknote-theme';
   static const formatVersion = 1;
@@ -125,6 +132,9 @@ class CustomTheme {
               )
             : null,
         logoBytes: decodeDataUri(decoded['logo']),
+        fontFamily: (decoded['font'] as String?)?.trim().isNotEmpty == true
+            ? (decoded['font'] as String).trim()
+            : null,
       );
     } on CustomThemeException {
       rethrow;

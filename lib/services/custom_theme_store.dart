@@ -19,7 +19,7 @@ class CustomThemeStore extends ChangeNotifier {
 
   static const _bundledAssets = [
     'assets/themes/blue_gold.json',
-    'assets/themes/tequila_sunrise.json',
+    'assets/themes/old_library.json',
   ];
   static const _dirName = 'themes';
   static const _markerName = '.initialized';

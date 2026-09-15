@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # +N (build number) bei jedem Gerät-Build hochzählen: sonst behandeln manche
 # Android-Geräte ein `adb install -r` als Neuinstallation und löschen App-Daten.
-version: 0.1.0+23
+version: 0.1.0+25
 
 environment:
   sdk: ^3.13.2
@@ -59,13 +59,27 @@ flutter:
   uses-material-design: true
   assets:
     - assets/themes/
+  # Tinos (Google, SIL Open Font License 1.1) – metrisch mit Times New Roman
+  # kompatibel. Bisher nur vom "Old Library"-Theme genutzt (`font`-Feld in
+  # assets/themes/old_library.json), siehe THEMES.md.
+  fonts:
+    - family: Tinos
+      fonts:
+        - asset: assets/fonts/Tinos-Regular.ttf
+        - asset: assets/fonts/Tinos-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Tinos-Italic.ttf
+          style: italic
+        - asset: assets/fonts/Tinos-BoldItalic.ttf
+          weight: 700
+          style: italic
 
 # App-Icon (Nutzer-Entwurf, siehe assets/icon/source.png). icon_legacy.png ist
 # das volle Motiv (Rahmen inklusive) für iOS/Play Store/alte Android-Launcher;
 # icon_foreground.png ist dasselbe Motiv ohne Rahmen, neu zentriert, für den
 # adaptiven Android-Launcher (der maskiert selbst in Kreis/Squircle/…). Beide
 # sind auf das braune "System"-Farbschema umgefärbt (kein Custom-Theme aktiv);
-# "Blue Gold" und "Tequila Sunrise" tragen ihr eigenes, passend umgefärbtes
+# "Blue Gold" und "Old Library" tragen ihr eigenes, passend umgefärbtes
 # Logo direkt in der Theme-Datei (siehe THEMES.md), das App-Icon bleibt davon
 # unberührt – Android kann das Icon nicht aus der Ferne pro Theme umschalten.
 # `dart run flutter_launcher_icons` neu ausführen, falls sich eine der Dateien

@@ -86,16 +86,19 @@ abstract final class BooknoteTheme {
     return _themeFrom(
       colors,
       transparentScaffold: t.background?.hasImage ?? false,
+      fontFamily: t.fontFamily,
     );
   }
 
   static ThemeData _themeFrom(
     ColorScheme colors, {
     bool transparentScaffold = false,
+    String? fontFamily,
   }) {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colors,
+      fontFamily: fontFamily,
       scaffoldBackgroundColor: transparentScaffold
           ? Colors.transparent
           : colors.surface,
