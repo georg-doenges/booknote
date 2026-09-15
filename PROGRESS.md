@@ -14,7 +14,8 @@ Ideen für später (nicht jetzt bauen, nur architektonisch offenhalten):
   Platform 34/35 + CMake nachinstalliert). `flutter doctor` meckert trotzdem über
   „license status unknown" → bei Problemen `flutter doctor --android-licenses`.
 - Test-Gerät: echtes Android-Gerät per USB (`flutter run`).
-- Git: lokal, Branch `main`. Identität repo-lokal gesetzt.
+- Git: Branch `main`, Remote `origin` → `github.com/georg-doenges/booknote`
+  (GitHub-CLI `gh`, Login per Device-Flow). Identität repo-lokal gesetzt.
 
 ## Architektur-Entscheidungen (getroffen)
 
