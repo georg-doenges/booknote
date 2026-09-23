@@ -6,6 +6,8 @@ import '../app_scope.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
+import '../widgets/theme_swatch.dart';
+import 'theme_catalog_screen.dart';
 
 /// Alle Einstellungen auf einer aufgeräumten Seite: Darstellung, Aufnahme,
 /// API-Schlüssel, Geräte-Abgleich. Erreichbar über das Overflow-Menü der
@@ -127,6 +129,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _openCatalog() {
+    final scope = AppScope.of(context);
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ThemeCatalogScreen(
+          service: scope.themeCatalog,
+          store: scope.customThemes,
+          settings: scope.settings,
+        ),
+      ),
+    );
+  }
+
   Future<void> _deleteTheme(CustomTheme t) async {
     final store = AppScope.of(context).customThemes;
     final settings = AppScope.of(context).settings;
@@ -186,7 +201,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               for (final t in store.themes)
                 RadioListTile<String>(
                   value: t.id,
-                  secondary: _Swatch(theme: t),
+                  secondary: ThemeSwatch.fromTheme(t),
                   title: Text(t.name),
                   subtitle: Text(
                     t.brightness == Brightness.dark ? 'Dunkel' : 'Hell',
@@ -198,7 +213,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   padding: const EdgeInsets.symmetric(
                     horizontal: BooknoteTheme.gap16,
                   ),
-                  child: Text('Noch keine geladen.', style: caption),
+                  child: Text(
+                    'Noch keine Farbschemata geladen – über „Farbschemata '
+                    'laden" gibt es welche.',
+                    style: caption,
+                  ),
                 ),
             ],
           ),
@@ -210,14 +229,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
             BooknoteTheme.gap16,
             0,
           ),
-          child: Row(
+          child: Wrap(
+            spacing: BooknoteTheme.gap8,
+            runSpacing: BooknoteTheme.gap8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              FilledButton.tonalIcon(
+                onPressed: _openCatalog,
+                icon: const Icon(Icons.cloud_download_outlined),
+                label: const Text('Farbschemata laden'),
+              ),
               OutlinedButton.icon(
                 onPressed: _importTheme,
-                icon: const Icon(Icons.file_download_outlined),
-                label: const Text('Importieren …'),
+                icon: const Icon(Icons.file_open_outlined),
+                label: const Text('Aus Datei …'),
               ),
-              const Spacer(),
               if (customActive)
                 Builder(
                   builder: (context) {
@@ -233,23 +259,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ],
           ),
         ),
-        for (final t in store.restorable)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              BooknoteTheme.gap8,
-              0,
-              BooknoteTheme.gap16,
-              0,
-            ),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                onPressed: () => store.restore(t.id),
-                icon: const Icon(Icons.restore),
-                label: Text('„${t.name}" wiederherstellen'),
-              ),
-            ),
-          ),
       ],
     );
   }
@@ -376,45 +385,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Vorschau eines Custom-Themes: das zum Schema eingefärbte Logo, wenn eines
-/// mitgeliefert ist – sonst eine abstrakte Farbkachel (Fläche + Primärfarbe).
-class _Swatch extends StatelessWidget {
-  const _Swatch({required this.theme});
-  final CustomTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    final logo = theme.logoBytes;
-    if (logo != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: Image.memory(logo, width: 34, height: 34, fit: BoxFit.cover),
-      );
-    }
-    final surface =
-        theme.overrides['surface'] ??
-        (theme.brightness == Brightness.dark
-            ? const Color(0xFF121212)
-            : const Color(0xFFFDFDFD));
-    final primary = theme.overrides['primary'] ?? theme.seed;
-    return Container(
-      width: 34,
-      height: 34,
-      decoration: BoxDecoration(
-        color: surface,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      alignment: Alignment.center,
-      child: Container(
-        width: 16,
-        height: 16,
-        decoration: BoxDecoration(color: primary, shape: BoxShape.circle),
-      ),
     );
   }
 }

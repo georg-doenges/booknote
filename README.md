@@ -13,10 +13,16 @@ Konto selbst ist kostenlos, für die Nutzung brauchst du aber ein kleines
 Guthaben (ein paar Dollar reichen erfahrungsgemäß sehr lange) — wie das geht,
 steht weiter unten.
 
+> **Und weil Lesen Spaß machen soll:** Booknote muss nicht braun bleiben.
+> Wie wäre es mit „Old Library" — Pergament, Leder und Serifenschrift wie in
+> einer alten Bibliothek — oder Nachtblau mit Gold? Diese und weitere
+> Farbschemata lädst du mit einem Tipp direkt in der App herunter, siehe
+> [Farbschemata laden](#farbschemata-laden).
+
 ## Installation (APK)
 
 Das fertige APK zum Installieren gibt es unter
-[Releases](../../releases) dieses Repos.
+[Releases](https://github.com/georg-doenges/booknote/releases) dieses Repos.
 
 1. APK auf dem Android-Gerät herunterladen und antippen.
 2. Android fragt vermutlich nach der Erlaubnis, Apps aus dieser Quelle zu
@@ -43,6 +49,16 @@ paar Minuten:
 
 Das war's — ab jetzt kann aufgenommen werden.
 
+## Farbschemata laden
+
+Unter **Einstellungen → Eigene Farbschemata → Farbschemata laden** (dafür
+braucht die App Internet) siehst du alle verfügbaren Schemata; ein Tipp auf
+**Installieren** lädt eines und schaltet es sofort ein. Zurück zum Standard
+kommst du jederzeit über **System / Hell / Dunkel** ganz oben unter „Anzeige".
+Neue Schemata kommen nach und nach dazu, und wurde eines überarbeitet, steht
+dort **Aktualisieren**. Eigene Schemata kannst du über **Aus Datei …**
+importieren, das Format steht in [THEMES.md](THEMES.md).
+
 ## Was Booknote noch kann
 
 - **Automatisches Erkennen von Seite & Position.** „Seite 47 oben, …" wird
@@ -51,7 +67,7 @@ Das war's — ab jetzt kann aufgenommen werden.
 - **Cover-Suche** beim Anlegen eines Buchs (Google Books / Open Library).
 - **Export** einzelner Bücher, Autoren oder der ganzen Bibliothek als
   Markdown oder Text, zum Weitergeben oder Einkleben in andere Notizen.
-- **Eigene Farbschemata** unter Einstellungen → Darstellung.
+- **Farbschemata** zum Nachladen, siehe [oben](#farbschemata-laden).
 - **Mehrere Geräte abgleichen.** Geht über eine gemeinsame Bibliotheksdatei,
   ohne eigenen Server — für den Einstieg aber nicht nötig und etwas
   gewöhnungsbedürftig; Details in [SYNC_DESIGN.md](SYNC_DESIGN.md), falls du
@@ -77,7 +93,8 @@ Tester spätere Versionen als Update statt Neuinstallation bekommen) siehe
   Sprach-Parsing, Screens).
 - [SYNC_DESIGN.md](SYNC_DESIGN.md) — das Abgleich-Modell zwischen Geräten
   (Abzug vs. Bibliotheksdatei, Merge vs. Master).
-- [THEMES.md](THEMES.md) — Format eigener Farbschemata, mitgelieferte Themes.
+- [THEMES.md](THEMES.md) — Farbschemata: Katalog, Dateiformat, neue Schemata
+  beisteuern.
 - [SIGNING.md](SIGNING.md) — Release-Keystore anlegen und Release-APK bauen.
 - [PROGRESS.md](PROGRESS.md) — Baustein-für-Baustein-Fortschritt.
 - [BACKLOG.md](BACKLOG.md) — Ideen und spätere Ausbaustufen.

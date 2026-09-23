@@ -19,6 +19,7 @@ class CustomTheme {
     this.background,
     this.logoBytes,
     this.fontFamily,
+    this.revision = 1,
   });
 
   final String id;
@@ -45,6 +46,11 @@ class CustomTheme {
   /// Name, den die App bereits mitbringt (siehe `pubspec.yaml` → `fonts:`).
   /// Unbekannter Name → Flutter fällt lautlos auf die Systemschrift zurück.
   final String? fontFamily;
+
+  /// Stand des Inhalts (ab 1), vom Autor bei jeder Änderung hochgezählt. Der
+  /// Theme-Katalog vergleicht ihn mit dem Katalogeintrag und bietet dann
+  /// „Aktualisieren" an. Nicht zu verwechseln mit [formatVersion] (Dateiformat).
+  final int revision;
 
   static const formatId = 'booknote-theme';
   static const formatVersion = 1;
@@ -117,9 +123,7 @@ class CustomTheme {
           if (roleNames.contains(e.key)) e.key: _color(e.value as String),
       };
       return CustomTheme(
-        id: (decoded['id'] as String?)?.trim().isNotEmpty == true
-            ? decoded['id'] as String
-            : _slug(name),
+        id: _idFor(decoded['id'], name),
         name: name,
         brightness: decoded['brightness'] == 'light'
             ? Brightness.light
@@ -135,6 +139,10 @@ class CustomTheme {
         fontFamily: (decoded['font'] as String?)?.trim().isNotEmpty == true
             ? (decoded['font'] as String).trim()
             : null,
+        revision: switch (decoded['revision']) {
+          final int r when r >= 1 => r,
+          _ => 1,
+        },
       );
     } on CustomThemeException {
       rethrow;
@@ -151,6 +159,15 @@ class CustomTheme {
       throw CustomThemeException('Ungültige Farbe „$hex".');
     }
     return Color(v);
+  }
+
+  /// Die ID wird als Dateiname benutzt – nur schlichte Zeichen zulassen, sonst
+  /// aus dem Namen ableiten (verhindert Pfadtricks wie `../x` in fremden Dateien).
+  static String _idFor(Object? rawId, String name) {
+    final id = rawId is String ? rawId.trim() : '';
+    if (RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(id)) return id;
+    final slug = _slug(name);
+    return slug.isEmpty ? 'theme' : slug;
   }
 
   static String _slug(String name) => name

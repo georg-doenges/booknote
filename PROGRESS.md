@@ -93,7 +93,7 @@ test/
 | F2 | Bibliotheksdatei: Grabsteine, additiver Merge, `adoptMaster`, Sichern/Abgleichen | ✅ auf Gerät bestätigt (Master nur logik-getestet – braucht 2. Gerät) |
 | E | Release-Signierung | ✅ Keystore angelegt, Release-Build (`0.1.0+23`) mit `apksigner` als echt signiert verifiziert |
 | G | Settings-Seite (Darstellung, Aufnahme/Vibration, API-Keys, Abgleich/GC) | ✅ auf Gerät bestätigt |
-| H | Eigene Farbschemata (JSON-Import, Blue Gold + Old Library, Hintergrund-Layer, Schrift pro Theme) | ✅ auf Gerät bestätigt |
+| H | Eigene Farbschemata (JSON-Import, Hintergrund-Layer, Schrift pro Theme, Theme-Katalog aus GitHub mit Blue Gold + Old Library) | ✅ Import/Themes auf Gerät bestätigt; Katalog (`+26`) noch nicht auf Gerät getestet |
 | I | App-Icon (Nutzer-Entwurf) + Theme-Logos | ✅ auf Gerät bestätigt |
 | J | Sprache pro Buch (Wahl beim Anlegen) + englischer NoteParser | ✅ auf Gerät bestätigt, nach zwei Korrekturrunden (siehe unten) |
 
@@ -323,6 +323,49 @@ test/
   anlegen, `key.properties` füllen, `flutter build apk --release`). Passwörter
   wählt der Nutzer selbst.
 - App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
+
+## Theme-Katalog aus GitHub, Themes raus aus dem APK — `0.1.0+26`
+
+Nutzerwunsch: Farbschemata als „Gimmick" nach und nach im Repo erweitern und
+direkt aus der App laden können; Blue Gold und Old Library sollen selbst über
+diesen Weg kommen (Funktion gleich mit getestet).
+
+- **Katalog im Repo:** `themes/` (Theme-Dateien, `index.json`,
+  `previews/<id>.png`). `tool/build_theme_index.dart` erzeugt Index + Vorschauen
+  aus den Theme-Dateien (`dart run tool/build_theme_index.dart`). Neue Felder im
+  Theme-Format: `revision` (Inhaltsstand, Basis für „Aktualisieren") und
+  `description` (Katalogzeile). Blue Gold und Old Library sind auf `revision: 2`
+  – so bekommen Geräte mit alter, logo-loser Kopie („Stolperstein" unten) ein
+  „Aktualisieren".
+- **App:** `ThemeCatalogService` (HTTP, `raw.githubusercontent.com/…/themes/`,
+  Timeout, Größenlimits, nur schlichte relative Dateipfade, `id` muss zur Datei
+  passen) und `ThemeCatalogScreen` („Farbschemata laden": Installieren →
+  laden, speichern, einschalten; Aktualisieren ändert das aktive Schema nicht;
+  Fehlerzustand mit „Erneut versuchen"). Einstiegsbutton in den Einstellungen,
+  „Importieren …" heißt jetzt „Aus Datei …". `ThemeSwatch` ist jetzt eine
+  gemeinsame Kachel für die Liste der installierten Schemata und den Katalog
+  (Logo, sonst Farbkachel) – beide sehen gleich aus.
+- **Aus dem APK entfernt:** `assets/themes/`, `_bundledAssets`, Erststart-Kopie,
+  „… wiederherstellen". `CustomThemeStore` liest nur noch den Themes-Ordner
+  (Verzeichnis injizierbar → testbar). Auf frischen Geräten ist die Liste leer,
+  bis man aus dem Katalog lädt (braucht Internet).
+- **Schrift:** Tinos bleibt im APK (Themes können keine Schrift mitbringen);
+  `assets/fonts/OFL.txt` (SIL OFL 1.1, aus `googlefonts/tinos`) ergänzt.
+- **Härtung, weil jetzt Dateien aus dem Netz kommen:** `CustomTheme.id` wird auf
+  `A-Za-z0-9_-` beschränkt (dient als Dateiname; `../x` in einer fremden Datei
+  würde sonst aus dem Themes-Ordner ausbrechen); `CustomThemeStore.import`
+  dekodiert UTF-8 richtig (vorher `String.fromCharCodes` → Umlaute im Namen
+  wurden zerstört).
+- **Kleinigkeiten aus der Status-Runde:** README/THEMES.md sprachen noch von
+  „Einstellungen → Darstellung" (gibt es seit der Trennung nicht mehr), der
+  Releases-Link im README ist jetzt absolut, Lizenztext für Tinos liegt bei.
+- **README:** aufmunternder Hinweis auf Farbschemata gleich am Anfang plus
+  kurzes Kapitel „Farbschemata laden".
+- **Tests:** 270 grün (vorher 235): Katalog-Dienst (Index, unsichere Einträge,
+  Fehler, Timeout, Größenlimit), Store (Import/Update/Löschen/Umlaute/Pfadtrick),
+  Widget-Test des Katalog-Screens (Installieren/Aktualisieren/Fehler/Retry) und
+  ein Repo-Test, der `themes/index.json` gegen die Theme-Dateien prüft und dass
+  jede genannte Schrift im APK deklariert ist. Auf Gerät noch nicht getestet.
 
 ## Settings-Trennung, Old-Library-Theme, Schrift pro Theme, README — `0.1.0+24`/`+25`
 

@@ -11,7 +11,7 @@
 //   wegschneiden + neu zentrieren als icon_foreground.png (Basis für
 //   `flutter_launcher_icons`, siehe pubspec.yaml).
 // - blue_gold / old_library → auf ~256px verkleinern, als Base64 in das
-//   `logo`-Feld der jeweiligen `assets/themes/*.json` einbetten.
+//   `logo`-Feld der jeweiligen `themes/*.json` einbetten.
 const sharp = require('sharp');
 const path = require('path');
 
@@ -77,7 +77,7 @@ async function recolor(srcPath, target, outPath) {
   await sharp(out, { raw: { width, height, channels } }).png().toFile(outPath);
 }
 
-// bg/outline/accent/dark je Ziel-Farbschema (siehe assets/themes/*.json).
+// bg/outline/accent/dark je Ziel-Farbschema (siehe themes/*.json).
 const PALETTES = {
   blue_gold: {
     bg: [0x0e, 0x1a, 0x2c],

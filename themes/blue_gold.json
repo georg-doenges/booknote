@@ -3,6 +3,8 @@
   "formatVersion": 1,
   "id": "blue_gold",
   "name": "Blue Gold",
+  "description": "Nachtblau mit goldenem Akzent.",
+  "revision": 2,
   "brightness": "dark",
   "seed": "#C6A052",
   "colors": {

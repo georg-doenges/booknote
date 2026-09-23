@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:booknote/models/models.dart';
 import 'package:flutter/widgets.dart';
@@ -101,40 +100,25 @@ void main() {
     );
   });
 
-  test('alle mitgelieferten Theme-Assets sind gültig', () {
-    final dir = Directory('assets/themes');
-    final files =
-        dir
-            .listSync()
-            .whereType<File>()
-            .where((f) => f.path.toLowerCase().endsWith('.json'))
-            .toList()
-          ..sort((a, b) => a.path.compareTo(b.path));
-    expect(files, isNotEmpty);
-    for (final f in files) {
-      final t = CustomTheme.parse(f.readAsStringSync());
-      expect(t.name, isNotEmpty, reason: f.path);
-      expect(t.overrides['surface'], isNotNull, reason: f.path);
-      expect(t.overrides['primary'], isNotNull, reason: f.path);
-    }
+  test('revision: Zahl ab 1, sonst 1', () {
+    expect(CustomTheme.parse(file()).revision, 1);
+    expect(CustomTheme.parse(file(extra: {'revision': 3})).revision, 3);
+    expect(CustomTheme.parse(file(extra: {'revision': 0})).revision, 1);
+    expect(CustomTheme.parse(file(extra: {'revision': 'x'})).revision, 1);
   });
 
-  test('das mitgelieferte Blue-Gold-Asset ist gültig', () {
-    final json = File('assets/themes/blue_gold.json').readAsStringSync();
-    final t = CustomTheme.parse(json);
-    expect(t.id, 'blue_gold');
-    expect(t.name, 'Blue Gold');
-    expect(t.brightness, Brightness.dark);
-    expect(t.logoBytes, isNotNull);
-  });
-
-  test('das mitgelieferte Old-Library-Asset ist gültig', () {
-    final json = File('assets/themes/old_library.json').readAsStringSync();
-    final t = CustomTheme.parse(json);
-    expect(t.id, 'old_library');
-    expect(t.name, 'Old Library');
-    expect(t.brightness, Brightness.light);
-    expect(t.logoBytes, isNotNull);
-    expect(t.fontFamily, 'Tinos');
+  test('ID wird als Dateiname benutzt: nur schlichte Zeichen', () {
+    expect(
+      CustomTheme.parse(file(extra: {'id': 'old_library'})).id,
+      'old_library',
+    );
+    // Pfadtricks aus fremden Dateien werden durch den Namens-Slug ersetzt.
+    expect(
+      CustomTheme.parse(file(extra: {'id': '../../evil'})).id,
+      'blue_gold',
+    );
+    expect(CustomTheme.parse(file(extra: {'id': 'a/b'})).id, 'blue_gold');
+    expect(CustomTheme.parse(file(extra: {'id': '  '})).id, 'blue_gold');
+    expect(CustomTheme.parse(file(name: '###')).id, 'theme');
   });
 }

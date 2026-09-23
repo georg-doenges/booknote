@@ -32,6 +32,7 @@ Future<void> main() async {
       ),
       settings: settings,
       customThemes: customThemes,
+      themeCatalog: ThemeCatalogService(),
       librarySync: LibrarySync(LibraryArchive(db), settings),
     ),
   );
@@ -47,6 +48,7 @@ class BooknoteApp extends StatelessWidget {
     required this.covers,
     required this.settings,
     required this.customThemes,
+    required this.themeCatalog,
     required this.librarySync,
   });
 
@@ -57,6 +59,7 @@ class BooknoteApp extends StatelessWidget {
   final CoverService covers;
   final AppSettings settings;
   final CustomThemeStore customThemes;
+  final ThemeCatalogService themeCatalog;
   final LibrarySync librarySync;
 
   @override
@@ -69,6 +72,7 @@ class BooknoteApp extends StatelessWidget {
       covers: covers,
       settings: settings,
       customThemes: customThemes,
+      themeCatalog: themeCatalog,
       librarySync: librarySync,
       child: ListenableBuilder(
         listenable: Listenable.merge([settings, customThemes]),

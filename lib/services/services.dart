@@ -15,5 +15,6 @@ export 'note_parser.dart';
 export 'note_recorder.dart';
 export 'open_library_cover_service.dart';
 export 'silence_detector.dart';
+export 'theme_catalog_service.dart';
 export 'transcription_service.dart';
 export 'whisper_service.dart';

@@ -1,0 +1,32 @@
+{
+  "format": "booknote-theme-index",
+  "formatVersion": 1,
+  "themes": [
+    {
+      "id": "blue_gold",
+      "name": "Blue Gold",
+      "brightness": "dark",
+      "revision": 2,
+      "file": "blue_gold.json",
+      "description": "Nachtblau mit goldenem Akzent.",
+      "swatch": {
+        "surface": "#0E1A2C",
+        "primary": "#C6A052"
+      },
+      "logo": "previews/blue_gold.png"
+    },
+    {
+      "id": "old_library",
+      "name": "Old Library",
+      "brightness": "light",
+      "revision": 2,
+      "file": "old_library.json",
+      "description": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+      "swatch": {
+        "surface": "#FBF4E4",
+        "primary": "#9C4B3A"
+      },
+      "logo": "previews/old_library.png"
+    }
+  ]
+}

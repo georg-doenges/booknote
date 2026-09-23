@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # +N (build number) bei jedem Gerät-Build hochzählen: sonst behandeln manche
 # Android-Geräte ein `adb install -r` als Neuinstallation und löschen App-Daten.
-version: 0.1.0+25
+version: 0.1.0+26
 
 environment:
   sdk: ^3.13.2
@@ -57,11 +57,13 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  assets:
-    - assets/themes/
-  # Tinos (Google, SIL Open Font License 1.1) – metrisch mit Times New Roman
-  # kompatibel. Bisher nur vom "Old Library"-Theme genutzt (`font`-Feld in
-  # assets/themes/old_library.json), siehe THEMES.md.
+  # Die Farbschemata sind bewusst kein App-Asset: sie liegen im Repo unter
+  # themes/ und werden über den Katalog in der App geladen (siehe THEMES.md).
+  #
+  # Tinos (Google, SIL Open Font License 1.1, Lizenztext in assets/fonts/) –
+  # metrisch mit Times New Roman kompatibel. Bisher nur vom "Old Library"-Theme
+  # genutzt (`font`-Feld in themes/old_library.json). Schriften müssen im APK
+  # stecken, ein Theme kann keine mitbringen.
   fonts:
     - family: Tinos
       fonts:

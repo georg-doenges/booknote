@@ -3,6 +3,8 @@
   "formatVersion": 1,
   "id": "old_library",
   "name": "Old Library",
+  "description": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+  "revision": 2,
   "brightness": "light",
   "seed": "#9C4B3A",
   "font": "Tinos",

@@ -1,12 +1,58 @@
-# Booknote — Eigene Farbschemata (Custom Themes)
+# Booknote — Farbschemata (Custom Themes)
 
-Eine Theme-Datei ist **eine portable JSON-Datei**. Der Nutzer legt sie z.B. in
-den Download-Ordner und lädt sie über **Einstellungen → Darstellung → Eigene
-Farbschemata → Importieren …**. Mitgelieferte Themes (Assets) stehen dort
-ebenfalls; „Blue Gold" und „Old Library" sind dabei.
+Ein Farbschema ist **eine portable JSON-Datei**. Die App bringt selbst keine
+mit: Schemata kommen entweder aus dem **Katalog** im GitHub-Repo (in der App:
+**Einstellungen → Eigene Farbschemata → Farbschemata laden**) oder aus einer
+Datei auf dem Gerät (**… → Aus Datei …**).
 
 Ein Custom-Theme ist **ein fester Look** – es folgt nicht dem Hell/Dunkel des
-Systems. Wählt man wieder System / Hell / Dunkel, ist es aus.
+Systems. Wählt man oben unter „Anzeige" wieder System / Hell / Dunkel, ist es
+aus.
+
+## Theme-Katalog
+
+Im Repo liegt der Ordner `themes/` mit den Theme-Dateien, einer `index.json`
+(Verzeichnis für die App) und `previews/<id>.png` (Vorschau-Logos). Die App liest
+ihn direkt von GitHub (`raw.githubusercontent.com`, Branch `main`, nur lesend,
+kein Login; Adresse: `ThemeCatalogService.defaultBaseUrl`). Pro Eintrag zeigt sie:
+
+- **Installieren** – lädt das Schema, speichert es und schaltet es gleich ein.
+- **Aktualisieren** – der Katalog hat eine höhere `revision` als die installierte
+  Kopie. Ändert nicht, welches Schema gerade aktiv ist.
+- **Installiert** – auf dem aktuellen Stand.
+
+Der Katalog braucht Internet; GitHub cached `raw`-Dateien bis zu ~5 Minuten,
+eine frisch gepushte Änderung erscheint also mit etwas Verzögerung.
+
+Sicherheit: Themes sind **reine Daten** (Farben, Bilder, ein Schriftname), es wird
+nie Code geladen. Vor dem Speichern wird die Datei als Theme geprüft und ihre `id`
+muss zum Katalogeintrag passen; Dateipfade im Katalog dürfen nur schlichte
+relative Namen sein (kein Schema/Host/`..`), Antworten sind größenbegrenzt
+(Katalog 512 KB, Theme 8 MB), und die `id` wird beim Einlesen auf `a-z A-Z 0-9 _ -`
+beschränkt, weil sie als Dateiname dient.
+
+### Neues Schema in den Katalog aufnehmen
+
+1. Theme-Datei `themes/<id>.json` anlegen (Format unten). `id` ist hier Pflicht,
+   muss dem Dateinamen entsprechen und darf nur `a-z`, `0-9`, `_` enthalten.
+   Optional: `description` (eine Zeile für den Katalog) und `revision`.
+2. Katalog neu erzeugen (im Projektordner):
+   ```bash
+   dart run tool/build_theme_index.dart
+   ```
+   Das schreibt `themes/index.json` und je Theme mit `logo` die Vorschau
+   `themes/previews/<id>.png` (aus dem eingebetteten Logo).
+3. Committen und auf `main` pushen. Die App sieht es beim nächsten Öffnen des
+   Katalogs – kein neues APK nötig.
+
+Der Test `test/themes_catalog_test.dart` schlägt an, wenn `index.json` nicht zu den
+Theme-Dateien passt, wenn eine Datei kein gültiges Theme ist oder wenn ein Theme
+eine Schrift nennt, die nicht im APK steckt.
+
+### Schema überarbeiten
+
+Änderung in der Theme-Datei machen, **`revision` hochzählen** (sonst bietet die App
+kein „Aktualisieren" an), Skript erneut laufen lassen, pushen.
 
 ## Format
 
@@ -14,8 +60,12 @@ Systems. Wählt man wieder System / Hell / Dunkel, ist es aus.
 {
   "format": "booknote-theme",
   "formatVersion": 1,
-  "id": "blue_gold",            // optional; sonst aus dem Namen abgeleitet
+  "id": "blue_gold",            // optional; sonst aus dem Namen abgeleitet.
+                                // Im Katalog Pflicht (= Dateiname ohne .json)
   "name": "Blue Gold",          // Pflicht, wird in den Einstellungen angezeigt
+  "description": "Nachtblau mit goldenem Akzent.",  // optional, nur Katalog-Zeile
+  "revision": 2,                // optional (Standard 1): Inhaltsstand, bei jeder
+                                // Änderung hochzählen → „Aktualisieren" im Katalog
   "brightness": "dark",         // "dark" | "light" – Grundhelligkeit
   "seed": "#C6A052",            // Basis-Farbton; daraus wird das Schema erzeugt
 
@@ -50,8 +100,8 @@ Systems. Wählt man wieder System / Hell / Dunkel, ist es aus.
   },
 
   // Optional: zum Schema passend eingefärbtes App-Logo, als data-URI direkt
-  // im File. Wird nur als Vorschau in der Theme-Liste der Einstellungen
-  // gezeigt (statt der abstrakten Farbkachel) – ändert nichts am echten
+  // im File. Wird als Vorschau in der Liste der installierten Schemata und im
+  // Katalog gezeigt (statt der abstrakten Farbkachel) – ändert nichts am echten
   // App-Icon, das kann Android nicht pro Theme umschalten.
   "logo": "data:image/png;base64,iVBORw0KGgo…"
 }
@@ -78,23 +128,23 @@ Farben als `#RRGGBB` oder `#AARRGGBB`.
 - `surfaceContainerLow` = Kartenfläche (Notizen); etwas heller/dunkler als
   `surface`.
 - `primary` = Akzent (Aufnahme-Button, Titel, Häkchen); `onPrimary` = Text/Icon
-  darauf.
+  darauf. Einen Akzent, der sichtbar sein soll, hier setzen – `tertiary` taucht in
+  der App kaum auf.
 - `onSurfaceVariant` = gedämpfter Text (Datumsangaben, Erklärtexte).
+- `error` klar vom `primary` unterscheidbar wählen.
 
 ## Wo die Dateien liegen
 
-- Alle Schemata liegen als `<App-Dokumente>/themes/<id>.json` (nicht im Git,
-  nicht im Bibliotheks-Abgleich). Alle sind gleichwertig und **löschbar**.
-- Die mitgelieferten (`assets/themes/*.json`, im Repo + `pubspec.yaml`) werden
-  beim **Erststart einmalig** dorthin kopiert (Marker `.initialized`). Ein
-  danach gelöschtes mitgeliefertes Schema holt „… wiederherstellen" in den
-  Einstellungen aus den Assets zurück.
-- **Achtung bei Änderungen an einem mitgelieferten Schema** (z.B. neues
-  `logo`- oder `font`-Feld): Ein Gerät, das die App schon vor der Änderung
-  installiert hatte, bekommt die neue Version **nicht** automatisch – die
-  lokale Kopie bleibt auf dem Stand des Erststarts. Einzige Auffrischung:
-  in den Einstellungen löschen und über „… wiederherstellen" neu aus den
-  (aktuellen) Assets laden.
+- Installierte Schemata liegen auf dem Gerät als `<App-Dokumente>/themes/<id>.json`
+  (nicht im Git, nicht im Bibliotheks-Abgleich). Alle sind gleichwertig und
+  **löschbar** (Papierkorb neben dem aktiven Schema); aus dem Katalog lassen sie
+  sich jederzeit wieder holen.
+- Frühere App-Versionen brachten „Blue Gold" und „Old Library" im APK mit und
+  kopierten sie beim Erststart in diesen Ordner. Solche Kopien bleiben liegen
+  (harmlos); der Katalog bietet dafür „Aktualisieren" an, sobald er eine höhere
+  `revision` hat.
+- Der Katalog-Ordner im Repo heißt `themes/` (nicht `assets/`), weil die Dateien
+  bewusst **nicht** im APK stecken.
 
 ## App-Icon vs. Theme-Logo
 
@@ -107,25 +157,29 @@ launcherabhängigen Eigenheiten. Deshalb: das App-Icon trägt das **braune
 Standard-Farbschema** (System/Hell/Dunkel), unabhängig vom gewählten
 Custom-Theme. Jedes Custom-Theme kann stattdessen sein eigenes, passend
 eingefärbtes Logo im `logo`-Feld mitbringen – sichtbar als Vorschau in der
-Theme-Liste der Einstellungen. Alle drei (Braun/Blue Gold/Old Library)
-sind dieselbe Grafik, nur umgefärbt (`recolor.js`-Ansatz: pro Pixel dem
-nächsten von vier Referenzfarben zuordnen und dorthin verschieben – Kanten und
-Bézier-Formen bleiben exakt erhalten).
+Liste der installierten Schemata und im Katalog (dort als `previews/<id>.png`).
+Alle drei (Braun/Blue Gold/Old Library) sind dieselbe Grafik, nur umgefärbt
+(`assets/icon/recolor.js`: pro Pixel dem nächsten von vier Referenzfarben
+zuordnen und dorthin verschieben – Kanten und Bézier-Formen bleiben exakt
+erhalten).
 
 ## Schriftart pro Theme
 
 Anders als Bild/Logo (data-URI im File) wird bei `font` **kein** Dateiinhalt
-eingebettet, sondern nur ein Name – der muss der App schon als Asset
-mitgegeben sein (`pubspec.yaml` → `flutter.fonts`), weil Schriftdateien zu
-groß sind, um sie bei jedem Import ins Theme-File zu packen. Aktuell
-mitgeliefert: **Tinos** (Google, [SIL Open Font License 1.1](https://github.com/google/fonts/tree/main/ofl/tinos),
-metrisch mit Times New Roman kompatibel; `assets/fonts/Tinos-*.ttf`), genutzt
-vom „Old Library"-Theme. Ein Theme-File mit unbekanntem `font`-Namen verliert
-dadurch nichts – die App fällt lautlos auf die Systemschrift zurück.
+eingebettet, sondern nur ein Name – die Schrift muss schon im APK stecken
+(`pubspec.yaml` → `flutter.fonts`), weil Schriftdateien zu groß sind, um sie in
+jedes Theme-File zu packen. **Ein Schema aus dem Katalog kann also keine neue
+Schrift mitbringen;** dafür braucht es ein App-Update. Aktuell im APK:
+**Tinos** (Google, [SIL Open Font License 1.1](assets/fonts/OFL.txt), metrisch
+mit Times New Roman kompatibel; `assets/fonts/Tinos-*.ttf`), genutzt vom
+„Old Library"-Theme. Ein Theme mit unbekanntem `font`-Namen verliert dadurch
+nichts – die App fällt lautlos auf die Systemschrift zurück (der Test
+`themes_catalog_test.dart` fängt das für Katalog-Themes vorher ab).
 
 ## Später (BACKLOG)
 
 - Theme-File mit *hell + dunkel* in einem (folgt dann optional dem System).
-- Auswahl-UI mit größerer Vorschau.
+- Schriften nachladbar machen (Schrift als Datei im Katalog + `FontLoader`) –
+  bisher nur Schriften aus dem APK.
 - Echtes Umschalten des Homescreen-Icons pro Theme (`activity-alias` +
   natives Umschalten) – eigener, größerer Baustein.

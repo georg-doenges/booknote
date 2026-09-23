@@ -40,12 +40,17 @@ Custom-Themes). Alles hier ist Kür.
   Zielgeräts mit auf). Quelle: `SYNC_DESIGN.md`. Kurz-Erklärtexte an den
   UI-Stellen gibt es teils schon.
 - ~~**Importierbare Farbschemata.**~~ → erledigt: `CustomTheme` +
-  `CustomThemeStore`, JSON-Import in den Einstellungen, „Blue Gold"
-  mitgeliefert, Hintergrund-Layer in Struktur + Rendering angelegt. Format:
-  `THEMES.md`. **Offen:**
-  - **Theme-Repository auf GitHub.** Eigenes Repo mit `themes/`-Unterordner, aus
-    dem Nutzer Farbschemata (auch „Blue Gold") herunterladen und teilen können.
-    Danach „Blue Gold" evtl. aus dem App-Bundle lösen und nur als Download.
+  `CustomThemeStore`, JSON-Import in den Einstellungen, Hintergrund-Layer in
+  Struktur + Rendering angelegt. Format: `THEMES.md`. **Offen:**
+  - ~~**Theme-Repository auf GitHub.**~~ → erledigt als **Theme-Katalog**:
+    Ordner `themes/` im booknote-Repo (+ `index.json`, per
+    `dart run tool/build_theme_index.dart` erzeugt), in der App „Farbschemata
+    laden" mit Installieren/Aktualisieren. Blue Gold und Old Library stecken
+    nicht mehr im APK. **Offen:** ein eigenes Theme-Repo, falls andere Schemata
+    beisteuern sollen (Adresse steht nur in `ThemeCatalogService.defaultBaseUrl`).
+  - **Schriften nachladbar.** Ein Katalog-Theme kann keine neue Schrift
+    mitbringen (nur Schriften aus dem APK, aktuell Tinos). Ginge über Schrift-
+    Dateien im Katalog + `FontLoader`; kostet ~0,5 MB pro Schnitt pro Download.
   - **Theme-File mit hell + dunkel in einem** – folgt dann optional dem System.
     Aktuell ist ein Custom-Theme ein fester Look.
   - Auswahl-UI mit größerer Vorschau.
