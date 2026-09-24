@@ -21,10 +21,24 @@ enum TranscriptionErrorKind {
 }
 
 class TranscriptionException implements Exception {
-  const TranscriptionException(this.kind, this.message, [this.cause]);
+  const TranscriptionException(
+    this.kind,
+    this.message, {
+    this.status,
+    this.cause,
+  });
 
   final TranscriptionErrorKind kind;
+
+  /// Technische Beschreibung für Logs (Englisch). Angezeigt wird sie nicht: Die
+  /// UI formuliert die Meldung aus [kind] in der Sprache der App
+  /// (`transcriptionErrorText`).
   final String message;
+
+  /// HTTP-Status bei [TranscriptionErrorKind.server], sonst `null`.
+  final int? status;
+
+  /// Ursache, z.B. die Fehlermeldung der API – wird zusätzlich angezeigt.
   final Object? cause;
 
   @override

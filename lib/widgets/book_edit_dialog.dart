@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
+import 'language_choice.dart';
 
-/// Titel und Autor eines Buchs bearbeiten. Gibt das geänderte Buch zurück
-/// oder `null` bei Abbruch.
+/// Titel, Autor und Sprache eines Buchs bearbeiten. Gibt das geänderte Buch
+/// zurück oder `null` bei Abbruch.
 Future<Book?> showBookEditDialog(BuildContext context, Book book) {
   return showDialog<Book>(
     context: context,
@@ -23,6 +26,7 @@ class _BookEditDialog extends StatefulWidget {
 class _BookEditDialogState extends State<_BookEditDialog> {
   late final _title = TextEditingController(text: widget.book.title);
   late final _author = TextEditingController(text: widget.book.author ?? '');
+  late AppLanguage _language = widget.book.language;
 
   @override
   void dispose() {
@@ -40,38 +44,62 @@ class _BookEditDialogState extends State<_BookEditDialog> {
         title: title,
         author: author.isEmpty ? null : author,
         clearAuthor: author.isEmpty,
+        language: _language,
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Buch bearbeiten'),
+      title: Text(l.bookEditTitle),
+      // Mit Tastatur wird es eng: der Inhalt darf scrollen.
+      scrollable: true,
       content: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: _title,
-            autofocus: true,
+            // Ohne Autofokus: Die Tastatur würde sonst gleich beim Öffnen die
+            // Sprachwahl unten im Dialog verdecken.
             textCapitalization: TextCapitalization.sentences,
-            decoration: const InputDecoration(labelText: 'Titel'),
+            decoration: InputDecoration(labelText: l.bookEditTitleField),
           ),
           const SizedBox(height: BooknoteTheme.gap12),
           TextField(
             controller: _author,
             textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(labelText: 'Autor (optional)'),
+            decoration: InputDecoration(labelText: l.bookEditAuthorField),
             onSubmitted: (_) => _save(),
+          ),
+          const SizedBox(height: BooknoteTheme.gap16),
+          Text(
+            l.bookLanguageLabel,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          const SizedBox(height: BooknoteTheme.gap4),
+          LanguageChoice(
+            value: _language,
+            onChanged: (language) => setState(() => _language = language),
+          ),
+          Explanation(
+            child: Text(
+              l.bookLanguageHintEdit,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
           ),
         ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('Speichern')),
+        FilledButton(onPressed: _save, child: Text(l.commonSave)),
       ],
     );
   }

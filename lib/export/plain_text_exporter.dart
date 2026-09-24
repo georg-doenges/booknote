@@ -40,20 +40,10 @@ class PlainTextExporter implements Exporter {
         ..writeln();
       for (var i = 0; i < request.books.length; i++) {
         if (i > 0) b.writeln();
-        _writeBook(
-          b,
-          request.books[i],
-          request.includeTimestamps,
-          indent: true,
-        );
+        _writeBook(b, request.books[i], request, indent: true);
       }
     } else {
-      _writeBook(
-        b,
-        request.books.single,
-        request.includeTimestamps,
-        indent: false,
-      );
+      _writeBook(b, request.books.single, request, indent: false);
     }
 
     final title = request.collectionTitle ?? request.books.single.book.title;
@@ -67,9 +57,10 @@ class PlainTextExporter implements Exporter {
   void _writeBook(
     StringBuffer b,
     ExportBook entry,
-    bool includeTimestamps, {
+    ExportRequest request, {
     required bool indent,
   }) {
+    final labels = request.labels;
     final book = entry.book;
     final sorted = sortNotes(entry.notes, NoteSort.page);
     final withPage = sorted.where((n) => n.page != null).toList();
@@ -80,31 +71,32 @@ class PlainTextExporter implements Exporter {
     if (book.author != null) b.writeln('$pad${_inline(book.author!)}');
     b
       ..writeln()
-      ..writeln('${pad}Notizen');
-    if (withPage.isEmpty) b.writeln('$pad  (keine Notizen mit Seitenangabe)');
+      ..writeln('$pad${labels.notes}');
+    if (withPage.isEmpty) b.writeln('$pad  (${labels.noNotesWithPage})');
     for (final n in withPage) {
       final pos = n.position == null ? '' : ' (${_inline(n.position!)})';
       b.writeln(
         '$pad  ${pagePrefix(n.language)} ${_inline(n.page!)}$pos: '
-        '${_body(n, includeTimestamps)}',
+        '${_body(n, request)}',
       );
     }
 
     if (withoutPage.isNotEmpty) {
       b
         ..writeln()
-        ..writeln('${pad}Ohne Seitenangabe');
+        ..writeln('$pad${labels.withoutPage}');
       for (final n in withoutPage) {
         final pos = n.position == null ? '' : '${_inline(n.position!)}: ';
-        b.writeln('$pad  $pos${_body(n, includeTimestamps)}');
+        b.writeln('$pad  $pos${_body(n, request)}');
       }
     }
   }
 
-  String _body(Note n, bool includeTimestamps) {
-    final text = n.text.isEmpty ? '(kein Text)' : _inline(n.text);
-    if (!includeTimestamps) return text;
-    return '$text (${formatDateTime(n.createdAt)})';
+  String _body(Note n, ExportRequest request) {
+    final labels = request.labels;
+    final text = n.text.isEmpty ? '(${labels.noText})' : _inline(n.text);
+    if (!request.includeTimestamps) return text;
+    return '$text (${labels.formatDateTime(n.createdAt)})';
   }
 
   static String _inline(String s) =>

@@ -1,0 +1,7 @@
+# Oberflächen-Texte: Deutsch (Vorlage) / English / Français. Neue Texte in
+# lib/l10n/app_de.arb ergänzen (mit @-Beschreibung bei Platzhaltern) und in den
+# beiden anderen Dateien übersetzen, dann `flutter gen-l10n`.
+arb-dir: lib/l10n
+template-arb-file: app_de.arb
+output-localization-file: app_localizations.dart
+nullable-getter: false

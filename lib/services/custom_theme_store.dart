@@ -63,7 +63,7 @@ class CustomThemeStore extends ChangeNotifier {
     try {
       text = utf8.decode(bytes);
     } on FormatException {
-      throw const CustomThemeException('Die Datei ist kein gültiges JSON.');
+      throw const CustomThemeException(CustomThemeErrorKind.notJson);
     }
     final theme = CustomTheme.parse(text);
     final dir = await _directory();

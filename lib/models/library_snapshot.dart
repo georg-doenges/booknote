@@ -65,21 +65,19 @@ class LibrarySnapshot {
     try {
       decoded = jsonDecode(text);
     } catch (e) {
-      throw const LibraryFileException('Die Datei ist kein gültiges JSON.');
+      throw const LibraryFileException(LibraryFileErrorKind.notJson);
     }
     if (decoded is! Map<String, Object?>) {
-      throw const LibraryFileException('Unerwarteter Dateiaufbau.');
+      throw const LibraryFileException(
+        LibraryFileErrorKind.unexpectedStructure,
+      );
     }
     if (decoded['format'] != formatId) {
-      throw const LibraryFileException(
-        'Das ist keine Booknote-Bibliotheksdatei.',
-      );
+      throw const LibraryFileException(LibraryFileErrorKind.notALibrary);
     }
     final version = decoded['formatVersion'];
     if (version is! int || version > formatVersion) {
-      throw const LibraryFileException(
-        'Die Datei stammt aus einer neueren App-Version.',
-      );
+      throw const LibraryFileException(LibraryFileErrorKind.newerVersion);
     }
     try {
       return LibrarySnapshot(
@@ -99,7 +97,7 @@ class LibrarySnapshot {
         ],
       );
     } catch (e) {
-      throw LibraryFileException('Die Datei ist beschädigt: $e');
+      throw LibraryFileException(LibraryFileErrorKind.corrupted, '$e');
     }
   }
 
@@ -167,13 +165,27 @@ class LibrarySnapshot {
   );
 }
 
+/// Warum eine Bibliotheksdatei nicht gelesen werden konnte. Die UI formuliert
+/// daraus die Meldung in der Sprache der App (`libraryFileErrorText`).
+enum LibraryFileErrorKind {
+  notJson,
+  unexpectedStructure,
+  notALibrary,
+  newerVersion,
+  corrupted,
+}
+
 /// Eine Bibliotheksdatei ließ sich nicht lesen (falsches Format, beschädigt,
 /// neuere App-Version).
 class LibraryFileException implements Exception {
-  const LibraryFileException(this.message);
+  const LibraryFileException(this.kind, [this.detail]);
 
-  final String message;
+  final LibraryFileErrorKind kind;
+
+  /// Technische Ursache bei [LibraryFileErrorKind.corrupted] (nur zur Anzeige).
+  final String? detail;
 
   @override
-  String toString() => 'LibraryFileException: $message';
+  String toString() =>
+      'LibraryFileException(${kind.name}${detail == null ? '' : ': $detail'})';
 }

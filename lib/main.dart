@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'app_scope.dart';
+import 'l10n/l10n.dart';
 import 'models/models.dart';
 import 'repositories/repositories.dart';
 import 'screens/library_screen.dart';
@@ -85,6 +86,12 @@ class BooknoteApp extends StatelessWidget {
 
           return MaterialApp(
             title: 'Booknote',
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            supportedLocales: AppLocalizations.supportedLocales,
+            // null = Gerätesprache; die Auflösung fällt bei nicht
+            // unterstützten Sprachen auf English zurück.
+            locale: settings.uiLanguage?.locale,
+            localeListResolutionCallback: resolveAppLocale,
             theme: theme,
             darkTheme: custom != null ? theme : BooknoteTheme.dark(),
             themeMode: custom != null ? ThemeMode.light : settings.themeMode,

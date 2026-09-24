@@ -97,24 +97,24 @@ class CustomTheme {
     try {
       decoded = jsonDecode(text);
     } catch (_) {
-      throw const CustomThemeException('Die Datei ist kein gültiges JSON.');
+      throw const CustomThemeException(CustomThemeErrorKind.notJson);
     }
     if (decoded is! Map<String, Object?>) {
-      throw const CustomThemeException('Unerwarteter Dateiaufbau.');
+      throw const CustomThemeException(
+        CustomThemeErrorKind.unexpectedStructure,
+      );
     }
     if (decoded['format'] != formatId) {
-      throw const CustomThemeException('Das ist keine Booknote-Theme-Datei.');
+      throw const CustomThemeException(CustomThemeErrorKind.notATheme);
     }
     final version = decoded['formatVersion'];
     if (version is! int || version > formatVersion) {
-      throw const CustomThemeException(
-        'Die Datei stammt aus einer neueren App-Version.',
-      );
+      throw const CustomThemeException(CustomThemeErrorKind.newerVersion);
     }
     try {
       final name = (decoded['name'] as String?)?.trim();
       if (name == null || name.isEmpty) {
-        throw const CustomThemeException('Dem Theme fehlt ein Name.');
+        throw const CustomThemeException(CustomThemeErrorKind.missingName);
       }
       final rawColors =
           (decoded['colors'] as Map?)?.cast<String, Object?>() ?? const {};
@@ -147,7 +147,7 @@ class CustomTheme {
     } on CustomThemeException {
       rethrow;
     } catch (e) {
-      throw CustomThemeException('Die Theme-Datei ist beschädigt: $e');
+      throw CustomThemeException(CustomThemeErrorKind.corrupted, '$e');
     }
   }
 
@@ -156,7 +156,7 @@ class CustomTheme {
     if (s.length == 6) s = 'FF$s';
     final v = int.tryParse(s, radix: 16);
     if (v == null || s.length != 8) {
-      throw CustomThemeException('Ungültige Farbe „$hex".');
+      throw CustomThemeException(CustomThemeErrorKind.invalidColor, hex);
     }
     return Color(v);
   }
@@ -219,9 +219,27 @@ class ThemeBackground {
   }
 }
 
+/// Warum eine Theme-Datei nicht gelesen werden konnte. Die UI formuliert
+/// daraus die Meldung in der Sprache der App (`customThemeErrorText`).
+enum CustomThemeErrorKind {
+  notJson,
+  unexpectedStructure,
+  notATheme,
+  newerVersion,
+  missingName,
+  invalidColor,
+  corrupted,
+}
+
 class CustomThemeException implements Exception {
-  const CustomThemeException(this.message);
-  final String message;
+  const CustomThemeException(this.kind, [this.detail]);
+
+  final CustomThemeErrorKind kind;
+
+  /// Der ungültige Farbwert bzw. die technische Ursache (nur zur Anzeige).
+  final String? detail;
+
   @override
-  String toString() => 'CustomThemeException: $message';
+  String toString() =>
+      'CustomThemeException(${kind.name}${detail == null ? '' : ': $detail'})';
 }

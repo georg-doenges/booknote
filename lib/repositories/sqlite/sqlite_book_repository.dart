@@ -73,6 +73,7 @@ class SqliteBookRepository implements BookRepository {
         'title': book.title,
         'author': book.author,
         'cover_url': book.coverUrl,
+        'language': book.language.code,
         'updated_at': dbNow(_clock).millisecondsSinceEpoch,
       },
       where: 'id = ?',

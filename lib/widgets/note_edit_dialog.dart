@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
 
@@ -51,8 +53,9 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l = context.l10n;
     return AlertDialog(
-      title: const Text('Notiz bearbeiten'),
+      title: Text(l.noteEditTitle),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -62,9 +65,9 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
                 Expanded(
                   child: TextField(
                     controller: _page,
-                    decoration: const InputDecoration(
-                      labelText: 'Seite',
-                      hintText: '47 oder 88f.',
+                    decoration: InputDecoration(
+                      labelText: l.noteEditPage,
+                      hintText: context.explain(l.noteEditPageHint),
                     ),
                   ),
                 ),
@@ -72,9 +75,9 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
                 Expanded(
                   child: TextField(
                     controller: _position,
-                    decoration: const InputDecoration(
-                      labelText: 'Position',
-                      hintText: 'oben / Zeile 10',
+                    decoration: InputDecoration(
+                      labelText: l.noteEditPosition,
+                      hintText: context.explain(l.noteEditPositionHint),
                     ),
                   ),
                 ),
@@ -86,12 +89,12 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
               autofocus: true,
               minLines: 3,
               maxLines: 8,
-              decoration: const InputDecoration(labelText: 'Text'),
+              decoration: InputDecoration(labelText: l.noteEditText),
             ),
             const SizedBox(height: BooknoteTheme.gap12),
             ExpansionTile(
               title: Text(
-                'Original-Transkript',
+                l.noteEditRaw,
                 style: Theme.of(context).textTheme.labelMedium,
               ),
               tilePadding: EdgeInsets.zero,
@@ -111,9 +114,9 @@ class _NoteEditDialogState extends State<_NoteEditDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Abbrechen'),
+          child: Text(l.commonCancel),
         ),
-        FilledButton(onPressed: _save, child: const Text('Speichern')),
+        FilledButton(onPressed: _save, child: Text(l.commonSave)),
       ],
     );
   }

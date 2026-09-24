@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
+import 'export_labels.dart';
 import 'exporter.dart';
 import 'share_export.dart';
 
@@ -51,52 +53,70 @@ class _ExportSheetState extends State<_ExportSheet> {
     final scope = AppScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l = context.l10n;
+    final languageCode = Localizations.localeOf(context).languageCode;
     try {
-      final request = await _buildRequest(scope);
+      final request = await _buildRequest(
+        scope,
+        exportLabelsFor(l, languageCode),
+      );
       if (request.books.isEmpty) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Nichts zu exportieren.')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(l.exportNothing)));
         if (mounted) setState(() => _busy = false);
         return;
       }
       final result = _exporter.export(request);
       navigator.pop();
       final ok = toFile
-          ? await saveExportToFile(result)
+          ? await saveExportToFile(result, dialogTitle: l.dialogSaveAs)
           : await shareExport(result);
       if (ok) {
+        final format = _formatLabel(l, _exporter);
         messenger.showSnackBar(
           SnackBar(
             content: Text(
-              '${_exporter.formatName} '
-              '${toFile ? 'gespeichert' : 'exportiert'}: ${result.fileName}',
+              toFile
+                  ? l.exportSavedFile(format, result.fileName)
+                  : l.exportDone(format, result.fileName),
             ),
           ),
         );
       }
     } catch (e) {
       if (mounted) setState(() => _busy = false);
-      messenger.showSnackBar(
-        SnackBar(content: Text('Export fehlgeschlagen: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.exportFailed('$e'))));
     }
   }
 
-  Future<ExportRequest> _buildRequest(AppScope scope) async {
+  /// „Markdown" ist überall gleich; „Text" heißt auf Französisch „Texte".
+  String _formatLabel(AppLocalizations l, Exporter e) =>
+      e.fileExtension == 'txt' ? l.exportFormatText : e.formatName;
+
+  Future<ExportRequest> _buildRequest(
+    AppScope scope,
+    ExportLabels labels,
+  ) async {
     switch (_scope) {
       case ExportScope.book:
         final notes = await scope.notes.getBySource(widget.book!.id);
-        return ExportRequest.single(widget.book!, notes);
+        return ExportRequest.single(widget.book!, notes, labels: labels);
       case ExportScope.author:
         final books = await _sortedByTitle(
           scope,
           (b) => b.author == widget.author,
         );
-        return ExportRequest(books: books, collectionTitle: widget.author!);
+        return ExportRequest(
+          books: books,
+          collectionTitle: widget.author!,
+          labels: labels,
+        );
       case ExportScope.library:
         final books = await _sortedByTitle(scope, (_) => true);
-        return ExportRequest(books: books, collectionTitle: 'Bibliothek');
+        return ExportRequest(
+          books: books,
+          collectionTitle: labels.library,
+          labels: labels,
+        );
     }
   }
 
@@ -114,6 +134,7 @@ class _ExportSheetState extends State<_ExportSheet> {
   @override
   Widget build(BuildContext context) {
     final exporters = AppScope.of(context).exporters;
+    final l = context.l10n;
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -142,7 +163,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                 horizontal: BooknoteTheme.gap12,
               ),
               child: Text(
-                'Exportieren',
+                l.exportTitle,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -155,7 +176,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                   if (widget.book != null)
                     RadioListTile(
                       value: ExportScope.book,
-                      title: const Text('Dieses Buch'),
+                      title: Text(l.exportThisBook),
                       subtitle: Text(
                         widget.book!.title,
                         maxLines: 1,
@@ -165,16 +186,16 @@ class _ExportSheetState extends State<_ExportSheet> {
                   if (widget.author != null)
                     RadioListTile(
                       value: ExportScope.author,
-                      title: const Text('Alle Bücher dieses Autors'),
+                      title: Text(l.exportAuthorBooks),
                       subtitle: Text(
                         widget.author!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                  const RadioListTile(
+                  RadioListTile(
                     value: ExportScope.library,
-                    title: Text('Ganze Bibliothek'),
+                    title: Text(l.exportWholeLibrary),
                   ),
                 ],
               ),
@@ -189,7 +210,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                 child: SegmentedButton<Exporter>(
                   segments: [
                     for (final e in exporters)
-                      ButtonSegment(value: e, label: Text(e.formatName)),
+                      ButtonSegment(value: e, label: Text(_formatLabel(l, e))),
                   ],
                   selected: {_exporter},
                   showSelectedIcon: false,
@@ -209,7 +230,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                     child: FilledButton.tonalIcon(
                       onPressed: _busy ? null : () => _run(toFile: false),
                       icon: const Icon(Icons.ios_share),
-                      label: const Text('Teilen'),
+                      label: Text(l.commonShare),
                     ),
                   ),
                   const SizedBox(width: BooknoteTheme.gap8),
@@ -223,7 +244,7 @@ class _ExportSheetState extends State<_ExportSheet> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.save_alt),
-                      label: const Text('Speichern'),
+                      label: Text(l.commonSave),
                     ),
                   ),
                 ],

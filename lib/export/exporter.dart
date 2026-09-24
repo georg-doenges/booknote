@@ -1,4 +1,5 @@
 import '../models/models.dart';
+import 'export_labels.dart';
 
 /// Ein Buch mit seinen (noch unsortierten) Notizen – Baustein einer
 /// Export-Anfrage.
@@ -16,6 +17,7 @@ class ExportRequest {
     required this.books,
     this.collectionTitle,
     this.includeTimestamps = true,
+    this.labels = const ExportLabels(),
   });
 
   /// Ein einzelnes Buch.
@@ -23,6 +25,7 @@ class ExportRequest {
     Book book,
     List<Note> notes, {
     this.includeTimestamps = true,
+    this.labels = const ExportLabels(),
   }) : books = [ExportBook(book, notes)],
        collectionTitle = null;
 
@@ -33,6 +36,9 @@ class ExportRequest {
   final String? collectionTitle;
 
   final bool includeTimestamps;
+
+  /// Überschriften/Platzhalter der Datei in der gewünschten Sprache.
+  final ExportLabels labels;
 
   bool get isCollection => collectionTitle != null;
 }

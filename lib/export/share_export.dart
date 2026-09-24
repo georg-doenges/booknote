@@ -31,9 +31,13 @@ Future<bool> shareExport(ExportResult result) async {
 
 /// Öffnet den „Speichern unter"-Dialog des Systems und legt die Datei dort ab
 /// (auch Google Drive, Dateien-App usw.). `true`, wenn gespeichert wurde.
-Future<bool> saveExportToFile(ExportResult result) async {
+/// [dialogTitle] ist der (übersetzte) Titel des System-Dialogs.
+Future<bool> saveExportToFile(
+  ExportResult result, {
+  required String dialogTitle,
+}) async {
   final path = await FilePicker.platform.saveFile(
-    dialogTitle: 'Speichern unter',
+    dialogTitle: dialogTitle,
     fileName: result.fileName,
     bytes: utf8.encode(result.content),
   );

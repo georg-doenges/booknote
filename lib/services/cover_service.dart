@@ -23,13 +23,47 @@ class CoverCandidate {
       'CoverCandidate($provider: "$title", $author, $coverUrl)';
 }
 
+/// Warum eine Cover-Suche gescheitert ist. Die UI formuliert daraus die
+/// Meldung in der Sprache der App (`coverSearchErrorText`).
+enum CoverSearchErrorKind {
+  /// Socket-Fehler: kein Netz.
+  noConnection,
+
+  /// Timeout o.Ä.: Quelle antwortet nicht.
+  unreachable,
+
+  /// Google Books: Kontingent ohne API-Key erschöpft (429/403, kein Key).
+  quotaWithoutKey,
+
+  /// Google Books: Key abgelehnt oder Kontingent trotz Key erschöpft.
+  keyRejected,
+
+  /// Sonstiger HTTP-Status ≠ 200 (siehe [CoverSearchException.status]).
+  badStatus,
+
+  /// Antwort ließ sich nicht lesen.
+  unexpectedResponse,
+}
+
 class CoverSearchException implements Exception {
-  const CoverSearchException(this.message, [this.cause]);
-  final String message;
+  const CoverSearchException(
+    this.kind, {
+    this.provider = '',
+    this.status,
+    this.cause,
+  });
+
+  final CoverSearchErrorKind kind;
+
+  /// Name der Quelle, z.B. „Google Books".
+  final String provider;
+  final int? status;
   final Object? cause;
 
   @override
-  String toString() => 'CoverSearchException: $message';
+  String toString() =>
+      'CoverSearchException(${kind.name}, $provider'
+      '${status == null ? '' : ', status $status'})';
 }
 
 /// Ergebnis einer Suche: Treffer plus optionaler Hinweis, wenn eine Quelle
@@ -40,9 +74,9 @@ class CoverSearchResult {
 
   final List<CoverCandidate> candidates;
 
-  /// Für die UI, z.B. „Google Books nicht erreichbar (Status 429) – Treffer
-  /// stammen von Open Library." `null` = alles normal.
-  final String? warning;
+  /// Der Fehler der ausgefallenen Primärquelle – die UI weist darauf hin, dass
+  /// die Treffer nur vom Fallback stammen. `null` = alles normal.
+  final CoverSearchException? warning;
 
   bool get isEmpty => candidates.isEmpty;
 }
@@ -81,10 +115,7 @@ class FallbackCoverService implements CoverService {
     try {
       final result = await fallback.search(query, language: language);
       if (primaryError == null) return result;
-      return CoverSearchResult(
-        result.candidates,
-        warning: '${primaryError.message} Treffer stammen nur vom Fallback.',
-      );
+      return CoverSearchResult(result.candidates, warning: primaryError);
     } on CoverSearchException {
       if (primaryError != null) throw primaryError;
       rethrow;

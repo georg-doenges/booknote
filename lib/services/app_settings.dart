@@ -55,7 +55,8 @@ class AppPrefs {
     this.themeMode = ThemeMode.system,
     this.activeCustomThemeId,
     this.hapticsEnabled = true,
-    this.coverSearchLanguage = AppLanguage.german,
+    this.uiLanguage,
+    this.cleanMode = false,
     this.sync = const SyncSettings(),
   });
 
@@ -67,10 +68,16 @@ class AppPrefs {
   /// Haptisches Feedback beim Aufnehmen.
   final bool hapticsEnabled;
 
-  /// Bevorzugte Sprache bei der Cover-/Metadaten-Suche. Die
-  /// Aufnahmesprache ist seit der Buch-Sprache (`Source.language`) kein
-  /// globaler Wert mehr, siehe `RecordingScreen`.
-  final AppLanguage coverSearchLanguage;
+  /// Sprache der Oberfläche – die einzige globale Sprach-Einstellung. `null` =
+  /// wie das Gerät (Deutsch, English oder Français; andere Gerätesprachen →
+  /// English). Aufnahme- und Cover-Suche-Sprache hängen am Buch
+  /// (`Source.language`), siehe `RecordingScreen` und `BookSearchScreen`.
+  final AppLanguage? uiLanguage;
+
+  /// Clean Mode: blendet Erklärtexte und Hinweise aus (nur Beschriftungen,
+  /// Überschriften und Bedienelemente bleiben). Standard aus – wer die App noch
+  /// nicht kennt, soll die Erklärungen sehen.
+  final bool cleanMode;
 
   final SyncSettings sync;
 
@@ -78,7 +85,8 @@ class AppPrefs {
     ThemeMode? themeMode,
     Object? activeCustomThemeId = _unset,
     bool? hapticsEnabled,
-    AppLanguage? coverSearchLanguage,
+    Object? uiLanguage = _unset,
+    bool? cleanMode,
     SyncSettings? sync,
   }) => AppPrefs(
     themeMode: themeMode ?? this.themeMode,
@@ -86,7 +94,10 @@ class AppPrefs {
         ? this.activeCustomThemeId
         : activeCustomThemeId as String?,
     hapticsEnabled: hapticsEnabled ?? this.hapticsEnabled,
-    coverSearchLanguage: coverSearchLanguage ?? this.coverSearchLanguage,
+    uiLanguage: uiLanguage == _unset
+        ? this.uiLanguage
+        : uiLanguage as AppLanguage?,
+    cleanMode: cleanMode ?? this.cleanMode,
     sync: sync ?? this.sync,
   );
 
@@ -96,7 +107,8 @@ class AppPrefs {
       other.themeMode == themeMode &&
       other.activeCustomThemeId == activeCustomThemeId &&
       other.hapticsEnabled == hapticsEnabled &&
-      other.coverSearchLanguage == coverSearchLanguage &&
+      other.uiLanguage == uiLanguage &&
+      other.cleanMode == cleanMode &&
       other.sync == sync;
 
   @override
@@ -104,7 +116,8 @@ class AppPrefs {
     themeMode,
     activeCustomThemeId,
     hapticsEnabled,
-    coverSearchLanguage,
+    uiLanguage,
+    cleanMode,
     sync,
   );
 }
@@ -121,7 +134,11 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
   static const _themeMode = 'theme_mode';
   static const _customTheme = 'active_custom_theme';
   static const _haptics = 'haptics_enabled';
-  static const _langCover = 'lang_cover';
+  static const _cleanMode = 'clean_mode';
+
+  /// Früher eigene Cover-Sprache; seit sie dem Buch folgt, ohne Wirkung.
+  static const _legacyLangCover = 'lang_cover';
+  static const _langUi = 'lang_ui';
   static const _masterGen = 'sync_last_master_generation';
   static const _gcEnabled = 'sync_tombstone_gc_enabled';
   static const _gcDays = 'sync_tombstone_gc_days';
@@ -138,7 +155,8 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
       },
       activeCustomThemeId: p.getString(_customTheme),
       hapticsEnabled: p.getBool(_haptics) ?? d.hapticsEnabled,
-      coverSearchLanguage: AppLanguage.fromCode(p.getString(_langCover)),
+      uiLanguage: AppLanguage.tryFromCode(p.getString(_langUi)),
+      cleanMode: p.getBool(_cleanMode) ?? d.cleanMode,
       sync: SyncSettings(
         lastConsumedMasterGeneration:
             p.getInt(_masterGen) ?? d.sync.lastConsumedMasterGeneration,
@@ -158,12 +176,17 @@ class SharedPrefsAppSettingsStore implements AppSettingsStore {
       await p.setString(_customTheme, a.activeCustomThemeId!);
     }
     await p.setBool(_haptics, a.hapticsEnabled);
-    await p.setString(_langCover, a.coverSearchLanguage.code);
+    await _setOrRemove(p, _langUi, a.uiLanguage?.code);
+    await p.setBool(_cleanMode, a.cleanMode);
+    await p.remove(_legacyLangCover);
     await p.setInt(_masterGen, a.sync.lastConsumedMasterGeneration);
     await p.setBool(_gcEnabled, a.sync.tombstoneGcEnabled);
     await p.setInt(_gcDays, a.sync.tombstoneGcDays);
   }
 }
+
+Future<void> _setOrRemove(SharedPreferences p, String key, String? value) =>
+    value == null ? p.remove(key) : p.setString(key, value);
 
 /// Für Tests und Entwicklung.
 class InMemoryAppSettingsStore implements AppSettingsStore {
@@ -196,7 +219,8 @@ class AppSettings extends ChangeNotifier {
   ThemeMode get themeMode => _prefs.themeMode;
   String? get activeCustomThemeId => _prefs.activeCustomThemeId;
   bool get hapticsEnabled => _prefs.hapticsEnabled;
-  AppLanguage get coverSearchLanguage => _prefs.coverSearchLanguage;
+  AppLanguage? get uiLanguage => _prefs.uiLanguage;
+  bool get cleanMode => _prefs.cleanMode;
   SyncSettings get sync => _prefs.sync;
 
   Future<void> _update(AppPrefs next) async {
@@ -217,8 +241,13 @@ class AppSettings extends ChangeNotifier {
   Future<void> setHapticsEnabled(bool enabled) =>
       _update(_prefs.copyWith(hapticsEnabled: enabled));
 
-  Future<void> setCoverSearchLanguage(AppLanguage language) =>
-      _update(_prefs.copyWith(coverSearchLanguage: language));
+  /// `null` = Sprache des Geräts.
+  Future<void> setUiLanguage(AppLanguage? language) =>
+      _update(_prefs.copyWith(uiLanguage: language));
+
+  /// Clean Mode an/aus: Erklärtexte und Hinweise ein- bzw. ausblenden.
+  Future<void> setCleanMode(bool enabled) =>
+      _update(_prefs.copyWith(cleanMode: enabled));
 
   Future<void> updateSync(SyncSettings settings) =>
       _update(_prefs.copyWith(sync: settings));

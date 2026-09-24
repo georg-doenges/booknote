@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # +N (build number) bei jedem Gerät-Build hochzählen: sonst behandeln manche
 # Android-Geräte ein `adb install -r` als Neuinstallation und löschen App-Daten.
-version: 0.1.0+26
+version: 0.1.0+28
 
 environment:
   sdk: ^3.13.2
@@ -47,6 +47,12 @@ dependencies:
   # auf manchen Geräten unbemerkt); plattformneutral (Android/iOS)
   vibration: ^3.1.3
 
+  # Mehrsprachige Oberfläche (Deutsch/English/Français): `flutter gen-l10n` aus
+  # lib/l10n/*.arb, siehe l10n.yaml
+  flutter_localizations:
+    sdk: flutter
+  intl: ^0.20.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -57,6 +63,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  generate: true # erzeugt lib/l10n/app_localizations*.dart aus den .arb-Dateien
   # Die Farbschemata sind bewusst kein App-Asset: sie liegen im Repo unter
   # themes/ und werden über den Katalog in der App geladen (siehe THEMES.md).
   #

@@ -84,11 +84,12 @@ class LibrarySync {
   }
 
   /// Wie [save], aber über den „Speichern unter"-Dialog direkt in einen Ordner
-  /// (z.B. Google Drive). `true`, wenn gespeichert wurde.
-  Future<bool> saveToFile() async {
+  /// (z.B. Google Drive). `true`, wenn gespeichert wurde. [dialogTitle] ist der
+  /// (übersetzte) Titel des System-Dialogs.
+  Future<bool> saveToFile({required String dialogTitle}) async {
     final snapshot = await _archive.readSnapshot();
     final path = await FilePicker.platform.saveFile(
-      dialogTitle: 'Speichern unter',
+      dialogTitle: dialogTitle,
       fileName: kLibraryFileName,
       bytes: utf8.encode(snapshot.toJsonString()),
     );
@@ -127,8 +128,9 @@ class LibrarySync {
   /// Lässt den Nutzer eine Bibliotheksdatei wählen und gleicht ab: normaler
   /// Merge, oder – wenn die Datei eine neuere Master-Generation trägt –
   /// vollständige Übernahme. Wirft [LibraryFileException] bei kaputter Datei.
-  Future<LibrarySyncResult> pickAndMerge() async {
-    final picked = await _pickLibraryFile();
+  /// [dialogTitle] ist der (übersetzte) Titel des Dateiwählers.
+  Future<LibrarySyncResult> pickAndMerge({required String dialogTitle}) async {
+    final picked = await _pickLibraryFile(dialogTitle);
     if (picked == null || picked.files.isEmpty) {
       return const LibrarySyncCancelled();
     }
@@ -187,17 +189,17 @@ class LibrarySync {
   /// Dateiwähler, auf `.json` beschränkt. Manche Android-Geräte kennen den
   /// MIME-Typ für `json` nicht – dann wirft `FileType.custom` und wir fallen
   /// auf „alle Dateien" zurück (die Datei wird ohnehin beim Parsen geprüft).
-  Future<FilePickerResult?> _pickLibraryFile() async {
+  Future<FilePickerResult?> _pickLibraryFile(String dialogTitle) async {
     try {
       return await FilePicker.platform.pickFiles(
-        dialogTitle: 'Bibliotheksdatei wählen',
+        dialogTitle: dialogTitle,
         type: FileType.custom,
         allowedExtensions: ['json'],
         withData: true,
       );
     } on PlatformException {
       return FilePicker.platform.pickFiles(
-        dialogTitle: 'Bibliotheksdatei wählen',
+        dialogTitle: dialogTitle,
         withData: true,
       );
     }

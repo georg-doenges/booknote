@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../export/export.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../theme.dart';
 import '../widgets/book_cover_tile.dart';
@@ -77,8 +78,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 autofocus: true,
                 textInputAction: TextInputAction.search,
                 onChanged: (_) => setState(() {}),
-                decoration: const InputDecoration(
-                  hintText: 'Titel oder Autor suchen',
+                decoration: InputDecoration(
+                  hintText: context.l10n.librarySearchHint,
                   border: InputBorder.none,
                 ),
               ),
@@ -86,7 +87,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 if (_query.text.isNotEmpty)
                   IconButton(
                     icon: const Icon(Icons.close),
-                    tooltip: 'Leeren',
+                    tooltip: context.l10n.libraryClearTooltip,
                     onPressed: () => setState(_query.clear),
                   ),
               ],
@@ -96,7 +97,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               actions: [
                 IconButton(
                   icon: const Icon(Icons.search),
-                  tooltip: 'Suchen',
+                  tooltip: context.l10n.commonSearch,
                   onPressed: () => setState(() => _searching = true),
                 ),
                 PopupMenuButton<String>(
@@ -114,18 +115,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         );
                     }
                   },
-                  itemBuilder: (_) => const [
+                  itemBuilder: (_) => [
                     PopupMenuItem(
                       value: 'export',
-                      child: Text('Exportieren …'),
+                      child: Text(context.l10n.libraryMenuExport),
                     ),
                     PopupMenuItem(
                       value: 'sync',
-                      child: Text('Bibliothek sichern / abgleichen …'),
+                      child: Text(context.l10n.libraryMenuSync),
                     ),
                     PopupMenuItem(
                       value: 'settings',
-                      child: Text('Einstellungen'),
+                      child: Text(context.l10n.commonSettings),
                     ),
                   ],
                 ),
@@ -135,7 +136,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         stream: scope.books.watchAll(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Fehler: ${snapshot.error}'));
+            return Center(
+              child: Text(context.l10n.commonError('${snapshot.error}')),
+            );
           }
           final books = snapshot.data;
           if (books == null) {
@@ -143,7 +146,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           }
           if (books.isEmpty) {
             return _EmptyHint(
-              text: 'Noch keine Bücher.\nLege mit „+" dein erstes Buch an.',
+              text: context.cleanMode
+                  ? context.l10n.libraryEmptyShort
+                  : context.l10n.libraryEmpty,
             );
           }
 
@@ -170,7 +175,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               Expanded(
                 child: visible.isEmpty
                     ? _EmptyHint(
-                        text: 'Nichts gefunden.',
+                        text: context.l10n.libraryNothingFound,
                         onClear: () => setState(() {
                           _query.clear();
                           _authorFilter = null;
@@ -190,7 +195,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _addBook,
-        tooltip: 'Neues Buch',
+        tooltip: context.l10n.libraryNewBook,
         child: const Icon(Icons.add),
       ),
     );
@@ -215,11 +220,8 @@ class _BookGrid extends StatelessWidget {
             BooknoteTheme.fabSafeBottom +
             MediaQuery.paddingOf(context).bottom,
       ),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 140,
-        mainAxisSpacing: BooknoteTheme.gap16,
-        crossAxisSpacing: BooknoteTheme.gap12,
-        childAspectRatio: 0.58,
+      gridDelegate: CoverGridDelegate(
+        textHeight: BookCoverTile.textBlockHeight(context),
       ),
       itemCount: books.length,
       itemBuilder: (context, i) {
@@ -263,7 +265,7 @@ class _AuthorFilterBar extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(right: BooknoteTheme.gap8),
             child: FilterChip(
-              label: const Text('Alle'),
+              label: Text(context.l10n.libraryFilterAll),
               selected: selected == null,
               onSelected: (_) => onSelected(null),
             ),
@@ -309,7 +311,7 @@ class _EmptyHint extends StatelessWidget {
               const SizedBox(height: BooknoteTheme.gap12),
               TextButton(
                 onPressed: onClear,
-                child: const Text('Filter zurücksetzen'),
+                child: Text(context.l10n.libraryResetFilter),
               ),
             ],
           ],

@@ -78,25 +78,34 @@ class GoogleBooksCoverService implements CoverService {
     try {
       res = await _client.get(uri).timeout(timeout);
     } on SocketException catch (e) {
-      throw CoverSearchException('Keine Verbindung zu Google Books.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.noConnection,
+        provider: providerName,
+        cause: e,
+      );
     } on Exception catch (e) {
-      throw CoverSearchException('Google Books nicht erreichbar.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.unreachable,
+        provider: providerName,
+        cause: e,
+      );
     }
     if (res.statusCode == 429 || res.statusCode == 403) {
       throw CoverSearchException(
         key == null
-            ? 'Google Books: Kontingent ohne API-Key erschöpft (Status '
-                  '${res.statusCode}). Kostenlosen Key in den Einstellungen '
-                  'eintragen.'
-            : 'Google Books lehnt den API-Key ab oder das Kontingent ist '
-                  'erschöpft (Status ${res.statusCode}).',
-        res.body,
+            ? CoverSearchErrorKind.quotaWithoutKey
+            : CoverSearchErrorKind.keyRejected,
+        provider: providerName,
+        status: res.statusCode,
+        cause: res.body,
       );
     }
     if (res.statusCode != 200) {
       throw CoverSearchException(
-        'Google Books antwortete mit Status ${res.statusCode}.',
-        res.body,
+        CoverSearchErrorKind.badStatus,
+        provider: providerName,
+        status: res.statusCode,
+        cause: res.body,
       );
     }
 
@@ -108,7 +117,11 @@ class GoogleBooksCoverService implements CoverService {
           .whereType<CoverCandidate>()
           .toList();
     } catch (e) {
-      throw CoverSearchException('Unerwartete Antwort von Google Books.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.unexpectedResponse,
+        provider: providerName,
+        cause: e,
+      );
     }
   }
 

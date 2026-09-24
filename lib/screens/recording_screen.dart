@@ -3,14 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
 import '../widgets/book_edit_dialog.dart';
-import '../widgets/language_menu_button.dart';
 import '../widgets/note_edit_dialog.dart';
 import '../widgets/note_tile.dart';
 import '../widgets/record_button.dart';
+import '../widgets/recording_language_chip.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
 
@@ -39,9 +40,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
   /// Anfangs `widget.book`; nach „Titel bearbeiten" der aktualisierte Stand.
   late Book _book = widget.book;
 
-  /// Sprache dieser Aufnahme-Sitzung. Start ist immer die Buch-Vorgabe
-  /// (`_book.language`); das Menü hier übersteuert nur diese eine Sitzung,
-  /// ohne die Buch-Vorgabe zu ändern – beim nächsten Öffnen gilt wieder sie.
+  /// Sprache dieser Aufnahme-Sitzung. Start ist immer die Sprache des Buchs
+  /// (`_book.language`); [RecordingLanguageChip] übersteuert nur diese eine
+  /// Sitzung, ohne das Buch zu ändern – beim nächsten Öffnen gilt wieder
+  /// dessen Sprache.
   late AppLanguage _language = _book.language;
 
   _Phase _phase = _Phase.idle;
@@ -76,14 +78,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<void> _start() async {
     if (!await _recorder.hasPermission()) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Mikrofon-Berechtigung fehlt. Bitte in den '
-            'System-Einstellungen erlauben.',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(context.l10n.recMicPermission)));
       return;
     }
     await NoteRecorder.discard(_pendingAudio);
@@ -93,7 +89,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Aufnahme konnte nicht starten: $e')),
+        SnackBar(content: Text(context.l10n.recCouldNotStart('$e'))),
       );
       return;
     }
@@ -137,18 +133,16 @@ class _RecordingScreenState extends State<RecordingScreen> {
   Future<bool?> _confirmVeryShort() => showDialog<bool>(
     context: context,
     builder: (ctx) => AlertDialog(
-      title: const Text('Sehr kurze Aufnahme'),
-      content: const Text(
-        'Die Aufnahme war unter einer Sekunde. Trotzdem transkribieren?',
-      ),
+      title: Text(ctx.l10n.recVeryShortTitle),
+      content: Text(ctx.l10n.recVeryShortBody),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(ctx).pop(false),
-          child: const Text('Verwerfen'),
+          child: Text(ctx.l10n.commonDiscard),
         ),
         FilledButton(
           onPressed: () => Navigator.of(ctx).pop(true),
-          child: const Text('Transkribieren'),
+          child: Text(ctx.l10n.recTranscribe),
         ),
       ],
     ),
@@ -197,7 +191,8 @@ class _RecordingScreenState extends State<RecordingScreen> {
       setState(() {
         _error = TranscriptionException(
           TranscriptionErrorKind.server,
-          'Unerwarteter Fehler: $e',
+          'Unexpected error',
+          cause: e,
         );
         _phase = _Phase.error;
       });
@@ -213,14 +208,18 @@ class _RecordingScreenState extends State<RecordingScreen> {
     });
   }
 
-  /// Titel/Autor korrigieren (langer Druck auf den Titel) – selten gebraucht,
-  /// deshalb unauffällig.
+  /// Titel/Autor/Sprache korrigieren (langer Druck auf den Titel) – selten
+  /// gebraucht, deshalb unauffällig.
   Future<void> _editBook() async {
     final edited = await showBookEditDialog(context, _book);
     if (edited == null || !mounted) return;
     await AppScope.of(context).books.update(edited);
     if (!mounted) return;
-    setState(() => _book = edited);
+    setState(() {
+      // Wer die Sprache des Buchs ändert, will ab jetzt in ihr aufnehmen.
+      if (edited.language != _book.language) _language = edited.language;
+      _book = edited;
+    });
   }
 
   /// Notiz aus der Sitzungsliste direkt hier bearbeiten (statt Umweg über die
@@ -251,15 +250,6 @@ class _RecordingScreenState extends State<RecordingScreen> {
           onLongPress: _editBook,
           child: Text(_book.title),
         ),
-        actions: [
-          LanguageMenuButton(
-            value: _language,
-            tooltip:
-                'Sprache dieser Aufnahme (Buch-Vorgabe: '
-                '${_book.language.label})',
-            onSelected: (l) => setState(() => _language = l),
-          ),
-        ],
       ),
       // SafeArea unten: sonst verdeckt die System-Navigationsleiste die
       // Aktionen der Fehlerkarte („Erneut versuchen").
@@ -267,6 +257,17 @@ class _RecordingScreenState extends State<RecordingScreen> {
         top: false,
         child: Column(
           children: [
+            // Feste Kopfzeile über dem Aufnahme-Bereich: hat immer dieselbe
+            // Höhe, der Aufnahme-Knopf darunter rutscht deshalb nicht.
+            Padding(
+              padding: const EdgeInsets.only(top: BooknoteTheme.gap8),
+              child: RecordingLanguageChip(
+                value: _language,
+                bookLanguage: _book.language,
+                enabled: _phase != _Phase.transcribing,
+                onSelected: (l) => setState(() => _language = l),
+              ),
+            ),
             Expanded(
               flex: 3,
               child: LayoutBuilder(
@@ -288,7 +289,10 @@ class _RecordingScreenState extends State<RecordingScreen> {
                             onPressed: _toggle,
                           ),
                           const SizedBox(height: BooknoteTheme.gap24),
-                          Text(_statusLine(), style: text.titleMedium),
+                          Text(
+                            _statusLine(context.l10n),
+                            style: text.titleMedium,
+                          ),
                           // Ab hier: fester Platz für alle folgenden Blöcke
                           // (immer gerendert, nur ein-/ausgeblendet) – sonst
                           // ändert sich die Höhe der zentrierten Spalte mit
@@ -313,50 +317,55 @@ class _RecordingScreenState extends State<RecordingScreen> {
                               ),
                             ),
                           ),
-                          Visibility(
-                            visible:
-                                _phase == _Phase.recording &&
-                                _elapsed >= _longRecordingHint,
-                            maintainSize: true,
-                            maintainAnimation: true,
-                            maintainState: true,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                BooknoteTheme.gap24,
-                                BooknoteTheme.gap4,
-                                BooknoteTheme.gap24,
-                                0,
-                              ),
-                              child: Text(
-                                'Lange Aufnahme – Whisper transkribiert alles am '
-                                'Stück.',
-                                textAlign: TextAlign.center,
-                                style: text.bodySmall?.copyWith(
-                                  color: scheme.tertiary,
+                          if (!context.cleanMode)
+                            Visibility(
+                              visible:
+                                  _phase == _Phase.recording &&
+                                  _elapsed >= _longRecordingHint,
+                              maintainSize: true,
+                              maintainAnimation: true,
+                              maintainState: true,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  BooknoteTheme.gap24,
+                                  BooknoteTheme.gap4,
+                                  BooknoteTheme.gap24,
+                                  0,
+                                ),
+                                child: Text(
+                                  context.l10n.recLongHint,
+                                  textAlign: TextAlign.center,
+                                  style: text.bodySmall?.copyWith(
+                                    color: scheme.tertiary,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          Visibility(
-                            visible: _phase == _Phase.idle && _session.isEmpty,
-                            maintainSize: true,
-                            maintainAnimation: true,
-                            maintainState: true,
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
-                                BooknoteTheme.gap24,
-                                BooknoteTheme.gap12,
-                                BooknoteTheme.gap24,
-                                0,
-                              ),
-                              child: Text(
-                                'Sprich z.B.: „Seite 47 oben, hier argumentiert der '
-                                'Autor, dass …"',
-                                textAlign: TextAlign.center,
-                                style: text.bodyMedium?.copyWith(color: muted),
+                          if (!context.cleanMode)
+                            Visibility(
+                              visible:
+                                  _phase == _Phase.idle && _session.isEmpty,
+                              maintainSize: true,
+                              maintainAnimation: true,
+                              maintainState: true,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  BooknoteTheme.gap24,
+                                  BooknoteTheme.gap12,
+                                  BooknoteTheme.gap24,
+                                  0,
+                                ),
+                                child: Text(
+                                  context.l10n.recFirstHint(
+                                    recordingExample(_language),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: text.bodyMedium?.copyWith(
+                                    color: muted,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
                           Visibility(
                             visible:
                                 _phase == _Phase.idle || _phase == _Phase.error,
@@ -401,7 +410,7 @@ class _RecordingScreenState extends State<RecordingScreen> {
                         BooknoteTheme.gap4,
                       ),
                       child: Text(
-                        'Diese Sitzung (${_session.length})',
+                        context.l10n.recSession(_session.length),
                         style: text.labelLarge?.copyWith(color: muted),
                       ),
                     ),
@@ -424,11 +433,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
     );
   }
 
-  String _statusLine() => switch (_phase) {
-    _Phase.idle => 'Tippen zum Aufnehmen',
-    _Phase.recording => 'Aufnahme läuft – tippen zum Beenden',
-    _Phase.transcribing => 'Wird transkribiert …',
-    _Phase.error => 'Transkription fehlgeschlagen',
+  String _statusLine(AppLocalizations l) => switch (_phase) {
+    // Clean Mode: ohne die Anleitung – die Zeile bleibt (leer), damit der
+    // Aufnahme-Knopf nicht springt.
+    _Phase.idle => context.cleanMode ? ' ' : l.recStatusIdle,
+    _Phase.recording => l.recStatusRecording,
+    _Phase.transcribing => l.recStatusTranscribing,
+    _Phase.error => l.recStatusError,
   };
 }
 
@@ -447,10 +458,8 @@ class _AllNotesButton extends StatelessWidget {
       builder: (context, snap) {
         final count = snap.data?.length;
         final label = count == null
-            ? 'Notizen zu diesem Buch'
-            : count == 1
-            ? '1 Notiz zu diesem Buch'
-            : '$count Notizen zu diesem Buch';
+            ? context.l10n.recAllNotesLoading
+            : context.l10n.recAllNotes(count);
         return OutlinedButton.icon(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: bookId)),
@@ -491,7 +500,7 @@ class _ErrorCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              error.message,
+              transcriptionErrorText(context.l10n, error),
               style: TextStyle(color: scheme.onErrorContainer),
             ),
             if (error.cause != null)
@@ -505,7 +514,7 @@ class _ErrorCard extends StatelessWidget {
               ),
             const SizedBox(height: 4),
             Text(
-              'Die Aufnahme ist noch da.',
+              context.l10n.recKept,
               style: Theme.of(context).textTheme.bodySmall
                   ?.copyWith(color: scheme.onErrorContainer),
             ),
@@ -517,16 +526,16 @@ class _ErrorCard extends StatelessWidget {
                   FilledButton.tonalIcon(
                     onPressed: onSettings,
                     icon: const Icon(Icons.key),
-                    label: const Text('API-Key eingeben'),
+                    label: Text(context.l10n.recEnterKey),
                   ),
                 FilledButton.tonalIcon(
                   onPressed: onRetry,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Erneut versuchen'),
+                  label: Text(context.l10n.commonRetry),
                 ),
                 TextButton(
                   onPressed: onDiscard,
-                  child: const Text('Verwerfen'),
+                  child: Text(context.l10n.commonDiscard),
                 ),
               ],
             ),

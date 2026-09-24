@@ -97,6 +97,7 @@ class InMemoryBookRepository implements BookRepository {
       clearAuthor: book.author == null,
       coverUrl: book.coverUrl,
       clearCoverUrl: book.coverUrl == null,
+      language: book.language,
       updatedAt: _store.now(),
     );
     _store.notifyBooks();

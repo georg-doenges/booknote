@@ -59,10 +59,7 @@ void main() {
         seed: Color(0xFF9C4B3A),
         fontFamily: 'Tinos',
       );
-      expect(
-        BooknoteTheme.custom(t).textTheme.bodyMedium?.fontFamily,
-        'Tinos',
-      );
+      expect(BooknoteTheme.custom(t).textTheme.bodyMedium?.fontFamily, 'Tinos');
     });
   });
 }

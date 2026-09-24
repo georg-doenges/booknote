@@ -23,6 +23,19 @@ class _Fixed implements CoverService {
 
 const _c = CoverCandidate(title: 'T', provider: 'x');
 
+const _down = CoverSearchException(
+  CoverSearchErrorKind.unreachable,
+  provider: 'Google Books',
+);
+const _primaryDown = CoverSearchException(
+  CoverSearchErrorKind.noConnection,
+  provider: 'primary',
+);
+const _fallbackDown = CoverSearchException(
+  CoverSearchErrorKind.noConnection,
+  provider: 'fallback',
+);
+
 void main() {
   group('FallbackCoverService', () {
     test('nimmt Primärquelle, wenn sie Treffer hat', () async {
@@ -43,11 +56,11 @@ void main() {
     });
 
     test('fällt bei Fehler der Primärquelle zurück, mit Warnung', () async {
-      final p = _Fixed([], error: const CoverSearchException('down.'));
+      final p = _Fixed([], error: _down);
       final f = _Fixed([_c]);
       final r = await FallbackCoverService(primary: p, fallback: f).search('q');
       expect(r.candidates.length, 1);
-      expect(r.warning, contains('down.'));
+      expect(r.warning, same(_down));
     });
 
     test('reicht die Sprache an beide Quellen weiter', () async {
@@ -62,13 +75,11 @@ void main() {
     });
 
     test('beide fehlerhaft → Fehler der Primärquelle', () async {
-      final p = _Fixed([], error: const CoverSearchException('primary'));
-      final f = _Fixed([], error: const CoverSearchException('fallback'));
+      final p = _Fixed([], error: _primaryDown);
+      final f = _Fixed([], error: _fallbackDown);
       expect(
         () => FallbackCoverService(primary: p, fallback: f).search('q'),
-        throwsA(
-          isA<CoverSearchException>().having((e) => e.message, 'm', 'primary'),
-        ),
+        throwsA(same(_primaryDown)),
       );
     });
   });
@@ -197,7 +208,7 @@ void main() {
       expect(calls, 1);
     });
 
-    test('429 ohne Key → Hinweis auf Einstellungen', () async {
+    test('429 ohne Key → Kontingent-ohne-Key-Fehler mit Status', () async {
       final s = GoogleBooksCoverService(
         apiKeys: InMemoryApiKeyStore(),
         client: MockClient((_) async => http.Response('nope', 429)),
@@ -205,11 +216,13 @@ void main() {
       expect(
         () => s.search('x'),
         throwsA(
-          isA<CoverSearchException>().having(
-            (e) => e.message,
-            'message',
-            contains('Einstellungen'),
-          ),
+          isA<CoverSearchException>()
+              .having(
+                (e) => e.kind,
+                'kind',
+                CoverSearchErrorKind.quotaWithoutKey,
+              )
+              .having((e) => e.status, 'status', 429),
         ),
       );
     });

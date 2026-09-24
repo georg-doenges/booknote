@@ -28,8 +28,8 @@ abstract class BookRepository {
     AppLanguage language = AppLanguage.german,
   });
 
-  /// Speichert Titel/Autor/Cover eines bestehenden Buchs. `updatedAt` setzt das
-  /// Repository selbst.
+  /// Speichert Titel/Autor/Cover/Sprache eines bestehenden Buchs. `updatedAt`
+  /// setzt das Repository selbst.
   Future<void> update(Book book);
 
   /// Löscht ein Buch **und alle zugehörigen Notizen**.

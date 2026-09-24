@@ -38,7 +38,7 @@ class WhisperService implements TranscriptionService {
     if (apiKey == null) {
       throw const TranscriptionException(
         TranscriptionErrorKind.missingApiKey,
-        'Kein OpenAI-API-Key hinterlegt.',
+        'No OpenAI API key stored.',
       );
     }
 
@@ -46,7 +46,7 @@ class WhisperService implements TranscriptionService {
     if (!await file.exists() || await file.length() == 0) {
       throw TranscriptionException(
         TranscriptionErrorKind.invalidAudio,
-        'Audiodatei fehlt oder ist leer: $audioPath',
+        'Audio file missing or empty: $audioPath',
       );
     }
 
@@ -69,21 +69,21 @@ class WhisperService implements TranscriptionService {
     } on SocketException catch (e) {
       throw TranscriptionException(
         TranscriptionErrorKind.network,
-        'Keine Verbindung zur OpenAI-API.',
-        e,
+        'No connection to the OpenAI API.',
+        cause: e,
       );
     } on HttpException catch (e) {
       throw TranscriptionException(
         TranscriptionErrorKind.network,
-        'Netzwerkfehler.',
-        e,
+        'Network error.',
+        cause: e,
       );
     } on Exception catch (e) {
       // TimeoutException, HandshakeException, ClientException …
       throw TranscriptionException(
         TranscriptionErrorKind.network,
-        'Netzwerkfehler oder Zeitüberschreitung.',
-        e,
+        'Network error or timeout.',
+        cause: e,
       );
     }
 
@@ -97,8 +97,8 @@ class WhisperService implements TranscriptionService {
       } catch (e) {
         throw TranscriptionException(
           TranscriptionErrorKind.server,
-          'Unerwartete Antwort der API.',
-          e,
+          'Unexpected response from the API.',
+          cause: e,
         );
       }
     }
@@ -109,28 +109,32 @@ class WhisperService implements TranscriptionService {
       case 403:
         throw TranscriptionException(
           TranscriptionErrorKind.unauthorized,
-          'API-Key wurde abgelehnt. Bitte in den Einstellungen prüfen.',
-          apiMessage,
+          'API key rejected (HTTP $status).',
+          status: status,
+          cause: apiMessage,
         );
       case 429:
         throw TranscriptionException(
           TranscriptionErrorKind.rateLimited,
-          'Kontingent oder Rate-Limit erreicht.',
-          apiMessage,
+          'Quota or rate limit reached (HTTP $status).',
+          status: status,
+          cause: apiMessage,
         );
       case 400:
       case 413:
       case 415:
         throw TranscriptionException(
           TranscriptionErrorKind.invalidAudio,
-          'Die Audiodatei wurde von der API abgelehnt.',
-          apiMessage,
+          'Audio file rejected by the API (HTTP $status).',
+          status: status,
+          cause: apiMessage,
         );
       default:
         throw TranscriptionException(
           TranscriptionErrorKind.server,
-          'OpenAI-API antwortete mit Status $status.',
-          apiMessage,
+          'OpenAI API answered with HTTP $status.',
+          status: status,
+          cause: apiMessage,
         );
     }
   }

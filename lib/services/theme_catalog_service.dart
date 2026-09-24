@@ -16,7 +16,7 @@ class ThemeCatalogEntry {
     required this.brightness,
     required this.file,
     this.revision = 1,
-    this.description,
+    this.descriptions = const {},
     this.swatchSurface,
     this.swatchPrimary,
     this.logoFile,
@@ -31,7 +31,19 @@ class ThemeCatalogEntry {
 
   /// Inhaltsstand; höher als der installierte → „Aktualisieren".
   final int revision;
-  final String? description;
+
+  /// Beschreibung je Sprachcode (`de`/`en`/`fr`); der Schlüssel `''` gilt für
+  /// alle Sprachen (Katalogeintrag mit einer einfachen Zeichenkette).
+  final Map<String, String> descriptions;
+
+  /// Beschreibung in der gewünschten Sprache, sonst Englisch, sonst Deutsch,
+  /// sonst irgendeine; `null`, wenn es keine gibt.
+  String? descriptionFor(String languageCode) =>
+      descriptions[languageCode] ??
+      descriptions[''] ??
+      descriptions['en'] ??
+      descriptions['de'] ??
+      descriptions.values.firstOrNull;
 
   /// Farben der Ersatz-Vorschau, falls es kein Logo gibt.
   final Color? swatchSurface;
@@ -66,7 +78,6 @@ class ThemeCatalogEntry {
     }
     final logo = j['logo'];
     final swatch = j['swatch'];
-    final description = (j['description'] as String?)?.trim();
     return ThemeCatalogEntry(
       id: id,
       name: name.trim(),
@@ -78,13 +89,38 @@ class ThemeCatalogEntry {
         final int r when r >= 1 => r,
         _ => 1,
       },
-      description: description == null || description.isEmpty
-          ? null
-          : description,
+      // `descriptions` (je Sprache) hat Vorrang; `description` ist der einfache
+      // Text für ältere Leser bzw. von Hand geschriebene Einträge.
+      descriptions: _descriptionsOf(j),
       swatchSurface: swatch is Map ? _color(swatch['surface']) : null,
       swatchPrimary: swatch is Map ? _color(swatch['primary']) : null,
       logoFile: logo is String && _pathPattern.hasMatch(logo) ? logo : null,
     );
+  }
+
+  static Map<String, String> _descriptionsOf(Map<String, Object?> j) {
+    final perLanguage = _descriptions(j['descriptions']);
+    return perLanguage.isNotEmpty
+        ? perLanguage
+        : _descriptions(j['description']);
+  }
+
+  /// `"Text"` (für alle Sprachen) oder `{"de": "…", "en": "…", "fr": "…"}`.
+  static Map<String, String> _descriptions(Object? raw) {
+    if (raw is String) {
+      final text = raw.trim();
+      return text.isEmpty ? const {} : {'': text};
+    }
+    if (raw is Map) {
+      return {
+        for (final e in raw.entries)
+          if (e.key is String &&
+              e.value is String &&
+              (e.value as String).trim().isNotEmpty)
+            e.key as String: (e.value as String).trim(),
+      };
+    }
+    return const {};
   }
 
   static Color? _color(Object? hex) {
@@ -96,13 +132,52 @@ class ThemeCatalogEntry {
   }
 }
 
+/// Warum der Katalog oder eine Theme-Datei daraus nicht geladen werden konnte.
+/// Die UI formuliert daraus die Meldung in der Sprache der App
+/// (`themeCatalogErrorText`).
+enum ThemeCatalogErrorKind {
+  /// Kein Netz, Timeout, DNS …
+  noConnection,
+
+  /// HTTP-Status ≠ 200 (siehe [ThemeCatalogException.status]).
+  badStatus,
+
+  /// Antwort ist kein Katalog / kein JSON.
+  unexpectedResponse,
+
+  /// Katalog-Format neuer als diese App.
+  needsNewerApp,
+
+  /// Antwort über dem Größenlimit.
+  tooLarge,
+
+  /// `id` in der Theme-Datei passt nicht zum Katalogeintrag (siehe
+  /// [ThemeCatalogException.name]).
+  idMismatch,
+
+  /// Die Theme-Datei ist kein gültiges Theme; Ursache in
+  /// [ThemeCatalogException.cause] (ein `CustomThemeException`).
+  invalidTheme,
+
+  /// Die Theme-Datei ist kein gültiges UTF-8.
+  corrupted,
+}
+
 class ThemeCatalogException implements Exception {
-  const ThemeCatalogException(this.message, [this.cause]);
-  final String message;
+  const ThemeCatalogException(this.kind, {this.status, this.name, this.cause});
+
+  final ThemeCatalogErrorKind kind;
+  final int? status;
+
+  /// Anzeigename des betroffenen Katalogeintrags.
+  final String? name;
   final Object? cause;
 
   @override
-  String toString() => 'ThemeCatalogException: $message';
+  String toString() =>
+      'ThemeCatalogException(${kind.name}'
+      '${status == null ? '' : ', status $status'}'
+      '${name == null ? '' : ', $name'})';
 }
 
 /// Holt den Theme-Katalog und einzelne Theme-Dateien aus dem Booknote-Repo auf
@@ -140,21 +215,25 @@ class ThemeCatalogService {
     try {
       decoded = jsonDecode(utf8.decode(res.bodyBytes));
     } on FormatException catch (e) {
-      throw ThemeCatalogException('Unerwartete Antwort vom Katalog.', e);
+      throw ThemeCatalogException(
+        ThemeCatalogErrorKind.unexpectedResponse,
+        cause: e,
+      );
     }
     if (decoded is! Map<String, Object?> || decoded['format'] != indexFormat) {
-      throw const ThemeCatalogException('Unerwartete Antwort vom Katalog.');
+      throw const ThemeCatalogException(
+        ThemeCatalogErrorKind.unexpectedResponse,
+      );
     }
     final version = decoded['formatVersion'];
     if (version is! int || version > supportedFormatVersion) {
-      throw const ThemeCatalogException(
-        'Der Katalog braucht eine neuere Booknote-Version – bitte die App '
-        'aktualisieren.',
-      );
+      throw const ThemeCatalogException(ThemeCatalogErrorKind.needsNewerApp);
     }
     final raw = decoded['themes'];
     if (raw is! List) {
-      throw const ThemeCatalogException('Unerwartete Antwort vom Katalog.');
+      throw const ThemeCatalogException(
+        ThemeCatalogErrorKind.unexpectedResponse,
+      );
     }
     final entries = <ThemeCatalogEntry>[];
     for (final item in raw) {
@@ -176,13 +255,14 @@ class ThemeCatalogService {
       final theme = CustomTheme.parse(utf8.decode(res.bodyBytes));
       if (theme.id != entry.id) {
         throw ThemeCatalogException(
-          'Der Katalogeintrag „${entry.name}" passt nicht zu seiner Datei.',
+          ThemeCatalogErrorKind.idMismatch,
+          name: entry.name,
         );
       }
     } on CustomThemeException catch (e) {
-      throw ThemeCatalogException(e.message, e);
+      throw ThemeCatalogException(ThemeCatalogErrorKind.invalidTheme, cause: e);
     } on FormatException catch (e) {
-      throw ThemeCatalogException('Die Theme-Datei ist beschädigt.', e);
+      throw ThemeCatalogException(ThemeCatalogErrorKind.corrupted, cause: e);
     }
     return res.bodyBytes;
   }
@@ -194,21 +274,16 @@ class ThemeCatalogService {
           .get(uri, headers: const {'User-Agent': 'Booknote/0.1 (Flutter app)'})
           .timeout(timeout);
     } on Exception catch (e) {
-      throw ThemeCatalogException(
-        'Keine Verbindung zum Katalog – bitte Internetverbindung prüfen.',
-        e,
-      );
+      throw ThemeCatalogException(ThemeCatalogErrorKind.noConnection, cause: e);
     }
     if (res.statusCode != 200) {
       throw ThemeCatalogException(
-        'Der Katalog antwortete mit Status ${res.statusCode}.',
-        res.statusCode,
+        ThemeCatalogErrorKind.badStatus,
+        status: res.statusCode,
       );
     }
     if (res.bodyBytes.length > maxBytes) {
-      throw const ThemeCatalogException(
-        'Die Datei ist ungewöhnlich groß und wurde nicht geladen.',
-      );
+      throw const ThemeCatalogException(ThemeCatalogErrorKind.tooLarge);
     }
     return res;
   }

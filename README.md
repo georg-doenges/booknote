@@ -1,100 +1,104 @@
 # Booknote
 
-Lesenotizen per Sprache erfassen — **niederschwellig, mit ein paar Klicks.**
+**English** · [Deutsch](README.de.md)
 
-Die Idee: Während du liest, hast du Booknote schnell zur Hand. Buch antippen
-(oder in Sekunden ein neues anlegen) → kurz reinsprechen, was dir gerade
-auffällt → fertig. Kein Tippen, kein Suchen nach Stift und Zettel. Die Notiz
-ist sofort da, mit Seitenzahl. Später, in Ruhe, siehst du dir alle Notizen zu
-einem Buch an, sortierst, exportierst oder teilst sie.
+Capture reading notes by voice — **quick, with just a few taps.**
 
-Für die Spracherkennung braucht Booknote einen eigenen OpenAI-Zugang: das
-Konto selbst ist kostenlos, für die Nutzung brauchst du aber ein kleines
-Guthaben (ein paar Dollar reichen erfahrungsgemäß sehr lange) — wie das geht,
-steht weiter unten.
+The idea: while you read, Booknote is always at hand. Tap a book (or add a new
+one in seconds), say what strikes you, done. No typing, no hunting for pen and
+paper. The note is there right away, with its page number. Later, at your
+leisure, you look through all the notes for a book, sort them, export or share
+them.
 
-> **Und weil Lesen Spaß machen soll:** Booknote muss nicht braun bleiben.
-> Wie wäre es mit „Old Library" — Pergament, Leder und Serifenschrift wie in
-> einer alten Bibliothek — oder Nachtblau mit Gold? Diese und weitere
-> Farbschemata lädst du mit einem Tipp direkt in der App herunter, siehe
-> [Farbschemata laden](#farbschemata-laden).
+Booknote speaks **English, Deutsch and Français**: the app follows your phone’s
+language (change it under *Settings → App language*), and you can record your
+notes in any of the three — set per book, and per recording if you like.
+
+Once you know your way around, switch on **Clean mode** (*Settings → Display*):
+it hides the explanations and hints and leaves just the buttons and headings.
+
+For speech recognition Booknote needs your own OpenAI access: the account itself
+is free, but using it needs a small credit (a few dollars go a very long way) —
+how to set it up is explained below.
+
+> **And because reading should be fun:** Booknote doesn’t have to stay brown.
+> How about “Old Library” — parchment, leather and a serif typeface, like an old
+> library — or midnight blue with gold? These and more colour schemes are one tap
+> away inside the app, see [Colour schemes](#colour-schemes).
 
 ## Installation (APK)
 
-Das fertige APK zum Installieren gibt es unter
-[Releases](https://github.com/georg-doenges/booknote/releases) dieses Repos.
+The ready-made APK is under
+[Releases](https://github.com/georg-doenges/booknote/releases) in this repo.
 
-1. APK auf dem Android-Gerät herunterladen und antippen.
-2. Android fragt vermutlich nach der Erlaubnis, Apps aus dieser Quelle zu
-   installieren — zulassen.
-3. App öffnen. Bevor die erste Aufnahme klappt, fehlt noch der API-Schlüssel
-   (nächster Abschnitt).
+1. Download the APK on your Android phone and tap it.
+2. Android will probably ask for permission to install apps from this source —
+   allow it. (If Play Protect warns about an unknown app, choose “Install
+   anyway”.)
+3. Open the app. Before the first recording works, the API key is still missing
+   (next section).
 
-## OpenAI-API-Key einrichten
+## Setting up your OpenAI API key
 
-Booknote schickt deine Sprachaufnahmen zur Umwandlung in Text an OpenAI
-(Whisper). Dafür brauchst du einen eigenen Schlüssel — das dauert nur ein
-paar Minuten:
+Booknote sends your recordings to OpenAI (Whisper) to turn them into text. For
+that you need your own key — it only takes a few minutes:
 
-1. Auf **[platform.openai.com/api-keys](https://platform.openai.com/api-keys)**
-   gehen und ein Konto anlegen (auch per Google-Login möglich), falls noch
-   nicht vorhanden.
-2. Im Konto unter **Billing** einmalig ein kleines Guthaben aufladen —
-   **5 $ reichen erfahrungsgemäß sehr lange** (Sprachumwandlung kostet nur
-   Bruchteile eines Cents pro Minute).
-3. Auf der API-Keys-Seite **„Create new secret key"** klicken und den Key
-   kopieren. Er wird nur **einmal** angezeigt, also gleich sichern.
-4. In Booknote: **Einstellungen → API-Schlüssel** → Schlüssel einfügen →
-   **Speichern**.
+1. Go to **[platform.openai.com/api-keys](https://platform.openai.com/api-keys)**
+   and create an account (signing in with Google works too) if you don’t have
+   one yet.
+2. In your account, under **Billing**, add a small credit once — **$5 is
+   plenty for a very long time** (speech-to-text costs only fractions of a cent
+   per minute).
+3. On the API keys page click **“Create new secret key”** and copy the key. It is
+   shown **only once**, so save it right away.
+4. In Booknote: **Settings → API keys** → paste the key → **Save**.
 
-Das war's — ab jetzt kann aufgenommen werden.
+That’s it — you can start recording.
 
-## Farbschemata laden
+## Colour schemes
 
-Unter **Einstellungen → Eigene Farbschemata → Farbschemata laden** (dafür
-braucht die App Internet) siehst du alle verfügbaren Schemata; ein Tipp auf
-**Installieren** lädt eines und schaltet es sofort ein. Zurück zum Standard
-kommst du jederzeit über **System / Hell / Dunkel** ganz oben unter „Anzeige".
-Neue Schemata kommen nach und nach dazu, und wurde eines überarbeitet, steht
-dort **Aktualisieren**. Eigene Schemata kannst du über **Aus Datei …**
-importieren, das Format steht in [THEMES.md](THEMES.md).
+Under **Settings → Colour schemes → Load colour schemes** (the app needs internet
+for this) you see all available schemes; tap **Install** to load one and switch
+it on right away. To get back to the default, pick **System / Light / Dark** at
+the top under “Display”. New schemes are added over time, and if one has been
+revised you’ll see **Update** there. You can also import your own with **From
+file …** — the format is described in [THEMES.md](THEMES.md).
 
-## Was Booknote noch kann
+## What else Booknote can do
 
-- **Automatisches Erkennen von Seite & Position.** „Seite 47 oben, …" wird
-  beim Sprechen automatisch in Seitenzahl/Position/Text zerlegt — auf
-  Deutsch und Englisch.
-- **Cover-Suche** beim Anlegen eines Buchs (Google Books / Open Library).
-- **Export** einzelner Bücher, Autoren oder der ganzen Bibliothek als
-  Markdown oder Text, zum Weitergeben oder Einkleben in andere Notizen.
-- **Farbschemata** zum Nachladen, siehe [oben](#farbschemata-laden).
-- **Mehrere Geräte abgleichen.** Geht über eine gemeinsame Bibliotheksdatei,
-  ohne eigenen Server — für den Einstieg aber nicht nötig und etwas
-  gewöhnungsbedürftig; Details in [SYNC_DESIGN.md](SYNC_DESIGN.md), falls du
-  das nutzen willst.
+- **Automatic page & position detection.** “Page 47 top, …” is split into
+  page / position / text while you speak — in English, German and French.
+- **Cover search** when you add a book (Google Books / Open Library).
+- **Export** single books, authors or the whole library as Markdown or text, to
+  share or paste into other notes.
+- **Sync several devices.** Works through a shared library file, no server
+  needed — not necessary to get started and a bit unusual; details in
+  [SYNC_DESIGN.md](SYNC_DESIGN.md) (German) if you want to use it.
 
-## Für Entwickler: selbst bauen
+## For developers: building it yourself
 
-Voraussetzung ist ein installiertes
-[Flutter SDK](https://docs.flutter.dev/get-started/install).
+You need an installed [Flutter SDK](https://docs.flutter.dev/get-started/install).
 
 ```bash
 flutter pub get
 flutter run
 ```
 
-Für ein Release-APK mit eigener, stabiler Signatur (Voraussetzung, damit
-Tester spätere Versionen als Update statt Neuinstallation bekommen) siehe
-[SIGNING.md](SIGNING.md).
+For a release APK with your own stable signature (needed so testers get later
+versions as an update instead of a reinstall) see [SIGNING.md](SIGNING.md)
+(German).
 
-## Weiterführende Dokumentation
+The app’s texts live in `lib/l10n/app_{de,en,fr}.arb`; after changing them run
+`flutter gen-l10n`.
 
-- [PROJECT.md](PROJECT.md) — Projektspezifikation (Architektur, Datenmodell,
-  Sprach-Parsing, Screens).
-- [SYNC_DESIGN.md](SYNC_DESIGN.md) — das Abgleich-Modell zwischen Geräten
-  (Abzug vs. Bibliotheksdatei, Merge vs. Master).
-- [THEMES.md](THEMES.md) — Farbschemata: Katalog, Dateiformat, neue Schemata
-  beisteuern.
-- [SIGNING.md](SIGNING.md) — Release-Keystore anlegen und Release-APK bauen.
-- [PROGRESS.md](PROGRESS.md) — Baustein-für-Baustein-Fortschritt.
-- [BACKLOG.md](BACKLOG.md) — Ideen und spätere Ausbaustufen.
+## Further documentation (mostly German)
+
+- [PROJECT.md](PROJECT.md) — project specification (architecture, data model,
+  speech parsing, screens).
+- [SYNC_DESIGN.md](SYNC_DESIGN.md) — the sync model between devices.
+- [THEMES.md](THEMES.md) — colour schemes: catalogue, file format, contributing
+  new ones.
+- [SIGNING.md](SIGNING.md) — creating the release keystore and building the
+  release APK.
+- [PROGRESS.md](PROGRESS.md) — build-block by build-block progress.
+- [BACKLOG.md](BACKLOG.md) — ideas and later stages.

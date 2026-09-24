@@ -45,14 +45,24 @@ class OpenLibraryCoverService implements CoverService {
           .get(uri, headers: {'User-Agent': 'Booknote/0.1 (Flutter app)'})
           .timeout(timeout);
     } on SocketException catch (e) {
-      throw CoverSearchException('Keine Verbindung zu Open Library.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.noConnection,
+        provider: providerName,
+        cause: e,
+      );
     } on Exception catch (e) {
-      throw CoverSearchException('Open Library nicht erreichbar.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.unreachable,
+        provider: providerName,
+        cause: e,
+      );
     }
     if (res.statusCode != 200) {
       throw CoverSearchException(
-        'Open Library antwortete mit Status ${res.statusCode}.',
-        res.body,
+        CoverSearchErrorKind.badStatus,
+        provider: providerName,
+        status: res.statusCode,
+        cause: res.body,
       );
     }
 
@@ -66,7 +76,11 @@ class OpenLibraryCoverService implements CoverService {
             .toList(),
       );
     } catch (e) {
-      throw CoverSearchException('Unerwartete Antwort von Open Library.', e);
+      throw CoverSearchException(
+        CoverSearchErrorKind.unexpectedResponse,
+        provider: providerName,
+        cause: e,
+      );
     }
   }
 

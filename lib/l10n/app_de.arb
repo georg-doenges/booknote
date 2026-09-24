@@ -1,0 +1,488 @@
+{
+  "@@locale": "de",
+  "commonCancel": "Abbrechen",
+  "commonSave": "Speichern",
+  "commonDelete": "Löschen",
+  "commonDiscard": "Verwerfen",
+  "commonRetry": "Erneut versuchen",
+  "commonBack": "Zurück",
+  "commonDone": "Fertig",
+  "commonShare": "Teilen",
+  "commonSettings": "Einstellungen",
+  "commonAgain": "Nochmal",
+  "commonDark": "Dunkel",
+  "commonLight": "Hell",
+  "commonSearch": "Suchen",
+  "commonError": "Fehler: {error}",
+  "@commonError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "commonSaveFailed": "Speichern fehlgeschlagen: {error}",
+  "@commonSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "librarySearchHint": "Titel oder Autor suchen",
+  "libraryClearTooltip": "Leeren",
+  "libraryMenuExport": "Exportieren …",
+  "libraryMenuSync": "Bibliothek sichern / abgleichen …",
+  "libraryEmpty": "Noch keine Bücher.\nLege mit „+“ dein erstes Buch an.",
+  "libraryEmptyShort": "Noch keine Bücher.",
+  "libraryNothingFound": "Nichts gefunden.",
+  "libraryResetFilter": "Filter zurücksetzen",
+  "libraryFilterAll": "Alle",
+  "libraryNewBook": "Neues Buch",
+  "searchChangeCoverTitle": "Cover suchen",
+  "searchFieldLabel": "Titel (und ggf. Autor)",
+  "searchFieldHelper": "z.B. „Zauberberg Mann“",
+  "searchVoiceTooltip": "Titel einsprechen",
+  "bookLanguageLabel": "Sprache dieses Buchs",
+  "bookLanguageHintNew": "Für Aufnahmen und Cover-Suche. Lässt sich später ändern.",
+  "bookLanguageHintEdit": "Gilt für neue Aufnahmen und die Cover-Suche.",
+  "searchWithoutCover": "Ohne Cover anlegen",
+  "searchEnterTitle": "Titel eingeben, um Cover zu suchen.",
+  "searchNothingFound": "Nichts gefunden. Anderen Titel probieren\noder ohne Cover anlegen.",
+  "searchFallbackWarning": "{reason} Treffer stammen nur vom Fallback.",
+  "@searchFallbackWarning": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
+  "coverErrNoConnection": "Keine Verbindung zu {provider}.",
+  "@coverErrNoConnection": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "coverErrUnreachable": "{provider} nicht erreichbar.",
+  "@coverErrUnreachable": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "coverErrQuotaNoKey": "Google Books: Kontingent ohne API-Key erschöpft (Status {status}). Kostenlosen Key in den Einstellungen eintragen.",
+  "@coverErrQuotaNoKey": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "coverErrKeyRejected": "Google Books lehnt den API-Key ab oder das Kontingent ist erschöpft (Status {status}).",
+  "@coverErrKeyRejected": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "coverErrStatus": "{provider} antwortete mit Status {status}.",
+  "@coverErrStatus": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "coverErrUnexpected": "Unerwartete Antwort von {provider}.",
+  "@coverErrUnexpected": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "recMicPermission": "Mikrofon-Berechtigung fehlt. Bitte in den System-Einstellungen erlauben.",
+  "recCouldNotStart": "Aufnahme konnte nicht starten: {error}",
+  "@recCouldNotStart": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "recVeryShortTitle": "Sehr kurze Aufnahme",
+  "recVeryShortBody": "Die Aufnahme war unter einer Sekunde. Trotzdem transkribieren?",
+  "recTranscribe": "Transkribieren",
+  "recLanguageChip": "Aufnahmesprache: {language}",
+  "@recLanguageChip": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "recLanguageMenuNote": "Nur für jetzt. Sprache des Buchs: {language}",
+  "@recLanguageMenuNote": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "recLongHint": "Lange Aufnahme – Whisper transkribiert alles am Stück.",
+  "recFirstHint": "Sprich z.B.: „{example}“",
+  "@recFirstHint": {
+    "placeholders": {
+      "example": {
+        "type": "String"
+      }
+    }
+  },
+  "recStatusIdle": "Tippen zum Aufnehmen",
+  "recStatusRecording": "Aufnahme läuft – tippen zum Beenden",
+  "recStatusTranscribing": "Wird transkribiert …",
+  "recStatusError": "Transkription fehlgeschlagen",
+  "recSession": "Diese Sitzung ({count})",
+  "@recSession": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recAllNotes": "{count, plural, =1{1 Notiz zu diesem Buch} other{{count} Notizen zu diesem Buch}}",
+  "@recAllNotes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recAllNotesLoading": "Notizen zu diesem Buch",
+  "recKept": "Die Aufnahme ist noch da.",
+  "recEnterKey": "API-Key eingeben",
+  "trMissingKey": "Kein OpenAI-API-Key hinterlegt.",
+  "trUnauthorized": "API-Key wurde abgelehnt. Bitte in den Einstellungen prüfen.",
+  "trNetwork": "Keine Verbindung zur OpenAI-API. Bitte Internetverbindung prüfen.",
+  "trRateLimited": "Kontingent oder Rate-Limit erreicht.",
+  "trInvalidAudio": "Die Audiodatei fehlt, ist leer oder wurde von der API abgelehnt.",
+  "trServer": "Unerwartete Antwort der OpenAI-API.",
+  "trServerStatus": "Die OpenAI-API antwortete mit Status {status}.",
+  "@trServerStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "bdDeleteNoteTitle": "Notiz löschen?",
+  "bdDeleteBookTitle": "Buch löschen?",
+  "bdDeleteBookBody": "„{title}“ und alle zugehörigen Notizen werden gelöscht.",
+  "@bdDeleteBookBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "bdSortedByPage": "Sortiert nach Seite (tippen: chronologisch)",
+  "bdSortedChrono": "Sortiert chronologisch (tippen: nach Seite)",
+  "bdExportTooltip": "Exportieren (Buch, Autor oder Bibliothek)",
+  "bdMenuEdit": "Titel / Autor bearbeiten",
+  "bdMenuRemoveCover": "Cover entfernen",
+  "bdMenuDelete": "Buch löschen",
+  "bdNoNotes": "Noch keine Notizen zu diesem Buch.",
+  "bdRecord": "Aufnehmen",
+  "noteNoPage": "Ohne Seitenangabe",
+  "noteNoText": "(kein Text erkannt)",
+  "noteEditTitle": "Notiz bearbeiten",
+  "noteEditPage": "Seite",
+  "noteEditPageHint": "47 oder 88f.",
+  "noteEditPosition": "Position",
+  "noteEditPositionHint": "oben / Zeile 10",
+  "noteEditText": "Text",
+  "noteEditRaw": "Original-Transkript",
+  "bookEditTitle": "Buch bearbeiten",
+  "bookEditTitleField": "Titel",
+  "bookEditAuthorField": "Autor (optional)",
+  "voiceTooltip": "Per Sprache eingeben",
+  "voiceStarting": "Mikrofon startet …",
+  "voiceListening": "Sprich den Titel …",
+  "voiceRecognizing": "Wird erkannt …",
+  "voiceAutoStop": "stoppt nach kurzer Stille von selbst – oder tippen",
+  "voiceNothing": "Nichts verstanden. Nochmal versuchen.",
+  "syncTitle": "Bibliothek abgleichen",
+  "syncIntro": "Die Bibliotheksdatei enthält alle Bücher und Notizen. Lege sie z.B. in Google Drive ab und gleiche darüber zwischen deinen Geräten ab.",
+  "syncFileHint": "Schreibt eine Datei mit dem aktuellen Stand – zum Teilen oder direkt in einen Ordner (z.B. Google Drive).",
+  "syncMerge": "Abgleichen (zusammenführen)",
+  "syncMergeHint": "Vereint Datei und App. Alles, was auf einer Seite noch da ist, bleibt – Löschungen werden hier nicht übertragen.",
+  "syncMaster": "Als Vorlage (Master) setzen",
+  "syncMasterHint": "Der einzige Weg, Löschungen zu übertragen. Beim Setzen wählst du weich (lokal Neues bleibt) oder hart (exakt überschreiben).",
+  "syncSaved": "Bibliotheksdatei gesichert.",
+  "syncSaveFailed": "Sichern fehlgeschlagen: {error}",
+  "@syncSaveFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "syncMergeFailed": "Abgleich fehlgeschlagen: {error}",
+  "@syncMergeFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "syncFailed": "Fehlgeschlagen: {error}",
+  "@syncFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "syncMergedTitle": "Zusammengeführt",
+  "syncBooks": "Bücher",
+  "syncNotes": "Notizen",
+  "syncCountLine": "{label}: {count}",
+  "@syncCountLine": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "syncCountLineAdded": "{label}: {count}  (+{added})",
+  "@syncCountLineAdded": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      },
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "syncSaveUpdated": "Aktualisierte Datei sichern",
+  "syncUpdatedSaved": "Aktualisierte Bibliotheksdatei gesichert.",
+  "syncMasterBody": "Der aktuelle Stand dieses Geräts wird zur Vorlage. Andere Geräte richten sich beim nächsten Abgleich danach – nur so werden Löschungen übertragen.",
+  "syncSoft": "Weich",
+  "syncSoftBody": "Andere Geräte übernehmen den Stand samt Löschungen, behalten aber Einträge, die dort ganz neu sind.",
+  "syncHard": "Hart",
+  "syncHardBody": "Andere Geräte werden exakt auf diesen Stand gesetzt – alles andere dort wird gelöscht.",
+  "syncSet": "Setzen",
+  "syncAdoptedHard": "Harte Vorlage übernommen: exakt {books} Bücher, {notes} Notizen.",
+  "@syncAdoptedHard": {
+    "placeholders": {
+      "books": {
+        "type": "int"
+      },
+      "notes": {
+        "type": "int"
+      }
+    }
+  },
+  "syncAdoptedSoft": "Weiche Vorlage übernommen: {books} Bücher, {notes} Notizen.",
+  "@syncAdoptedSoft": {
+    "placeholders": {
+      "books": {
+        "type": "int"
+      },
+      "notes": {
+        "type": "int"
+      }
+    }
+  },
+  "syncMasterSavedHard": "Als harte Vorlage gesichert. Andere Geräte werden exakt darauf gesetzt.",
+  "syncMasterSavedSoft": "Als weiche Vorlage gesichert. Andere Geräte gleichen sich an.",
+  "dialogSaveAs": "Speichern unter",
+  "dialogPickLibraryFile": "Bibliotheksdatei wählen",
+  "dialogPickThemeFile": "Theme-Datei wählen",
+  "errFileNotJson": "Die Datei ist kein gültiges JSON.",
+  "errFileUnexpected": "Unerwarteter Dateiaufbau.",
+  "errFileNewer": "Die Datei stammt aus einer neueren App-Version.",
+  "lfNotLibrary": "Das ist keine Booknote-Bibliotheksdatei.",
+  "lfCorrupted": "Die Datei ist beschädigt: {detail}",
+  "@lfCorrupted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "cteNotATheme": "Das ist keine Booknote-Theme-Datei.",
+  "cteMissingName": "Dem Theme fehlt ein Name.",
+  "cteInvalidColor": "Ungültige Farbe „{hex}“.",
+  "@cteInvalidColor": {
+    "placeholders": {
+      "hex": {
+        "type": "String"
+      }
+    }
+  },
+  "cteCorrupted": "Die Theme-Datei ist beschädigt: {detail}",
+  "@cteCorrupted": {
+    "placeholders": {
+      "detail": {
+        "type": "String"
+      }
+    }
+  },
+  "exportTitle": "Exportieren",
+  "exportThisBook": "Dieses Buch",
+  "exportAuthorBooks": "Alle Bücher dieses Autors",
+  "exportWholeLibrary": "Ganze Bibliothek",
+  "exportNothing": "Nichts zu exportieren.",
+  "exportDone": "{format} exportiert: {file}",
+  "@exportDone": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "exportSavedFile": "{format} gespeichert: {file}",
+  "@exportSavedFile": {
+    "placeholders": {
+      "format": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFailed": "Export fehlgeschlagen: {error}",
+  "@exportFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "exportFormatText": "Text",
+  "exportLabelNotes": "Notizen",
+  "exportLabelWithoutPage": "Ohne Seitenangabe",
+  "exportLabelNoNotes": "Keine Notizen mit Seitenangabe",
+  "exportLabelNoText": "kein Text",
+  "exportLabelLibrary": "Bibliothek",
+  "settingsLanguageTitle": "App-Sprache",
+  "settingsLanguageCaption": "Menüs und Texte der App. Die Sprache für Aufnahmen legst du für jedes Buch einzeln fest.",
+  "settingsLanguageDevice": "Wie das Gerät",
+  "settingsDisplay": "Anzeige",
+  "settingsDisplayCaptionCustom": "Aktuell überschrieben durch ein eigenes Farbschema (siehe unten).",
+  "settingsDisplayCaption": "Hell/Dunkel automatisch nach System – oder fest gewählt.",
+  "settingsThemeSystem": "System",
+  "settingsCleanMode": "Clean Mode",
+  "settingsCleanModeSub": "Blendet Erklärungen und Hinweise aus – für alle, die die App schon kennen.",
+  "settingsCustomThemes": "Eigene Farbschemata",
+  "settingsCustomThemesCaption": "Ein fester Look statt Hell/Dunkel oben – bis dort wieder System, Hell oder Dunkel gewählt wird.",
+  "settingsNoThemes": "Noch keine Farbschemata geladen – über „Farbschemata laden“ gibt es welche.",
+  "settingsLoadThemes": "Farbschemata laden",
+  "settingsFromFile": "Aus Datei …",
+  "settingsDeleteActiveTheme": "Aktives Schema löschen",
+  "settingsThemeLoaded": "„{name}“ geladen und aktiviert.",
+  "@settingsThemeLoaded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsRecording": "Aufnahme",
+  "settingsVibration": "Vibration",
+  "settingsVibrationSub": "Kurzes haptisches Signal beim Start und Stopp.",
+  "settingsApiKeys": "API-Schlüssel",
+  "settingsApiKeysCaption": "Werden nur auf diesem Gerät gespeichert und beim Abgleich nicht geteilt.",
+  "settingsOpenAiLabel": "OpenAI (Whisper)",
+  "settingsOpenAiHelper": "Pflicht für die Spracherkennung. ~0,006 $/Min.",
+  "settingsShowKey": "Anzeigen",
+  "settingsHideKey": "Verbergen",
+  "settingsGoogleLabel": "Google Books (optional)",
+  "settingsGoogleHelper": "Macht die Cover-Suche stabiler. Kostenlos.",
+  "settingsSaveKeys": "Schlüssel speichern",
+  "settingsKeysSaved": "API-Schlüssel gespeichert.",
+  "settingsSync": "Geräte-Abgleich",
+  "settingsSyncCaption": "Beim Abgleich merkt sich die App gelöschte Einträge, damit eine Löschung per „Vorlage (Master)“ auf alle Geräte wirkt.",
+  "settingsForget": "Alte Löschungen vergessen",
+  "settingsForgetOn": "Nach {days} Tagen. Spart Platz; bei sehr seltenem Abgleich kann ein alt-gelöschter Eintrag dann wieder auftauchen.",
+  "@settingsForgetOn": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "settingsForgetOff": "Gelöschte Einträge werden dauerhaft gemerkt.",
+  "settingsPeriod": "Zeitraum",
+  "settingsDays": "{days} Tage",
+  "@settingsDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "catReload": "Katalog neu laden",
+  "catEmpty": "Der Katalog ist noch leer.",
+  "catIntro": "Aus dem öffentlichen Booknote-Katalog auf GitHub. Ein Tipp auf „Installieren“ lädt das Schema und schaltet es gleich ein.",
+  "catInstall": "Installieren",
+  "catUpdate": "Aktualisieren",
+  "catInstalled": "Installiert",
+  "catInstalledActivated": "„{name}“ installiert und eingeschaltet.",
+  "@catInstalledActivated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catUpdated": "„{name}“ aktualisiert.",
+  "@catUpdated": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "catSaveFailed": "Speichern auf dem Gerät fehlgeschlagen.",
+  "tcNoConnection": "Keine Verbindung zum Katalog – bitte Internetverbindung prüfen.",
+  "tcStatus": "Der Katalog antwortete mit Status {status}.",
+  "@tcStatus": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
+  "tcUnexpected": "Unerwartete Antwort vom Katalog.",
+  "tcNeedsNewerApp": "Der Katalog braucht eine neuere Booknote-Version – bitte die App aktualisieren.",
+  "tcTooLarge": "Die Datei ist ungewöhnlich groß und wurde nicht geladen.",
+  "tcMismatch": "Der Katalogeintrag „{name}“ passt nicht zu seiner Datei.",
+  "@tcMismatch": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tcCorrupted": "Die Theme-Datei ist beschädigt."
+}

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show PlatformException;
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
@@ -45,16 +46,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _savingKeys = true);
     final keys = AppScope.of(context).apiKeys;
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
       await keys.setOpenAiKey(_openAi.text);
       await keys.setGoogleBooksKey(_googleBooks.text);
-      messenger.showSnackBar(
-        const SnackBar(content: Text('API-Schlüssel gespeichert.')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.settingsKeysSaved)));
     } catch (e) {
-      messenger.showSnackBar(
-        SnackBar(content: Text('Speichern fehlgeschlagen: $e')),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.commonSaveFailed('$e'))));
     } finally {
       if (mounted) setState(() => _savingKeys = false);
     }
@@ -71,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     final settings = AppScope.of(context).settings;
     return Scaffold(
-      appBar: AppBar(title: const Text('Einstellungen')),
+      appBar: AppBar(title: Text(context.l10n.commonSettings)),
       body: !_loaded
           ? const Center(child: CircularProgressIndicator())
           : SafeArea(
@@ -84,6 +82,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 builder: (context, _) => ListView(
                   padding: const EdgeInsets.only(bottom: BooknoteTheme.gap24),
                   children: [
+                    _languageSection(settings),
                     _displayModeSection(settings),
                     _customThemesSection(settings),
                     _recordingSection(settings),
@@ -102,17 +101,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final store = AppScope.of(context).customThemes;
     final settings = AppScope.of(context).settings;
+    final l = context.l10n;
     FilePickerResult? picked;
     try {
       picked = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Theme-Datei wählen',
+        dialogTitle: l.dialogPickThemeFile,
         type: FileType.custom,
         allowedExtensions: ['json'],
         withData: true,
       );
     } on PlatformException {
       picked = await FilePicker.platform.pickFiles(
-        dialogTitle: 'Theme-Datei wählen',
+        dialogTitle: l.dialogPickThemeFile,
         withData: true,
       );
     }
@@ -122,10 +122,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final theme = await store.import(bytes);
       await settings.setActiveCustomTheme(theme.id);
       messenger.showSnackBar(
-        SnackBar(content: Text('„${theme.name}" geladen und aktiviert.')),
+        SnackBar(content: Text(l.settingsThemeLoaded(theme.name))),
       );
     } on CustomThemeException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showSnackBar(
+        SnackBar(content: Text(customThemeErrorText(l, e))),
+      );
     }
   }
 
@@ -151,13 +153,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await store.delete(t.id);
   }
 
+  /// Sprache der App: Gerätesprache oder eine der drei Sprachen fest.
+  Widget _languageSection(AppSettings settings) {
+    final l = context.l10n;
+    return _Section(
+      title: l.settingsLanguageTitle,
+      caption: context.explain(l.settingsLanguageCaption),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            BooknoteTheme.gap16,
+            BooknoteTheme.gap4,
+            BooknoteTheme.gap16,
+            0,
+          ),
+          child: DropdownButton<_UiLanguageChoice>(
+            isExpanded: true,
+            value: _UiLanguageChoice.of(settings.uiLanguage),
+            items: [
+              DropdownMenuItem(
+                value: _UiLanguageChoice.device,
+                child: Text(l.settingsLanguageDevice),
+              ),
+              for (final language in AppLanguage.values)
+                DropdownMenuItem(
+                  value: _UiLanguageChoice.of(language),
+                  child: Text(language.label),
+                ),
+            ],
+            onChanged: (choice) {
+              if (choice != null) settings.setUiLanguage(choice.language);
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _displayModeSection(AppSettings settings) {
+    final l = context.l10n;
     final customActive = settings.activeCustomThemeId != null;
     return _Section(
-      title: 'Anzeige',
-      caption: customActive
-          ? 'Aktuell überschrieben durch ein eigenes Farbschema (siehe unten).'
-          : 'Hell/Dunkel automatisch nach System – oder fest gewählt.',
+      title: l.settingsDisplay,
+      caption: context.explain(
+        customActive
+            ? l.settingsDisplayCaptionCustom
+            : l.settingsDisplayCaption,
+      ),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -167,10 +209,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             0,
           ),
           child: SegmentedButton<ThemeMode>(
-            segments: const [
-              ButtonSegment(value: ThemeMode.system, label: Text('System')),
-              ButtonSegment(value: ThemeMode.light, label: Text('Hell')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Dunkel')),
+            segments: [
+              ButtonSegment(
+                value: ThemeMode.system,
+                label: Text(l.settingsThemeSystem),
+              ),
+              ButtonSegment(value: ThemeMode.light, label: Text(l.commonLight)),
+              ButtonSegment(value: ThemeMode.dark, label: Text(l.commonDark)),
             ],
             selected: customActive ? const {} : {settings.themeMode},
             emptySelectionAllowed: true,
@@ -178,20 +223,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onSelectionChanged: (s) => settings.setThemeMode(s.first),
           ),
         ),
+        // Der Schalter selbst behält seinen Satz: Er erklärt, wie man den
+        // Clean Mode wieder ausschaltet.
+        SwitchListTile(
+          title: Text(l.settingsCleanMode),
+          subtitle: Text(l.settingsCleanModeSub),
+          value: settings.cleanMode,
+          onChanged: settings.setCleanMode,
+        ),
       ],
     );
   }
 
   Widget _customThemesSection(AppSettings settings) {
+    final l = context.l10n;
     final store = AppScope.of(context).customThemes;
     final customActive = settings.activeCustomThemeId != null;
     final caption = Theme.of(context).textTheme.bodySmall
         ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
     return _Section(
-      title: 'Eigene Farbschemata',
-      caption:
-          'Ein fester Look statt Hell/Dunkel oben – bis dort wieder System, '
-          'Hell oder Dunkel gewählt wird.',
+      title: l.settingsCustomThemes,
+      caption: context.explain(l.settingsCustomThemesCaption),
       children: [
         RadioGroup<String>(
           groupValue: settings.activeCustomThemeId,
@@ -204,20 +256,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   secondary: ThemeSwatch.fromTheme(t),
                   title: Text(t.name),
                   subtitle: Text(
-                    t.brightness == Brightness.dark ? 'Dunkel' : 'Hell',
+                    t.brightness == Brightness.dark
+                        ? l.commonDark
+                        : l.commonLight,
                     style: caption,
                   ),
                 ),
-              if (store.themes.isEmpty)
+              if (store.themes.isEmpty && !context.cleanMode)
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: BooknoteTheme.gap16,
                   ),
-                  child: Text(
-                    'Noch keine Farbschemata geladen – über „Farbschemata '
-                    'laden" gibt es welche.',
-                    style: caption,
-                  ),
+                  child: Text(l.settingsNoThemes, style: caption),
                 ),
             ],
           ),
@@ -237,12 +287,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               FilledButton.tonalIcon(
                 onPressed: _openCatalog,
                 icon: const Icon(Icons.cloud_download_outlined),
-                label: const Text('Farbschemata laden'),
+                label: Text(l.settingsLoadThemes),
               ),
               OutlinedButton.icon(
                 onPressed: _importTheme,
                 icon: const Icon(Icons.file_open_outlined),
-                label: const Text('Aus Datei …'),
+                label: Text(l.settingsFromFile),
               ),
               if (customActive)
                 Builder(
@@ -251,7 +301,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     if (active == null) return const SizedBox.shrink();
                     return IconButton(
                       icon: const Icon(Icons.delete_outline),
-                      tooltip: 'Aktives Schema löschen',
+                      tooltip: l.settingsDeleteActiveTheme,
                       onPressed: () => _deleteTheme(active),
                     );
                   },
@@ -266,11 +316,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---- Aufnahme ----
 
   Widget _recordingSection(AppSettings settings) => _Section(
-    title: 'Aufnahme',
+    title: context.l10n.settingsRecording,
     children: [
       SwitchListTile(
-        title: const Text('Vibration'),
-        subtitle: const Text('Kurzes haptisches Signal beim Start und Stopp.'),
+        title: Text(context.l10n.settingsVibration),
+        subtitle: switch (context.explain(context.l10n.settingsVibrationSub)) {
+          final text? => Text(text),
+          null => null,
+        },
         value: settings.hapticsEnabled,
         onChanged: settings.setHapticsEnabled,
       ),
@@ -280,13 +333,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---- API-Schlüssel ----
 
   Widget _apiKeysSection() {
+    final l = context.l10n;
     final caption = Theme.of(context).textTheme.bodySmall
         ?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant);
     return _Section(
-      title: 'API-Schlüssel',
-      caption:
-          'Werden nur auf diesem Gerät gespeichert und beim Abgleich nicht '
-          'geteilt.',
+      title: l.settingsApiKeys,
+      caption: context.explain(l.settingsApiKeysCaption),
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -298,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text('OpenAI (Whisper)', style: caption),
+              Text(l.settingsOpenAiLabel, style: caption),
               const SizedBox(height: BooknoteTheme.gap4),
               TextField(
                 controller: _openAi,
@@ -307,25 +359,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 enableSuggestions: false,
                 decoration: InputDecoration(
                   hintText: 'sk-…',
-                  helperText: 'Pflicht für die Spracherkennung. ~0,006 \$/Min.',
+                  helperText: context.explain(l.settingsOpenAiHelper),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _showOpenAi ? Icons.visibility_off : Icons.visibility,
                     ),
-                    tooltip: _showOpenAi ? 'Verbergen' : 'Anzeigen',
+                    tooltip: _showOpenAi
+                        ? l.settingsHideKey
+                        : l.settingsShowKey,
                     onPressed: () => setState(() => _showOpenAi = !_showOpenAi),
                   ),
                 ),
               ),
               const SizedBox(height: BooknoteTheme.gap16),
-              Text('Google Books (optional)', style: caption),
+              Text(l.settingsGoogleLabel, style: caption),
               const SizedBox(height: BooknoteTheme.gap4),
               TextField(
                 controller: _googleBooks,
                 autocorrect: false,
                 enableSuggestions: false,
-                decoration: const InputDecoration(
-                  helperText: 'Macht die Cover-Suche stabiler. Kostenlos.',
+                decoration: InputDecoration(
+                  helperText: context.explain(l.settingsGoogleHelper),
                 ),
               ),
               const SizedBox(height: BooknoteTheme.gap16),
@@ -334,7 +388,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: FilledButton.icon(
                   onPressed: _savingKeys ? null : _saveKeys,
                   icon: const Icon(Icons.save_outlined),
-                  label: const Text('Schlüssel speichern'),
+                  label: Text(l.settingsSaveKeys),
                 ),
               ),
             ],
@@ -347,37 +401,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // ---- Geräte-Abgleich ----
 
   Widget _syncSection(AppSettings settings) {
+    final l = context.l10n;
     final gc = settings.sync;
     return _Section(
-      title: 'Geräte-Abgleich',
-      caption:
-          'Beim Abgleich merkt sich die App gelöschte Einträge, damit eine '
-          'Löschung per „Vorlage (Master)" auf alle Geräte wirkt.',
+      title: l.settingsSync,
+      caption: context.explain(l.settingsSyncCaption),
       children: [
         SwitchListTile(
-          title: const Text('Alte Löschungen vergessen'),
-          subtitle: Text(
+          title: Text(l.settingsForget),
+          subtitle: switch (context.explain(
             gc.tombstoneGcEnabled
-                ? 'Nach ${gc.tombstoneGcDays} Tagen. Spart Platz; bei sehr '
-                      'seltenem Abgleich kann ein alt-gelöschter Eintrag dann '
-                      'wieder auftauchen.'
-                : 'Gelöschte Einträge werden dauerhaft gemerkt.',
-          ),
+                ? l.settingsForgetOn(gc.tombstoneGcDays)
+                : l.settingsForgetOff,
+          )) {
+            final text? => Text(text),
+            null => null,
+          },
           value: gc.tombstoneGcEnabled,
           onChanged: (v) =>
               settings.updateSync(gc.copyWith(tombstoneGcEnabled: v)),
         ),
         if (gc.tombstoneGcEnabled)
           ListTile(
-            title: const Text('Zeitraum'),
+            title: Text(l.settingsPeriod),
             trailing: DropdownButton<int>(
               value: _gcDayOptions.contains(gc.tombstoneGcDays)
                   ? gc.tombstoneGcDays
                   : null,
-              hint: Text('${gc.tombstoneGcDays} Tage'),
+              hint: Text(l.settingsDays(gc.tombstoneGcDays)),
               items: [
                 for (final d in _gcDayOptions)
-                  DropdownMenuItem(value: d, child: Text('$d Tage')),
+                  DropdownMenuItem(value: d, child: Text(l.settingsDays(d))),
               ],
               onChanged: (v) => v == null
                   ? null
@@ -436,4 +490,21 @@ class _Section extends StatelessWidget {
       ],
     );
   }
+}
+
+/// Auswahl im Sprach-Menü: Gerätesprache oder eine feste Sprache. (Ein
+/// `DropdownButton` mit `null`-Wert zeigt statt des Eintrags den Hinweistext.)
+enum _UiLanguageChoice {
+  device(null),
+  german(AppLanguage.german),
+  english(AppLanguage.english),
+  french(AppLanguage.french);
+
+  const _UiLanguageChoice(this.language);
+
+  /// `null` = wie das Gerät.
+  final AppLanguage? language;
+
+  static _UiLanguageChoice of(AppLanguage? language) =>
+      values.firstWhere((c) => c.language == language, orElse: () => device);
 }

@@ -4,10 +4,12 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
-import '../widgets/language_menu_button.dart';
+import '../widgets/framed_cover.dart';
+import '../widgets/language_choice.dart';
 import '../widgets/voice_input_button.dart';
 import 'settings_screen.dart';
 
@@ -34,22 +36,30 @@ class BookSearchScreen extends StatefulWidget {
   const BookSearchScreen({
     super.key,
     this.initialQuery = '',
-    this.title = 'Neues Buch',
+    this.title,
     this.allowWithoutCover = true,
     this.newBook = true,
+    this.bookLanguage,
   });
 
   final String initialQuery;
-  final String title;
+
+  /// `null` → „Neues Buch" in der Sprache der App.
+  final String? title;
 
   /// Zeigt „Ohne Cover anlegen" mit dem eingetippten Titel.
   final bool allowWithoutCover;
 
-  /// `true`: ein neues Buch entsteht hier → Sprachwahl für Aufnahmen zu
-  /// diesem Buch wird angeboten (Default Deutsch). `false`: nur ein Cover für
-  /// ein bestehendes Buch suchen (`BookDetailScreen._changeCover`) – dessen
-  /// Sprache bleibt unangetastet.
+  /// `true`: ein neues Buch entsteht hier → die Sprache des Buchs wird
+  /// abgefragt (Start: Sprache der App). `false`: nur ein Cover für ein
+  /// bestehendes Buch suchen (`BookDetailScreen._changeCover`) – dessen
+  /// Sprache bleibt unangetastet und wird über [bookLanguage] mitgegeben.
   final bool newBook;
+
+  /// Sprache des bestehenden Buchs bei `newBook: false`; sie steuert die
+  /// Cover-Suche. Bei einem neuen Buch ohne Bedeutung (die Wahl liegt auf der
+  /// Seite).
+  final AppLanguage? bookLanguage;
 
   @override
   State<BookSearchScreen> createState() => _BookSearchScreenState();
@@ -61,13 +71,18 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   int _requestId = 0;
 
   List<CoverCandidate>? _results;
-  String? _warning;
+  CoverSearchException? _warning;
   bool _loading = false;
-  String? _error;
+  CoverSearchException? _error;
 
-  /// Nur relevant, wenn [BookSearchScreen.newBook] – Default für Aufnahmen
-  /// zu diesem Buch.
-  AppLanguage _language = AppLanguage.german;
+  /// Wahl des Nutzers bei einem neuen Buch. `null` = noch nicht gewählt.
+  AppLanguage? _language;
+
+  /// Sprache dieses Buchs – steuert Aufnahmen und Cover-Suche gemeinsam, damit
+  /// die Seite nur eine Sprachwahl hat. Ohne Wahl: die des bestehenden Buchs,
+  /// sonst die Sprache der App.
+  AppLanguage get _bookLanguage =>
+      _language ?? widget.bookLanguage ?? uiLanguageOf(context);
 
   @override
   void initState() {
@@ -108,10 +123,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     });
     final scope = AppScope.of(context);
     try {
-      final r = await scope.covers.search(
-        q,
-        language: scope.settings.coverSearchLanguage.code,
-      );
+      final r = await scope.covers.search(q, language: _bookLanguage.code);
       if (!mounted || id != _requestId) return;
       setState(() {
         _results = r.candidates;
@@ -121,7 +133,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     } on CoverSearchException catch (e) {
       if (!mounted || id != _requestId) return;
       setState(() {
-        _error = e.message;
+        _error = e;
         _loading = false;
       });
     }
@@ -132,7 +144,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
       title: c.title,
       author: c.author,
       coverUrl: c.coverUrl,
-      language: _language,
+      language: _bookLanguage,
     ),
   );
 
@@ -149,28 +161,16 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
   void _withoutCover() {
     final t = _query.text.trim();
     if (t.isEmpty) return;
-    Navigator.of(context).pop(BookSearchResult(title: t, language: _language));
+    Navigator.of(context)
+        .pop(BookSearchResult(title: t, language: _bookLanguage));
   }
 
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final settings = AppScope.of(context).settings;
+    final l = context.l10n;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          LanguageMenuButton(
-            value: settings.coverSearchLanguage,
-            tooltip: 'Sprache der Cover-Suche',
-            onSelected: (l) {
-              settings.setCoverSearchLanguage(l);
-              setState(() {});
-              _search();
-            },
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(widget.title ?? l.libraryNewBook)),
       body: Column(
         children: [
           Padding(
@@ -188,19 +188,20 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
               onChanged: _onChanged,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                labelText: 'Titel (und ggf. Autor)',
-                helperText: 'z.B. „Zauberberg Mann"',
+                labelText: l.searchFieldLabel,
+                helperText: context.explain(l.searchFieldHelper),
                 suffixIcon: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     VoiceInputButton(
                       onResult: _onVoice,
                       onOpenSettings: _openSettings,
-                      tooltip: 'Titel einsprechen',
+                      tooltip: l.searchVoiceTooltip,
+                      language: _bookLanguage.code,
                     ),
                     IconButton(
                       icon: const Icon(Icons.search),
-                      tooltip: 'Suchen',
+                      tooltip: l.commonSearch,
                       onPressed: _search,
                     ),
                   ],
@@ -220,20 +221,24 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Sprache für Aufnahmen zu diesem Buch',
-                    style: Theme.of(context).textTheme.bodySmall
-                        ?.copyWith(color: scheme.onSurfaceVariant),
+                    l.bookLanguageLabel,
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                   const SizedBox(height: BooknoteTheme.gap4),
-                  SegmentedButton<AppLanguage>(
-                    segments: [
-                      for (final l in AppLanguage.values)
-                        ButtonSegment(value: l, label: Text(l.label)),
-                    ],
-                    selected: {_language},
-                    showSelectedIcon: false,
-                    onSelectionChanged: (s) =>
-                        setState(() => _language = s.first),
+                  LanguageChoice(
+                    value: _bookLanguage,
+                    // Die Cover-Suche folgt der Sprache – neu suchen.
+                    onChanged: (language) {
+                      setState(() => _language = language);
+                      _search();
+                    },
+                  ),
+                  Explanation(
+                    child: Text(
+                      l.bookLanguageHintNew,
+                      style: Theme.of(context).textTheme.bodySmall
+                          ?.copyWith(color: scheme.onSurfaceVariant),
+                    ),
                   ),
                 ],
               ),
@@ -246,7 +251,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                 child: TextButton.icon(
                   onPressed: _withoutCover,
                   icon: const Icon(Icons.block),
-                  label: const Text('Ohne Cover anlegen'),
+                  label: Text(l.searchWithoutCover),
                 ),
               ),
             ),
@@ -259,13 +264,13 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
                 color: scheme.onTertiaryContainer,
               ),
               content: Text(
-                _warning!,
+                coverSearchWarningText(l, _warning!),
                 style: TextStyle(color: scheme.onTertiaryContainer),
               ),
               actions: [
                 TextButton(
                   onPressed: _openSettings,
-                  child: const Text('Einstellungen'),
+                  child: Text(l.commonSettings),
                 ),
               ],
             ),
@@ -285,11 +290,14 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
             children: [
               Icon(Icons.cloud_off, color: scheme.error, size: 40),
               const SizedBox(height: 8),
-              Text(_error!, textAlign: TextAlign.center),
+              Text(
+                coverSearchErrorText(context.l10n, _error!),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 12),
               FilledButton.tonal(
                 onPressed: _search,
-                child: const Text('Erneut suchen'),
+                child: Text(context.l10n.commonRetry),
               ),
             ],
           ),
@@ -298,9 +306,10 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     }
     final results = _results;
     if (results == null) {
+      if (context.cleanMode) return const SizedBox.shrink();
       return Center(
         child: Text(
-          'Titel eingeben, um Cover zu suchen.',
+          context.l10n.searchEnterTitle,
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       );
@@ -308,7 +317,7 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
     if (results.isEmpty && !_loading) {
       return Center(
         child: Text(
-          'Nichts gefunden. Anderen Titel probieren\noder ohne Cover anlegen.',
+          context.l10n.searchNothingFound,
           textAlign: TextAlign.center,
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
@@ -327,21 +336,17 @@ class _BookSearchScreenState extends State<BookSearchScreen> {
           leading: SizedBox(
             width: 48,
             height: 72,
-            child: c.coverUrl == null
-                ? Container(
-                    color: scheme.surfaceContainerHighest,
-                    child: const Icon(Icons.menu_book),
-                  )
-                : CachedNetworkImage(
-                    imageUrl: c.coverUrl!,
-                    fit: BoxFit.cover,
-                    placeholder: (_, _) =>
-                        ColoredBox(color: scheme.surfaceContainerHighest),
-                    errorWidget: (_, _, _) => Container(
-                      color: scheme.surfaceContainerHighest,
-                      child: const Icon(Icons.broken_image_outlined),
-                    ),
-                  ),
+            child: FramedCover(
+              image: c.coverUrl == null
+                  ? null
+                  : CachedNetworkImageProvider(c.coverUrl!),
+              fallback: ColoredBox(
+                color: scheme.surfaceContainerHighest,
+                child: const Icon(Icons.menu_book),
+              ),
+              radius: 6,
+              padding: 2,
+            ),
           ),
           title: Text(c.title, maxLines: 2, overflow: TextOverflow.ellipsis),
           subtitle: Text(

@@ -46,10 +46,10 @@ class MarkdownExporter implements Exporter {
         ..writeln();
       for (var i = 0; i < request.books.length; i++) {
         if (i > 0) b.writeln();
-        _writeBook(b, request.books[i], request.includeTimestamps, level: 2);
+        _writeBook(b, request.books[i], request, level: 2);
       }
     } else {
-      _writeBook(b, request.books.single, request.includeTimestamps, level: 1);
+      _writeBook(b, request.books.single, request, level: 1);
     }
 
     final title = request.collectionTitle ?? request.books.single.book.title;
@@ -63,9 +63,10 @@ class MarkdownExporter implements Exporter {
   void _writeBook(
     StringBuffer b,
     ExportBook entry,
-    bool includeTimestamps, {
+    ExportRequest request, {
     required int level,
   }) {
+    final labels = request.labels;
     final h = '#' * level;
     final book = entry.book;
     final sorted = sortNotes(entry.notes, NoteSort.page);
@@ -76,33 +77,34 @@ class MarkdownExporter implements Exporter {
     if (book.author != null) b.writeln('*${_inline(book.author!)}*');
     b
       ..writeln()
-      ..writeln('$h# Notizen')
+      ..writeln('$h# ${labels.notes}')
       ..writeln();
-    if (withPage.isEmpty) b.writeln('_Keine Notizen mit Seitenangabe._');
+    if (withPage.isEmpty) b.writeln('_${labels.noNotesWithPage}._');
     for (final n in withPage) {
       final pos = n.position == null ? '' : ' (${_inline(n.position!)})';
       b.writeln(
         '- **${pagePrefix(n.language)} ${_inline(n.page!)}$pos:** '
-        '${_body(n, includeTimestamps)}',
+        '${_body(n, request)}',
       );
     }
 
     if (withoutPage.isNotEmpty) {
       b
         ..writeln()
-        ..writeln('$h# Ohne Seitenangabe')
+        ..writeln('$h# ${labels.withoutPage}')
         ..writeln();
       for (final n in withoutPage) {
         final pos = n.position == null ? '' : '**${_inline(n.position!)}:** ';
-        b.writeln('- $pos${_body(n, includeTimestamps)}');
+        b.writeln('- $pos${_body(n, request)}');
       }
     }
   }
 
-  String _body(Note n, bool includeTimestamps) {
-    final text = n.text.isEmpty ? '_(kein Text)_' : _inline(n.text);
-    if (!includeTimestamps) return text;
-    return '$text _(${formatDateTime(n.createdAt)})_';
+  String _body(Note n, ExportRequest request) {
+    final labels = request.labels;
+    final text = n.text.isEmpty ? '_(${labels.noText})_' : _inline(n.text);
+    if (!request.includeTimestamps) return text;
+    return '$text _(${labels.formatDateTime(n.createdAt)})_';
   }
 
   /// Zeilenumbrüche raus, damit ein Listenpunkt ein Listenpunkt bleibt.

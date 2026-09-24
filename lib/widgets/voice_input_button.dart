@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../services/services.dart';
 import '../theme.dart';
 import 'record_button.dart';
@@ -19,7 +20,7 @@ class VoiceInputButton extends StatelessWidget {
     super.key,
     required this.onResult,
     this.onOpenSettings,
-    this.tooltip = 'Per Sprache eingeben',
+    this.tooltip,
     this.language = 'de',
   });
 
@@ -28,14 +29,17 @@ class VoiceInputButton extends StatelessWidget {
   /// Wird angeboten, wenn der API-Key fehlt oder abgelehnt wurde.
   final VoidCallback? onOpenSettings;
 
-  final String tooltip;
+  /// `null` → „Per Sprache eingeben" in der Sprache der App.
+  final String? tooltip;
+
+  /// Sprache der Aufnahme (ISO 639-1) für Whisper.
   final String language;
 
   @override
   Widget build(BuildContext context) {
     return IconButton(
       icon: const Icon(Icons.mic_none),
-      tooltip: tooltip,
+      tooltip: tooltip ?? context.l10n.voiceTooltip,
       onPressed: () async {
         FocusScope.of(context).unfocus();
         final text = await showModalBottomSheet<String>(
@@ -116,16 +120,13 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
     });
 
     if (!await _recorder.hasPermission()) {
-      _fail(
-        'Mikrofon-Berechtigung fehlt. Bitte in den System-Einstellungen '
-        'erlauben.',
-      );
+      if (mounted) _fail(context.l10n.recMicPermission);
       return;
     }
     try {
       _audioPath = await _recorder.start();
     } catch (e) {
-      _fail('Aufnahme konnte nicht starten: $e');
+      if (mounted) _fail(context.l10n.recCouldNotStart('$e'));
       return;
     }
     if (!mounted) return;
@@ -187,7 +188,7 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
       if (!mounted) return;
       final text = raw.trim();
       if (text.isEmpty) {
-        _toError('Nichts verstanden. Nochmal versuchen.', needsKey: false);
+        _toError(context.l10n.voiceNothing, needsKey: false);
         return;
       }
       navigator.pop(text);
@@ -196,7 +197,7 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
       _audioPath = null;
       if (!mounted) return;
       _toError(
-        e.message,
+        transcriptionErrorText(context.l10n, e),
         needsKey:
             e.kind == TranscriptionErrorKind.missingApiKey ||
             e.kind == TranscriptionErrorKind.unauthorized,
@@ -267,15 +268,15 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
         ),
         const SizedBox(height: BooknoteTheme.gap16),
         Text(switch (_phase) {
-          _Phase.starting => 'Mikrofon startet …',
-          _Phase.recording => 'Sprich den Titel …',
-          _Phase.transcribing => 'Wird erkannt …',
+          _Phase.starting => context.l10n.voiceStarting,
+          _Phase.recording => context.l10n.voiceListening,
+          _Phase.transcribing => context.l10n.voiceRecognizing,
           _Phase.error => '',
         }, style: textTheme.titleMedium),
         const SizedBox(height: BooknoteTheme.gap4),
         Text(
-          _phase == _Phase.recording
-              ? 'stoppt nach kurzer Stille von selbst – oder tippen'
+          _phase == _Phase.recording && !context.cleanMode
+              ? context.l10n.voiceAutoStop
               : ' ',
           style: textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
         ),
@@ -300,12 +301,15 @@ class _VoiceInputSheetState extends State<_VoiceInputSheet>
                   Navigator.of(context).pop();
                   widget.onOpenSettings!();
                 },
-                child: const Text('Einstellungen'),
+                child: Text(context.l10n.commonSettings),
               ),
-            FilledButton.tonal(onPressed: _start, child: const Text('Nochmal')),
+            FilledButton.tonal(
+              onPressed: _start,
+              child: Text(context.l10n.commonAgain),
+            ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Abbrechen'),
+              child: Text(context.l10n.commonCancel),
             ),
           ],
         ),

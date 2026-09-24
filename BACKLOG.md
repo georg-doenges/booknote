@@ -15,8 +15,8 @@ Custom-Themes). Alles hier ist Kür.
   `flutter_launcher_icons`, Android adaptiv + iOS. Braune Systemfarben als
   Standard; Blue Gold/Old Library tragen ihr eigenes Logo im Theme-File
   (siehe THEMES.md „App-Icon vs. Theme-Logo").
-- ~~Sprache der Cover-Suche konfigurierbar~~ → erledigt (Sprach-Menü in der
-  Buchsuche, `AppLanguage`).
+- ~~Sprache der Cover-Suche konfigurierbar~~ → erledigt, später vereinfacht: die
+  Cover-Suche folgt der Sprache des Buchs (eine Sprachwahl statt zwei).
 - ~~„Speichern unter" in einen Ordner~~ → erledigt (`FilePicker.saveFile` im
   Export- und im Sync-Sheet).
 - **Export-Format merken.** Letztes MD/TXT als Default im Export-Sheet, über
@@ -26,11 +26,34 @@ Custom-Themes). Alles hier ist Kür.
   (`page 47`, `top/middle/bottom`, `line 10`, `following`/`onwards` → f./ff.).
   `RecordingScreen` reicht `settings.recordingLanguage` durch.
 - ~~**Sprache pro Buch** statt global~~ → erledigt: `Source.language` (Schema
-  v4, Default Deutsch), Sprach-Dialog beim Anlegen, `RecordingScreen` startet
-  damit und kann pro Aufnahme übersteuern (ohne die Buch-Vorgabe zu ändern).
+  v4, Default Deutsch), Sprachwahl beim Anlegen und in „Buch bearbeiten",
+  `RecordingScreen` startet damit und kann für die laufende Aufnahme
+  übersteuern (ohne die Sprache des Buchs zu ändern).
   `Note.language` speichert die tatsächlich genutzte Sprache je Notiz (steuert
   „S." vs. „p." bei der Seitenangabe).
-- **„Feinheiten"-Runde** – der Nutzer sammelt noch kleinere Punkte.
+- **Weitere Sprachen.** Die App ist dreisprachig (de/en/fr, `lib/l10n/*.arb`);
+  eine weitere Sprache braucht eine `.arb`-Datei, einen `AppLanguage`-Eintrag und –
+  für Aufnahmen – Regeln im `NoteParser` (+ Zahlwort-Parser). **Niederländisch
+  (Flämisch)** liegt nahe, falls die Testerin es braucht. Ebenso eine
+  `README.fr.md`.
+- **„Feinheiten"-Runde** – der Nutzer sammelt noch kleinere Punkte. Vorgemerkt
+  für die **nächste Code-Änderung** (Gerätetest 24.09.2026) – beide sind in
+  `0.1.0+28` umgesetzt, am Gerät aber noch nicht bestätigt:
+  - ~~**„Buch bearbeiten": Sprachwahl nicht zu finden.**~~ → kein Autofokus mehr
+    (die Tastatur verdeckte die Sprachwahl unter dem Autor).
+  - ~~**Kacheln der Bibliothek wirken unterschiedlich hoch.**~~ → gefüllte
+    Kartenfläche + kräftigerer Rahmen hinter jedem Cover, Zellen 3:4, ruhigerer
+    Platzhalter. Ursprüngliche Analyse: Alle Zellen sind
+    exakt gleich hoch (`CoverGridDelegate`), aber der Rahmen ist so dezent, dass
+    das Auge das Bild misst: Ein Cover mit anderem Seitenverhältnis füllt die
+    2:3-Fläche unter `BoxFit.contain` nur zum Teil, der Platzhalter ohne Cover
+    füllt sie ganz und wirkt daher am längsten. Wunsch: **alle gleich hoch,
+    ruhig**. Ideen: (a) sichtbare, gleichmäßige Fläche hinter jedem Cover
+    (`surfaceContainerLow`) plus etwas kräftigerer Rahmen, damit jede Kachel als
+    gleiches Rechteck gelesen wird; (b) Zellen insgesamt niedriger (z. B. 3:4
+    statt 2:3, wie vom Nutzer vorgeschlagen) – weniger ungenutzter Platz bei
+    Covern, die nicht sehr hoch sind; (c) Platzhalter mit kleinerer Schrift, weil der Titel darunter ohnehin
+    steht. Am Gerät mit echten Covern ausprobieren.
 
 ## Mittel
 

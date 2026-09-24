@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:booknote/l10n/l10n.dart';
 import 'package:booknote/screens/theme_catalog_screen.dart';
 import 'package:booknote/services/services.dart';
 import 'package:flutter/material.dart';
@@ -118,6 +119,9 @@ void main() {
   Future<void> open(WidgetTester tester) async {
     await tester.pumpWidget(
       MaterialApp(
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        supportedLocales: AppLocalizations.supportedLocales,
+        locale: const Locale('de'),
         home: ThemeCatalogScreen(
           service: ThemeCatalogService(
             client: MockClient((r) async => handle(r)),
@@ -158,7 +162,7 @@ void main() {
     expect(store.byId('aurora')?.name, 'Aurora');
     expect(settings.activeCustomThemeId, 'aurora');
     expect(
-      find.text('„Aurora" installiert und eingeschaltet.'),
+      find.text('„Aurora“ installiert und eingeschaltet.'),
       findsOneWidget,
     );
     // Aurora zeigt jetzt „Installiert", die zwei anderen bleiben offen.
@@ -179,7 +183,7 @@ void main() {
 
       expect(store.byId('blue_gold')?.revision, 2);
       expect(settings.activeCustomThemeId, 'old_library');
-      expect(find.text('„Blue Gold" aktualisiert.'), findsOneWidget);
+      expect(find.text('„Blue Gold“ aktualisiert.'), findsOneWidget);
       expect(find.text('Aktualisieren'), findsNothing);
     },
   );

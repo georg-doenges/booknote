@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
 import '../export/export.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../repositories/repositories.dart';
 import '../theme.dart';
@@ -32,7 +33,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _deleteNote(Note note) async {
-    final ok = await _confirm('Notiz löschen?', noteLocationLabel(note));
+    final ok = await _confirm(
+      context.l10n.bdDeleteNoteTitle,
+      noteLocationLabel(note, noPage: context.l10n.noteNoPage),
+    );
     if (!ok || !mounted) return;
     await AppScope.of(context).notes.delete(note.id);
   }
@@ -48,9 +52,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       MaterialPageRoute(
         builder: (_) => BookSearchScreen(
           initialQuery: book.title,
-          title: 'Cover suchen',
+          title: context.l10n.searchChangeCoverTitle,
           allowWithoutCover: false,
           newBook: false,
+          bookLanguage: book.language,
         ),
       ),
     );
@@ -77,8 +82,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _deleteBook(Book book) async {
     final ok = await _confirm(
-      'Buch löschen?',
-      '„${book.title}" und alle zugehörigen Notizen werden gelöscht.',
+      context.l10n.bdDeleteBookTitle,
+      context.l10n.bdDeleteBookBody(book.title),
     );
     if (!ok || !mounted) return;
     await AppScope.of(context).books.delete(book.id);
@@ -94,11 +99,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Abbrechen'),
+            child: Text(ctx.l10n.commonCancel),
           ),
           FilledButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Löschen'),
+            child: Text(ctx.l10n.commonDelete),
           ),
         ],
       ),
@@ -143,8 +148,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                       : Icons.schedule,
                 ),
                 tooltip: _sort == NoteSort.page
-                    ? 'Sortiert nach Seite (tippen: chronologisch)'
-                    : 'Sortiert chronologisch (tippen: nach Seite)',
+                    ? context.l10n.bdSortedByPage
+                    : context.l10n.bdSortedChrono,
                 onPressed: () => setState(
                   () => _sort = _sort == NoteSort.page
                       ? NoteSort.createdAt
@@ -153,7 +158,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               ),
               IconButton(
                 icon: const Icon(Icons.ios_share),
-                tooltip: 'Exportieren (Buch, Autor oder Bibliothek)',
+                tooltip: context.l10n.bdExportTooltip,
                 onPressed: book == null ? null : () => _export(book),
               ),
               if (book != null)
@@ -166,23 +171,23 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     _ => null,
                   },
                   itemBuilder: (_) => [
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'edit',
-                      child: Text('Titel / Autor bearbeiten'),
+                      child: Text(context.l10n.bdMenuEdit),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'cover',
-                      child: Text('Cover suchen'),
+                      child: Text(context.l10n.searchChangeCoverTitle),
                     ),
                     if (book.coverUrl != null)
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'nocover',
-                        child: Text('Cover entfernen'),
+                        child: Text(context.l10n.bdMenuRemoveCover),
                       ),
                     const PopupMenuDivider(),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
-                      child: Text('Buch löschen'),
+                      child: Text(context.l10n.bdMenuDelete),
                     ),
                   ],
                 ),
@@ -192,16 +197,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             stream: scope.notes.watchBySource(widget.bookId, sort: _sort),
             builder: (context, snap) {
               if (snap.hasError) {
-                return Center(child: Text('Fehler: ${snap.error}'));
+                return Center(
+                  child: Text(context.l10n.commonError('${snap.error}')),
+                );
               }
               final notes = snap.data;
               if (notes == null) {
                 return const Center(child: CircularProgressIndicator());
               }
               if (notes.isEmpty) {
-                return const Center(
-                  child: Text('Noch keine Notizen zu diesem Buch.'),
-                );
+                return Center(child: Text(context.l10n.bdNoNotes));
               }
               return ListView.builder(
                 // Unten Platz für System-Navigationsleiste und FAB.
@@ -231,7 +236,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                     ),
                   ),
                   icon: const Icon(Icons.mic),
-                  label: const Text('Aufnehmen'),
+                  label: Text(context.l10n.bdRecord),
                 ),
         );
       },

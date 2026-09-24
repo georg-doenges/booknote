@@ -69,6 +69,26 @@ void runRepositoryContract(
         expect((await r.books.getById(b.id))!.language, AppLanguage.english);
       });
 
+      test(
+        'update ändert die Sprache des Buchs (Notizen behalten ihre)',
+        () async {
+          final a = await r.books.create(title: 'A');
+          final n = await r.notes.create(
+            sourceId: a.id,
+            text: 'x',
+            rawTranscript: 'x',
+          );
+          await r.books.update(a.copyWith(language: AppLanguage.french));
+
+          expect((await r.books.getById(a.id))!.language, AppLanguage.french);
+          expect(
+            (await r.notes.getById(n.id))!.language,
+            AppLanguage.german,
+            reason: 'die Sprache einer Notiz ist die ihrer Aufnahme',
+          );
+        },
+      );
+
       test('update ändert Titel/Autor/Cover und updatedAt', () async {
         final a = await r.books.create(title: 'A', coverUrl: 'x');
         await Future<void>.delayed(const Duration(milliseconds: 2));

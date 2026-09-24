@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
+import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
@@ -29,7 +31,7 @@ enum _InstallState { notInstalled, updateAvailable, current }
 
 class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
   List<ThemeCatalogEntry>? _entries;
-  String? _error;
+  ThemeCatalogException? _error;
   bool _loading = true;
 
   /// ID des Eintrags, der gerade geladen wird (nur einer zur Zeit).
@@ -60,7 +62,7 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
     } on ThemeCatalogException catch (e) {
       if (!mounted) return;
       setState(() {
-        _error = e.message;
+        _error = e;
         _loading = false;
       });
     }
@@ -76,6 +78,7 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
 
   Future<void> _install(ThemeCatalogEntry e) async {
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     final wasInstalled = widget.store.byId(e.id) != null;
     setState(() => _busyId = e.id);
     try {
@@ -88,21 +91,21 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
         SnackBar(
           content: Text(
             wasInstalled
-                ? '„${theme.name}" aktualisiert.'
-                : '„${theme.name}" installiert und eingeschaltet.',
+                ? l.catUpdated(theme.name)
+                : l.catInstalledActivated(theme.name),
           ),
         ),
       );
     } on ThemeCatalogException catch (ex) {
-      messenger.showSnackBar(SnackBar(content: Text(ex.message)));
-    } on CustomThemeException catch (ex) {
-      messenger.showSnackBar(SnackBar(content: Text(ex.message)));
-    } on FileSystemException {
       messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Speichern auf dem Gerät fehlgeschlagen.'),
-        ),
+        SnackBar(content: Text(themeCatalogErrorText(l, ex))),
       );
+    } on CustomThemeException catch (ex) {
+      messenger.showSnackBar(
+        SnackBar(content: Text(customThemeErrorText(l, ex))),
+      );
+    } on FileSystemException {
+      messenger.showSnackBar(SnackBar(content: Text(l.catSaveFailed)));
     } finally {
       if (mounted) setState(() => _busyId = null);
     }
@@ -113,11 +116,11 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
     final scheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Farbschemata laden'),
+        title: Text(context.l10n.settingsLoadThemes),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            tooltip: 'Katalog neu laden',
+            tooltip: context.l10n.catReload,
             onPressed: _loading ? null : _reload,
           ),
         ],
@@ -138,11 +141,14 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
             children: [
               Icon(Icons.cloud_off, color: scheme.error, size: 40),
               const SizedBox(height: BooknoteTheme.gap8),
-              Text(error, textAlign: TextAlign.center),
+              Text(
+                themeCatalogErrorText(context.l10n, error),
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: BooknoteTheme.gap12),
               FilledButton.tonal(
                 onPressed: _reload,
-                child: const Text('Erneut versuchen'),
+                child: Text(context.l10n.commonRetry),
               ),
             ],
           ),
@@ -153,7 +159,7 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
     if (entries.isEmpty) {
       return Center(
         child: Text(
-          'Der Katalog ist noch leer.',
+          context.l10n.catEmpty,
           style: TextStyle(color: scheme.onSurfaceVariant),
         ),
       );
@@ -167,12 +173,10 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
           bottom: BooknoteTheme.gap16 + MediaQuery.paddingOf(context).bottom,
         ),
         children: [
-          Padding(
-            padding: const EdgeInsets.all(BooknoteTheme.gap16),
-            child: Text(
-              'Aus dem öffentlichen Booknote-Katalog auf GitHub. Ein Tipp auf '
-              '„Installieren" lädt das Schema und schaltet es gleich ein.',
-              style: caption,
+          Explanation(
+            child: Padding(
+              padding: const EdgeInsets.all(BooknoteTheme.gap16),
+              child: Text(context.l10n.catIntro, style: caption),
             ),
           ),
           for (final e in entries) _tile(e, scheme, caption),
@@ -183,6 +187,11 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
 
   Widget _tile(ThemeCatalogEntry e, ColorScheme scheme, TextStyle? caption) {
     final logo = e.logoFile;
+    final l = context.l10n;
+    // Clean Mode: nur Hell/Dunkel, ohne die Beschreibungszeile.
+    final description = context.cleanMode
+        ? null
+        : e.descriptionFor(Localizations.localeOf(context).languageCode);
     return ListTile(
       leading: ThemeSwatch(
         logoUrl: logo == null ? null : widget.service.urlFor(logo).toString(),
@@ -192,8 +201,8 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
       title: Text(e.name),
       subtitle: Text(
         [
-          e.brightness == Brightness.dark ? 'Dunkel' : 'Hell',
-          ?e.description,
+          e.brightness == Brightness.dark ? l.commonDark : l.commonLight,
+          ?description,
         ].join(' · '),
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
@@ -218,18 +227,18 @@ class _ThemeCatalogScreenState extends State<ThemeCatalogScreen> {
     return switch (_stateOf(e)) {
       _InstallState.notInstalled => FilledButton.tonal(
         onPressed: idle ? () => _install(e) : null,
-        child: const Text('Installieren'),
+        child: Text(context.l10n.catInstall),
       ),
       _InstallState.updateAvailable => OutlinedButton(
         onPressed: idle ? () => _install(e) : null,
-        child: const Text('Aktualisieren'),
+        child: Text(context.l10n.catUpdate),
       ),
       _InstallState.current => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.check, size: 18, color: scheme.primary),
           const SizedBox(width: BooknoteTheme.gap4),
-          Text('Installiert', style: caption),
+          Text(context.l10n.catInstalled, style: caption),
         ],
       ),
     };

@@ -48,12 +48,10 @@ ThemeCatalogService _service(
   }),
 );
 
-Matcher _catalogError(Pattern message) => throwsA(
-  isA<ThemeCatalogException>().having(
-    (e) => e.message,
-    'message',
-    contains(message),
-  ),
+Matcher _catalogError(ThemeCatalogErrorKind kind, {int? status}) => throwsA(
+  isA<ThemeCatalogException>()
+      .having((e) => e.kind, 'kind', kind)
+      .having((e) => e.status, 'status', status),
 );
 
 void main() {
@@ -76,11 +74,54 @@ void main() {
       expect(e.brightness, Brightness.dark);
       expect(e.revision, 2);
       expect(e.file, 'blue_gold.json');
-      expect(e.description, 'Nachtblau mit Gold.');
+      expect(e.descriptionFor('de'), 'Nachtblau mit Gold.');
       expect(e.swatchSurface, const Color(0xFF0E1A2C));
       expect(e.swatchPrimary, const Color(0xFFC6A052));
       expect(e.logoFile, 'previews/blue_gold.png');
     });
+
+    test('Beschreibung je Sprache: „descriptions" für neue Apps, „description" '
+        'bleibt der einfache Text für ältere', () async {
+      final body = _index([
+        {
+          ..._goodEntry,
+          'description': 'Nachtblau mit Gold.',
+          'descriptions': {
+            'de': 'Nachtblau mit Gold.',
+            'en': 'Midnight blue with gold.',
+            'fr': 'Bleu nuit avec de l’or.',
+          },
+        },
+      ]);
+      final e = (await _service(
+        (_) async => http.Response.bytes(utf8.encode(body), 200),
+      ).fetchIndex()).single;
+      expect(e.descriptionFor('de'), 'Nachtblau mit Gold.');
+      expect(e.descriptionFor('en'), 'Midnight blue with gold.');
+      expect(e.descriptionFor('fr'), 'Bleu nuit avec de l’or.');
+      // andere Sprache → Englisch
+      expect(e.descriptionFor('nl'), 'Midnight blue with gold.');
+    });
+
+    test(
+      'ohne „descriptions" gilt „description" (Text oder je Sprache)',
+      () async {
+        final body = _index([
+          {..._goodEntry, 'id': 'text'},
+          {
+            ..._goodEntry,
+            'id': 'karte',
+            'description': {'en': 'Blue.', 'de': 'Blau.'},
+          },
+        ]);
+        final entries = await _service(
+          (_) async => http.Response.bytes(utf8.encode(body), 200),
+        ).fetchIndex();
+        expect(entries[0].descriptionFor('fr'), 'Nachtblau mit Gold.');
+        expect(entries[1].descriptionFor('de'), 'Blau.');
+        expect(entries[1].descriptionFor('fr'), 'Blue.');
+      },
+    );
 
     test('Umlaute im UTF-8-Katalog bleiben erhalten', () async {
       final body = _index([
@@ -128,7 +169,7 @@ void main() {
       ).fetchIndex()).single;
       expect(e.revision, 1);
       expect(e.brightness, Brightness.dark);
-      expect(e.description, isNull);
+      expect(e.descriptionFor('de'), isNull);
       expect(e.swatchSurface, isNull);
       expect(e.logoFile, isNull);
     });
@@ -143,7 +184,7 @@ void main() {
     test('HTTP-Status ≠ 200 → verständlicher Fehler', () async {
       await expectLater(
         _service((_) async => http.Response('nope', 404)).fetchIndex(),
-        _catalogError('Status 404'),
+        _catalogError(ThemeCatalogErrorKind.badStatus, status: 404),
       );
     });
 
@@ -151,7 +192,7 @@ void main() {
       await expectLater(
         _service((_) async => throw http.ClientException('offline'))
             .fetchIndex(),
-        _catalogError('Keine Verbindung'),
+        _catalogError(ThemeCatalogErrorKind.noConnection),
       );
     });
 
@@ -167,7 +208,7 @@ void main() {
       );
       await expectLater(
         service.fetchIndex(),
-        _catalogError('Keine Verbindung'),
+        _catalogError(ThemeCatalogErrorKind.noConnection),
       );
     });
 
@@ -175,13 +216,13 @@ void main() {
       await expectLater(
         _service((_) async => http.Response('<html>Hallo</html>', 200))
             .fetchIndex(),
-        _catalogError('Unerwartete Antwort'),
+        _catalogError(ThemeCatalogErrorKind.unexpectedResponse),
       );
       await expectLater(
         _service(
           (_) async => http.Response(_index([], format: 'was-anderes'), 200),
         ).fetchIndex(),
-        _catalogError('Unerwartete Antwort'),
+        _catalogError(ThemeCatalogErrorKind.unexpectedResponse),
       );
     });
 
@@ -189,7 +230,7 @@ void main() {
       await expectLater(
         _service((_) async => http.Response(_index([], formatVersion: 99), 200))
             .fetchIndex(),
-        _catalogError('neuere Booknote-Version'),
+        _catalogError(ThemeCatalogErrorKind.needsNewerApp),
       );
     });
 
@@ -197,7 +238,7 @@ void main() {
       final huge = 'x' * (ThemeCatalogService.maxIndexBytes + 1);
       await expectLater(
         _service((_) async => http.Response(huge, 200)).fetchIndex(),
-        _catalogError('ungewöhnlich groß'),
+        _catalogError(ThemeCatalogErrorKind.tooLarge),
       );
     });
   });
@@ -223,7 +264,7 @@ void main() {
       await expectLater(
         _service((_) async => http.Response(_themeFile(id: 'anderes'), 200))
             .fetchTheme(entry()),
-        _catalogError('passt nicht zu seiner Datei'),
+        _catalogError(ThemeCatalogErrorKind.idMismatch),
       );
     });
 
@@ -231,12 +272,12 @@ void main() {
       await expectLater(
         _service((_) async => http.Response('{"format":"x"}', 200))
             .fetchTheme(entry()),
-        _catalogError('Booknote-Theme'),
+        _catalogError(ThemeCatalogErrorKind.invalidTheme),
       );
       await expectLater(
         _service((_) async => http.Response('kein json', 200))
             .fetchTheme(entry()),
-        _catalogError('kein gültiges JSON'),
+        _catalogError(ThemeCatalogErrorKind.invalidTheme),
       );
     });
 
@@ -244,19 +285,19 @@ void main() {
       await expectLater(
         _service((_) async => http.Response.bytes([0xFF, 0xFE, 0xFD], 200))
             .fetchTheme(entry()),
-        _catalogError('beschädigt'),
+        _catalogError(ThemeCatalogErrorKind.corrupted),
       );
     });
 
     test('HTTP-Fehler / Netzwerk wie beim Katalog', () async {
       await expectLater(
         _service((_) async => http.Response('', 500)).fetchTheme(entry()),
-        _catalogError('Status 500'),
+        _catalogError(ThemeCatalogErrorKind.badStatus, status: 500),
       );
       await expectLater(
         _service((_) async => throw http.ClientException('offline'))
             .fetchTheme(entry()),
-        _catalogError('Keine Verbindung'),
+        _catalogError(ThemeCatalogErrorKind.noConnection),
       );
     });
   });

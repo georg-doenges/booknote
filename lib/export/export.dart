@@ -1,6 +1,7 @@
 /// Sammel-Export der Export-Schicht.
 library;
 
+export 'export_labels.dart';
 export 'exporter.dart';
 export 'export_sheet.dart';
 export 'markdown_exporter.dart';

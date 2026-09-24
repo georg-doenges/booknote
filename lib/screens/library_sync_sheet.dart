@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../app_scope.dart';
+import '../l10n/l10n.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../theme.dart';
@@ -39,19 +40,20 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
     setState(() => _phase = _Phase.working);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l = context.l10n;
     try {
-      final ok = toFile ? await _sync.saveToFile() : await _sync.save();
+      final ok = toFile
+          ? await _sync.saveToFile(dialogTitle: l.dialogSaveAs)
+          : await _sync.save();
       navigator.pop();
       if (ok) {
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Bibliotheksdatei gesichert.')),
-        );
+        messenger.showSnackBar(SnackBar(content: Text(l.syncSaved)));
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _message = 'Sichern fehlgeschlagen: $e';
+          _message = l.syncSaveFailed('$e');
         });
       }
     }
@@ -60,8 +62,11 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   Future<void> _merge() async {
     setState(() => _phase = _Phase.working);
     final messenger = ScaffoldMessenger.of(context);
+    final l = context.l10n;
     try {
-      final result = await _sync.pickAndMerge();
+      final result = await _sync.pickAndMerge(
+        dialogTitle: l.dialogPickLibraryFile,
+      );
       if (!mounted) return;
       switch (result) {
         case LibrarySyncCancelled():
@@ -77,10 +82,8 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
             SnackBar(
               content: Text(
                 result.hard
-                    ? 'Harte Vorlage übernommen: exakt ${result.books} Bücher, '
-                          '${result.notes} Notizen.'
-                    : 'Weiche Vorlage übernommen: ${result.books} Bücher, '
-                          '${result.notes} Notizen.',
+                    ? l.syncAdoptedHard(result.books, result.notes)
+                    : l.syncAdoptedSoft(result.books, result.notes),
               ),
             ),
           );
@@ -89,14 +92,14 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _message = e.message;
+          _message = libraryFileErrorText(l, e);
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _message = 'Abgleich fehlgeschlagen: $e';
+          _message = l.syncMergeFailed('$e');
         });
       }
     }
@@ -108,18 +111,15 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
     setState(() => _phase = _Phase.working);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l = context.l10n;
     try {
       await _sync.shareSnapshot(merged);
       navigator.pop();
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text('Aktualisierte Bibliotheksdatei gesichert.'),
-        ),
-      );
+      messenger.showSnackBar(SnackBar(content: Text(l.syncUpdatedSaved)));
     } catch (e) {
       if (mounted) {
         setState(() => _phase = _Phase.merged);
-        _snack('Sichern fehlgeschlagen: $e');
+        _snack(l.syncSaveFailed('$e'));
       }
     }
   }
@@ -130,40 +130,30 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('Als Vorlage (Master) setzen'),
+          title: Text(ctx.l10n.syncMaster),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Der aktuelle Stand dieses Geräts wird zur Vorlage. Andere '
-                  'Geräte richten sich beim nächsten Abgleich danach – nur so '
-                  'werden Löschungen übertragen.',
-                ),
+                Text(ctx.l10n.syncMasterBody),
                 const SizedBox(height: BooknoteTheme.gap8),
                 RadioGroup<bool>(
                   groupValue: hard,
                   onChanged: (v) => setDialogState(() => hard = v ?? false),
-                  child: const Column(
+                  child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       RadioListTile<bool>(
                         value: false,
                         contentPadding: EdgeInsets.zero,
-                        title: Text('Weich'),
-                        subtitle: Text(
-                          'Andere Geräte übernehmen den Stand samt Löschungen, '
-                          'behalten aber Einträge, die dort ganz neu sind.',
-                        ),
+                        title: Text(ctx.l10n.syncSoft),
+                        subtitle: Text(ctx.l10n.syncSoftBody),
                       ),
                       RadioListTile<bool>(
                         value: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text('Hart'),
-                        subtitle: Text(
-                          'Andere Geräte werden exakt auf diesen Stand gesetzt '
-                          '– alles andere dort wird gelöscht.',
-                        ),
+                        title: Text(ctx.l10n.syncHard),
+                        subtitle: Text(ctx.l10n.syncHardBody),
                       ),
                     ],
                   ),
@@ -174,11 +164,11 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text('Abbrechen'),
+              child: Text(ctx.l10n.commonCancel),
             ),
             FilledButton(
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text('Setzen'),
+              child: Text(ctx.l10n.syncSet),
             ),
           ],
         ),
@@ -188,25 +178,20 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
     setState(() => _phase = _Phase.working);
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
+    final l = context.l10n;
     try {
       await _sync.setAsMaster(hard: hard);
       navigator.pop();
       messenger.showSnackBar(
         SnackBar(
-          content: Text(
-            hard
-                ? 'Als harte Vorlage gesichert. Andere Geräte werden exakt '
-                      'darauf gesetzt.'
-                : 'Als weiche Vorlage gesichert. Andere Geräte gleichen sich '
-                      'an.',
-          ),
+          content: Text(hard ? l.syncMasterSavedHard : l.syncMasterSavedSoft),
         ),
       );
     } catch (e) {
       if (mounted) {
         setState(() {
           _phase = _Phase.error;
-          _message = 'Fehlgeschlagen: $e';
+          _message = l.syncFailed('$e');
         });
       }
     }
@@ -216,6 +201,7 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   Widget build(BuildContext context) {
     final text = Theme.of(context).textTheme;
     final scheme = Theme.of(context).colorScheme;
+    final l = context.l10n;
 
     return SafeArea(
       child: Padding(
@@ -240,13 +226,17 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
               ),
             ),
             const SizedBox(height: BooknoteTheme.gap16),
-            Text('Bibliothek abgleichen', style: text.titleMedium),
-            const SizedBox(height: BooknoteTheme.gap4),
-            Text(
-              'Die Bibliotheksdatei enthält alle Bücher und Notizen. Lege sie '
-              'z.B. in Google Drive ab und gleiche darüber zwischen deinen '
-              'Geräten ab.',
-              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            Text(l.syncTitle, style: text.titleMedium),
+            Explanation(
+              child: Padding(
+                padding: const EdgeInsets.only(top: BooknoteTheme.gap4),
+                child: Text(
+                  l.syncIntro,
+                  style: text.bodySmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: BooknoteTheme.gap16),
             if (_phase == _Phase.merged && _mergeResult != null)
@@ -262,17 +252,21 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
   }
 
   Widget _actions(TextTheme text, ColorScheme scheme) {
+    final l = context.l10n;
     final busy = _phase == _Phase.working;
-    Widget hint(String s) => Padding(
-      padding: const EdgeInsets.only(
-        top: BooknoteTheme.gap4,
-        bottom: BooknoteTheme.gap12,
-      ),
-      child: Text(
-        s,
-        style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
-      ),
-    );
+    // Clean Mode: nur der Abstand zwischen den Knöpfen, ohne Erklärtext.
+    Widget hint(String s) => context.cleanMode
+        ? const SizedBox(height: BooknoteTheme.gap12)
+        : Padding(
+            padding: const EdgeInsets.only(
+              top: BooknoteTheme.gap4,
+              bottom: BooknoteTheme.gap12,
+            ),
+            child: Text(
+              s,
+              style: text.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -283,7 +277,7 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
               child: FilledButton.tonalIcon(
                 onPressed: busy ? null : () => _save(toFile: false),
                 icon: const Icon(Icons.ios_share),
-                label: const Text('Teilen'),
+                label: Text(l.commonShare),
               ),
             ),
             const SizedBox(width: BooknoteTheme.gap8),
@@ -291,15 +285,12 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
               child: FilledButton.tonalIcon(
                 onPressed: busy ? null : () => _save(toFile: true),
                 icon: const Icon(Icons.save_alt),
-                label: const Text('Speichern'),
+                label: Text(l.commonSave),
               ),
             ),
           ],
         ),
-        hint(
-          'Schreibt eine Datei mit dem aktuellen Stand – zum Teilen oder direkt '
-          'in einen Ordner (z.B. Google Drive).',
-        ),
+        hint(l.syncFileHint),
         FilledButton.icon(
           onPressed: busy ? null : _merge,
           icon: busy
@@ -309,29 +300,25 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Icon(Icons.merge),
-          label: const Text('Abgleichen (zusammenführen)'),
+          label: Text(l.syncMerge),
         ),
-        hint(
-          'Vereint Datei und App. Alles, was auf einer Seite noch da ist, '
-          'bleibt – Löschungen werden hier nicht übertragen.',
-        ),
+        hint(l.syncMergeHint),
         OutlinedButton.icon(
           onPressed: busy ? null : _setAsMaster,
           icon: const Icon(Icons.flag_outlined),
-          label: const Text('Als Vorlage (Master) setzen'),
+          label: Text(l.syncMaster),
         ),
-        hint(
-          'Der einzige Weg, Löschungen zu übertragen. Beim Setzen wählst du '
-          'weich (lokal Neues bleibt) oder hart (exakt überschreiben).',
-        ),
+        hint(l.syncMasterHint),
       ],
     );
   }
 
   Widget _mergedView(TextTheme text, ColorScheme scheme) {
     final r = _mergeResult!;
-    String line(String label, int after, int added) =>
-        '$label: $after${added > 0 ? '  (+$added)' : ''}';
+    final l = context.l10n;
+    String line(String label, int after, int added) => added > 0
+        ? l.syncCountLineAdded(label, after, added)
+        : l.syncCountLine(label, after);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -339,48 +326,51 @@ class _LibrarySyncSheetState extends State<_LibrarySyncSheet> {
           children: [
             Icon(Icons.merge, color: scheme.primary),
             const SizedBox(width: BooknoteTheme.gap8),
-            Text('Zusammengeführt', style: text.titleSmall),
+            Text(l.syncMergedTitle, style: text.titleSmall),
           ],
         ),
         const SizedBox(height: BooknoteTheme.gap8),
         Text(
-          line('Bücher', r.booksAfter, r.booksAdded),
+          line(l.syncBooks, r.booksAfter, r.booksAdded),
           style: text.bodyMedium,
         ),
         Text(
-          line('Notizen', r.notesAfter, r.notesAdded),
+          line(l.syncNotes, r.notesAfter, r.notesAdded),
           style: text.bodyMedium,
         ),
         const SizedBox(height: BooknoteTheme.gap16),
         FilledButton.icon(
           onPressed: _phase == _Phase.working ? null : _shareMerged,
           icon: const Icon(Icons.save_outlined),
-          label: const Text('Aktualisierte Datei sichern'),
+          label: Text(l.syncSaveUpdated),
         ),
         const SizedBox(height: BooknoteTheme.gap8),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Fertig'),
+          child: Text(l.commonDone),
         ),
       ],
     );
   }
 
-  Widget _errorView(TextTheme text, ColorScheme scheme) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Row(
-        children: [
-          Icon(Icons.error_outline, color: scheme.error),
-          const SizedBox(width: BooknoteTheme.gap8),
-          Expanded(child: Text(_message, style: text.bodyMedium)),
-        ],
-      ),
-      const SizedBox(height: BooknoteTheme.gap16),
-      OutlinedButton(
-        onPressed: () => setState(() => _phase = _Phase.idle),
-        child: const Text('Zurück'),
-      ),
-    ],
-  );
+  Widget _errorView(TextTheme text, ColorScheme scheme) {
+    final l = context.l10n;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.error_outline, color: scheme.error),
+            const SizedBox(width: BooknoteTheme.gap8),
+            Expanded(child: Text(_message, style: text.bodyMedium)),
+          ],
+        ),
+        const SizedBox(height: BooknoteTheme.gap16),
+        OutlinedButton(
+          onPressed: () => setState(() => _phase = _Phase.idle),
+          child: Text(l.commonBack),
+        ),
+      ],
+    );
+  }
 }

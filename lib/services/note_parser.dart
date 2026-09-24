@@ -1,5 +1,6 @@
 import '../models/app_language.dart';
 import 'english_number_parser.dart';
+import 'french_number_parser.dart';
 import 'german_number_parser.dart';
 
 /// Ergebnis des Parsers. Wird vom Aufrufer in eine `Note` überführt.
@@ -15,7 +16,8 @@ class ParsedNote {
   final String? page;
 
   /// `"oben"`, `"mitte"`, `"unten"`, `"Zeile 10"` (oder die englischen
-  /// Entsprechungen `"top"`, `"middle"`, `"bottom"`, `"Line 10"`) oder `null`.
+  /// Entsprechungen `"top"`, `"middle"`, `"bottom"`, `"Line 10"` bzw. die
+  /// französischen `"haut"`, `"milieu"`, `"bas"`, `"Ligne 10"`) oder `null`.
   final String? position;
 
   /// Notiztext ohne Seiten-/Positionspräfix. Leer, wenn nur Präfix gesprochen.
@@ -31,6 +33,7 @@ class ParsedNote {
 ///
 /// Deutsch: `Seite <Zahl> [folgende|f.|ff.] [oben|mitte|unten|Zeile <Zahl>] , <Text>`
 /// Englisch: `page <Zahl> [following|ff.] [top|middle|bottom|line <Zahl>] , <Text>`
+/// Französisch: `page <Zahl> [et suivantes|sq.|sqq.] [en haut|au milieu|en bas|ligne <Zahl>] , <Text>`
 ///
 /// [language] wählt das Regelwerk (Standard: Deutsch) – passend zur
 /// tatsächlichen Aufnahmesprache (Buch-Vorgabe oder Übersteuerung im
@@ -44,7 +47,11 @@ class NoteParser {
   const NoteParser();
 
   ParsedNote parse(String raw, {AppLanguage language = AppLanguage.german}) =>
-      language == AppLanguage.english ? _parseEnglish(raw) : _parseGerman(raw);
+      switch (language) {
+        AppLanguage.german => _parseGerman(raw),
+        AppLanguage.english => _parseEnglish(raw),
+        AppLanguage.french => _parseFrench(raw),
+      };
 
   // ---- Deutsch ----
 
@@ -211,4 +218,95 @@ class NoteParser {
   }
 
   String _cleanTextEn(String s) => s.replaceFirst(_leadingSepReEn, '').trim();
+
+  // ---- Französisch ----
+
+  static const _wFr = r'[a-zàâçéèêëîïôöûùüÿœæ\-]';
+  static const _sepFr = r'[\s.,;:\-–]*';
+
+  /// Setzt `{w}` (Wortzeichen) und `{sep}` (Trennzeichen) in ein Regex-Muster ein.
+  static String _fr(String template) =>
+      template.replaceAll('{w}', _wFr).replaceAll('{sep}', _sepFr);
+
+  // Seite: "page 47", "à la page 47", "p. 47", "page quarante-sept"
+  static final _pageReFr = RegExp(
+    _fr(r'^[\s.,;:!?\-–]*(?:(?:à|a)\s+la\s+)?(?:page|p\.)\s*(?<num>\d+|{w}+)'),
+    caseSensitive: false,
+  );
+
+  // "et suivante(s)", "sq.", "sqq." (lat. sequens/sequentes) – dasselbe Suffix
+  // f./ff. wie im Deutschen und Englischen.
+  static final _followingReFr = RegExp(
+    _fr(
+      r'^{sep}(?:et\s+)?(?:les\s+)?'
+      r'(?:(?<pl>suivantes|sqq|ff)|(?<sg>suivante|sq|f))\.?(?!{w})',
+    ),
+    caseSensitive: false,
+  );
+
+  static final _positionReFr = RegExp(
+    _fr(
+      r'^{sep}(?:(?<pos>(?:tout\s+)?en\s+haut|au\s+milieu|au\s+centre|'
+      r'en\s+bas|haut|milieu|centre|bas)|'
+      r'ligne\s*(?<line>\d+|{w}+))(?!{w})',
+    ),
+    caseSensitive: false,
+  );
+
+  static final _leadingSepReFr = RegExp(_fr('^{sep}'));
+
+  ParsedNote _parseFrench(String raw) {
+    final lower = raw.toLowerCase();
+    final source = lower.length == raw.length ? raw : lower;
+
+    final pageMatch = _pageReFr.firstMatch(lower);
+    if (pageMatch == null) {
+      return ParsedNote(text: _cleanTextFr(raw), rawTranscript: raw);
+    }
+
+    final numToken = pageMatch.namedGroup('num')!;
+    final pageNumber =
+        int.tryParse(numToken) ?? FrenchNumberParser.parse(numToken);
+    if (pageNumber == null) {
+      return ParsedNote(text: _cleanTextFr(raw), rawTranscript: raw);
+    }
+
+    var cursor = pageMatch.end;
+    var page = '$pageNumber';
+
+    final ff = _followingReFr.firstMatch(lower.substring(cursor));
+    if (ff != null) {
+      page += ff.namedGroup('pl') != null ? 'ff.' : 'f.';
+      cursor += ff.end;
+    }
+
+    String? position;
+    final pos = _positionReFr.firstMatch(lower.substring(cursor));
+    if (pos != null) {
+      final word = pos.namedGroup('pos');
+      if (word != null) {
+        position = word.contains('haut')
+            ? 'haut'
+            : word.contains('bas')
+            ? 'bas'
+            : 'milieu';
+      } else {
+        final lineToken = pos.namedGroup('line')!;
+        final line =
+            int.tryParse(lineToken) ?? FrenchNumberParser.parse(lineToken);
+        position = line != null ? 'Ligne $line' : null;
+      }
+      if (position != null) cursor += pos.end;
+    }
+
+    final text = _cleanTextFr(source.substring(cursor));
+    return ParsedNote(
+      page: page,
+      position: position,
+      text: text,
+      rawTranscript: raw,
+    );
+  }
+
+  String _cleanTextFr(String s) => s.replaceFirst(_leadingSepReFr, '').trim();
 }

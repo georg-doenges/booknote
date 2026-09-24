@@ -324,6 +324,182 @@ test/
   wählt der Nutzer selbst.
 - App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
 
+## Clean Mode, gleich hohe Kacheln, „Buch bearbeiten" — `0.1.0+28`
+
+Nutzerwunsch nach dem Gerätetest: (1) ein **Clean Mode**, der die Erklärungen
+ausblendet (der Standard bleibt: alles erklärt, für neue Nutzer); (2) die zwei
+Punkte aus dem BACKLOG („Buch bearbeiten": Sprachwahl nicht zu finden; Kacheln
+unterschiedlich hoch).
+
+- **Clean Mode** (Einstellungen → Anzeige, `AppPrefs.cleanMode`, Standard aus,
+  gespeichert unter `clean_mode`). Ausgeblendet werden reine Erklärungen, nie
+  Beschriftungen, Überschriften, Statusmeldungen, Fehler oder Warnungen:
+  Beispiel-/Hilfetexte unter Feldern (Buchsuche, API-Schlüssel, Notiz-Felder),
+  Abschnitts-Erklärungen in den Einstellungen, der Hinweis unter der
+  Sprach-Auswahl, „Sprich z.B. …", „Tippen zum Aufnehmen" (nur im Ruhezustand)
+  und der Hinweis bei langen Aufnahmen, die Erklärung im Menü der
+  Aufnahmesprache, die Abgleich-Einleitung samt Hinweisen unter den Knöpfen,
+  Einleitung und Beschreibungszeilen im Farbschema-Katalog, „Titel eingeben, um
+  Cover zu suchen", die zweite Zeile der leeren Bibliothek („Lege mit + …" →
+  nur „Noch keine Bücher."). **Bleibt:** der Schalter samt seinem Satz (sonst
+  findet man nicht zurück), die Warnungen und Bestätigungsdialoge des Abgleichs
+  (Weich/Hart löscht ggf. Daten), Fehlermeldungen, „Noch keine Notizen …".
+- **Technik:** `AppScope` ist jetzt ein `InheritedNotifier<AppSettings>` – wer
+  `AppScope.of(context)` aufruft, baut bei jeder Einstellungsänderung neu, der
+  Schalter wirkt also sofort auf jeder offenen Seite. `context.cleanMode` /
+  `context.explain(text)` (→ `null` im Clean Mode, für `helperText`/`subtitle`/
+  `caption`) und das Widget `Explanation` (Block samt Abständen) in
+  `lib/app_scope.dart`; ohne `AppScope` (z.B. ein Widget für sich im Test) gilt
+  der Normalfall. Neue Texte: `settingsCleanMode(Sub)`, `libraryEmptyShort`.
+  README (en/de): ein Satz dazu.
+- **Kacheln gleich hoch.** Ursache war nicht das Raster (alle Zellen gleich hoch),
+  sondern `BoxFit.contain` bei dezentem Rahmen: Das Auge maß das Cover, und das
+  füllte die Fläche je nach Seitenverhältnis unterschiedlich, der Platzhalter
+  dagegen ganz. Jetzt: gefüllte Kartenfläche (`surfaceContainerLow`) hinter jedem
+  Cover und kräftigerer Rahmen (Alpha 0,3), sodass jede Kachel als gleiches
+  Rechteck gelesen wird; Zellen niedriger (Cover-Fläche **3:4** statt 2:3);
+  Platzhalter zurückhaltender (kleineres Icon, `labelMedium`, max. 4 Zeilen –
+  der Titel steht ohnehin darunter).
+- **„Buch bearbeiten":** Die Sprachwahl war da, aber der Dialog öffnete mit
+  Autofokus und Tastatur, die sie verdeckte. Kein Autofokus mehr; der Dialog
+  bleibt scrollbar.
+- **Prüfung:** `flutter analyze` sauber; Debug-Build läuft. Neue Tests
+  (`localized_screens_test`: Clean Mode je Bildschirm, Autofokus;
+  `app_settings_test`; `book_cover_tile_test`: gleiche Höhe, Kartenfläche, 3:4)
+  **geschrieben, aber nicht ausgeführt** (Smart App Control blockiert
+  `flutter_tester.exe`) – ebenso wenig am Gerät gesehen.
+
+## Vier neue Katalog-Schemata, Blue Gold matter (nur Repo, keine neue App)
+
+Nutzerwunsch: weitere Schemata zum Ausprobieren, um den Katalog-Weg mit der
+bestehenden Installation zu testen – ein „cleanes" mit viel Weiß, ein kräftigeres
+(Tequila Sunrise war zu spärlich), Muster als Idee.
+
+- **Neu in `themes/`:** *Clean Slate* (hell: Weiß, neutrale Grautöne, ein
+  Stahlblau `#3A6088` als einziger, ruhiger Akzent; alle `surfaceContainer*`
+  ausdrücklich neutral), *Sundown* (Pflaumenviolett, Orange, Pink; Farbe auf den
+  großen Flächen), *Book Cloth* (flaschengrünes Leinen mit Koralle; **Gewebe als
+  Hintergrund-Kachel**, `fit: tile`), *Graphite* (neutrales Dunkelgrau, Mintgrün).
+  Jeweils Beschreibung de/en/fr, eingefärbtes Logo (Vorschau im Katalog),
+  `revision: 1`, nur Systemschrift.
+- **Blue Gold: mattes Altgold** statt grellem Gelb: `#C6A052` (Sättigung 50 %) →
+  `#BD9B5E` (42 %, Ton bleibt warm), passend Text, Container und Logo; dazu die
+  Serifenschrift **Tinos** wie bei Old Library (`font`, steckt schon im APK).
+  `revision: 3` → die Apps bieten „Aktualisieren" an.
+- **Webmuster:** `tool/weave_tile.js` erzeugt eine nahtlose Leinwandbindung
+  (120 × 120 px, Fadenabstand 5, Fäden leicht verschieden getönt, Längsstreifen,
+  sanfte Unregelmäßigkeit; wiederholbar per `--seed`). Erster Wurf sah wie ein
+  Schachbrett aus (Kette/Schuss zu verschieden, jede Kreuzung ein Klotz) – dann
+  Farben angeglichen, Kreuzungen weicher, Fadenabstand feiner. `surface` = mittlere
+  Kachelfarbe (`#13352F`); hellster Texel `#194A41` hält Fließtext ≥ 7:1.
+- **Katalog-Index abwärtskompatibel:** Die veröffentlichte +26 liest `description`
+  nur als Text; ein Sprach-Objekt (wie es der Index seit dem Mehrsprachigkeits-
+  Umbau hatte) hätte dort den Katalog kaputt gemacht. `index.json` trägt deshalb
+  `description` (deutscher Text) **und** `descriptions` (de/en/fr);
+  `ThemeCatalogEntry.fromJson` bevorzugt `descriptions`.
+- **Prüfung:** Kontrast-Skript über alle Katalog-Themes (Text-/Flächenpaare,
+  WCAG); neue Schemata bestehen alle. Vorbestehend knapp: Blue Gold `outline`
+  2,0:1 zu `surface` (Rahmen der Eingabefelder), Old Library `tertiary` 4,3:1
+  (nur der lange Aufnahme-Hinweis) – nicht angefasst. Dauerhafte Tests in
+  `themes_catalog_test.dart` (Charakter der Schemata, Altgold-Bereich, Kontrast,
+  Index-Kompatibilität) und `theme_catalog_service_test.dart` – **geschrieben,
+  aber nicht ausgeführt** (Smart App Control blockiert `flutter_tester.exe`).
+  `flutter analyze` sauber, `dart run tool/build_theme_index.dart` läuft.
+- **Offen:** nicht committet/gepusht (Repo ist öffentlich, Nutzer entscheidet);
+  am Gerät noch nicht gesehen – ob das Leinen in echt zu unruhig ist, zeigt erst
+  das Handy (Stellschrauben: `--pitch`, `--relief`, `--jitter`, oder `opacity`
+  im Theme).
+
+## Cover ohne Beschnitt, Mehrsprachigkeit (de/en/fr) — `0.1.0+27`
+
+Anlass: Gerätetest auf einem neuen Handy. (1) Ein Google-Books-Cover („Der
+Zauberberg") war oben und unten stark abgeschnitten; (2) die erste Testerin
+spricht Englisch bzw. Französisch/Flämisch – die App war rein deutsch.
+
+**Cover nie beschneiden.** Neues `FramedCover`: `BoxFit.contain` statt `cover`,
+übrige Fläche behält die Hintergrundfarbe, dazu ein dezenter Rahmen in der
+Schriftfarbe (`onSurface`, alpha 0,22 – passt in jedes Schema). Gilt für die
+Kacheln der Bibliothek und die Trefferliste der Buchsuche. Die Kacheln sind
+höher: `CoverGridDelegate` gibt der Cover-Fläche in jeder Zelle das Hochformat
+2:3 (vorher ~0,82:1) und rechnet die Textzeilen darunter aus der Systemschrift
+ein. Beim Testen fiel auf: Der Platzhalter für Bücher ohne Cover lief bei sehr
+langen Titeln in schmalen Spalten über (`Flexible` ergänzt).
+
+**Drei Sprachen: Deutsch, English, Français.** Flutters `gen-l10n`
+(`l10n.yaml`, `lib/l10n/app_{de,en,fr}.arb`, 197 Texte je Sprache, Vorlage
+Deutsch), Zugriff über `context.l10n`.
+- *Sprache der App:* neu unter Einstellungen → App-Sprache („Wie das Gerät" /
+  Deutsch / English / Français), gespeichert in `AppPrefs.uiLanguage`. Ohne
+  Wahl gilt die Gerätesprache; ist sie keine der drei (z.B. Niederländisch),
+  fällt die App auf **English** zurück (`resolveAppLocale`), nicht auf Deutsch.
+- *Aufnahme-/Buchsprache* ist jetzt ebenfalls dreisprachig: `AppLanguage.french`
+  (Whisper `fr`, Cover-Suche, Präfix „p."), neuer `FrenchNumberParser`
+  („quarante-sept", „quatre-vingt-dix-sept", belgisch „septante"/„nonante") und
+  ein französischer Regelsatz im `NoteParser` („page 47 en haut", „ligne 10",
+  „et suivantes"/„sq."/„sqq." → f./ff.). Die Sprache des Buchs startet beim
+  Anlegen mit der App-Sprache; wie die Sprachebenen bedient werden, steht im
+  nächsten Abschnitt.
+- *Fehlermeldungen der Services* sind keine deutschen Texte mehr, sondern
+  Typen (`TranscriptionErrorKind`, `CoverSearchErrorKind`, `ThemeCatalogErrorKind`,
+  `CustomThemeErrorKind`, `LibraryFileErrorKind` + Status/Name/Ursache); die UI
+  formuliert sie in `lib/l10n/l10n.dart` in der Sprache der App.
+  `CoverSearchResult.warning` ist dafür ein `CoverSearchException?`.
+- *Exporte:* `ExportLabels` (Überschriften, Platzhalter, Datumsformat) im
+  `ExportRequest`, Vorgabe Deutsch (bestehende Ausgaben unverändert); der
+  Export-Sheet übergibt die Sprache der App. Der Seitenpräfix („S."/„p.")
+  richtet sich weiter nach der Sprache der Notiz.
+- *Datum:* Deutsch wie gehabt numerisch, English/Français mit Monatsname
+  (`Sep 5, 2026, 7:26 PM` / `5 sept. 2026, 19:26`) – nie Tag/Monat verwechselbar.
+- *Systemdialoge* („Speichern unter", Dateiwähler) bekommen ihren Titel
+  übersetzt übergeben; die Spracheingabe für Buchtitel nutzt jetzt die
+  Buch-/Suchsprache statt fest Deutsch.
+- *Theme-Katalog:* `description` darf ein Text oder je Sprache `de/en/fr` sein.
+- *README:* Hauptdatei jetzt **englisch** (Tester), `README.de.md` deutsch,
+  gegenseitig verlinkt. Französische Übersetzungen bitte von einem
+  Muttersprachler gegenlesen lassen.
+- Tests: 404 grün (vorher 270). Neu: französische Zahlwörter/Notizen (80),
+  ARB-Konsistenz (gleiche Schlüssel und Platzhalter in allen drei Dateien,
+  keine ASCII-Apostrophe, französische Typografie), Fehlertexte in allen
+  Sprachen, Sprachauflösung, Screen-Smoke-Tests (Bibliothek, Buch anlegen,
+  Einstellungen inkl. Sprachwechsel, Aufnahme-Screen, Katalog, Notiz-Kachel)
+  je Sprache über die Gerätesprache, plus Cover-/Raster-Tests.
+  Auf Gerät noch nicht getestet.
+
+### Sprachebenen: lokal statt global erkennbar (Usability-Durchgang)
+
+Es gibt drei Sprachen-Ebenen; der Nutzer soll auf einen Blick sehen, auf welcher
+er gerade ist, ohne dass ihm das Konzept erklärt wird. Grundsatz: **Was nur ein
+Buch oder eine Aufnahme betrifft, steht beschriftet im Inhalt der Seite – nie
+als Symbol in der AppBar.** Dort erwartet man App-weite Dinge; das alte
+Übersetzen-Symbol („🌐 DE ▾") sah an zwei Stellen gleich aus, meinte aber
+verschiedenes und zeigte seinen Zweck nur als Tooltip (auf dem Handy unsichtbar).
+
+| Ebene | Wo | Wie |
+|---|---|---|
+| App (global) | Einstellungen → **App-Sprache** | Auswahlliste; einzige globale Sprachwahl |
+| Buch | Neues Buch (Suchseite) und „Buch bearbeiten" | Überschrift **„Sprache dieses Buchs"** + Chips `Deutsch / English / Français`, Hinweis „Für Aufnahmen und Cover-Suche. Lässt sich später ändern." |
+| Aufnahme (nur jetzt) | Aufnahme-Screen, Kopfzeile über dem Knopf | Schaltfläche **„Aufnahmesprache: Deutsch ▾"**; das Menü beginnt mit „Nur für jetzt. Sprache des Buchs: …". Weicht die Wahl vom Buch ab, ist sie farbig hervorgehoben; der Beispielsatz darunter wechselt mit |
+
+- Neue Widgets: `LanguageChoice` (Chips, bricht bei mehr Sprachen um),
+  `RecordingLanguageChip`. `LanguageMenuButton` ist entfernt.
+- **Cover-Suche folgt der Sprache des Buchs** – die eigene, global gespeicherte
+  Cover-Sprache (`coverSearchLanguage`, AppBar der Suchseite) entfällt: sie stand
+  neben der Buchsprache auf derselben Seite und war global, sah aber lokal aus.
+  Beim Wechsel der Buchsprache wird neu gesucht; „Cover ändern" nutzt die
+  Sprache des Buchs (`BookSearchScreen.bookLanguage`). Ein alter Wert `lang_cover`
+  wird beim nächsten Speichern der Einstellungen aufgeräumt.
+- **Sprache des Buchs ist jetzt nachträglich änderbar** („Buch bearbeiten",
+  auch per langem Druck auf den Titel im Aufnahme-Screen). Vorher ging das
+  nicht, und `BookRepository.update` hätte sie auch nicht gespeichert – beide
+  Repositories schreiben jetzt `language`. Im Aufnahme-Screen stellt die Änderung
+  die laufende Aufnahmesprache gleich mit um. Bereits gespeicherte Notizen
+  behalten ihre eigene Sprache.
+- Tests geschrieben (`localized_screens_test`, `repository_contract`,
+  `app_settings_test`), **aber nicht ausgeführt**: Windows Smart App Control
+  blockiert seit dem 24.09.2026 Flutters `flutter_tester.exe` (unsigniert;
+  Ereignis 3077 im CodeIntegrity-Log), alle 27 Testdateien scheitern schon beim
+  Laden. `flutter analyze` ist sauber, der Debug-Build läuft.
+
 ## Theme-Katalog aus GitHub, Themes raus aus dem APK — `0.1.0+26`
 
 Nutzerwunsch: Farbschemata als „Gimmick" nach und nach im Repo erweitern und
