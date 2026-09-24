@@ -74,7 +74,7 @@
   "bdSortedByPage": "Sorted by page (tap: chronological)",
   "bdSortedChrono": "Sorted chronologically (tap: by page)",
   "bdExportTooltip": "Export (book, author or library)",
-  "bdMenuEdit": "Edit title / author",
+  "bdEditBook": "Edit title, author, language",
   "bdMenuRemoveCover": "Remove cover",
   "bdMenuDelete": "Delete book",
   "bdNoNotes": "No notes for this book yet.",

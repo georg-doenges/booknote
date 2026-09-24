@@ -2,6 +2,9 @@
 
 **English** · [Deutsch](README.de.md)
 
+**Want to try it? Android:** [download the APK](https://github.com/georg-doenges/booknote/releases/latest/download/booknote.apk), open it and follow
+[Installation](#installation-apk) below.
+
 Capture reading notes by voice — **quick, with just a few taps.**
 
 The idea: while you read, Booknote is always at hand. Tap a book (or add a new
@@ -28,10 +31,11 @@ how to set it up is explained below.
 
 ## Installation (APK)
 
-The ready-made APK is under
-[Releases](https://github.com/georg-doenges/booknote/releases) in this repo.
+**Direct download of the latest version: [booknote.apk](https://github.com/georg-doenges/booknote/releases/latest/download/booknote.apk)**
+(older versions are under
+[Releases](https://github.com/georg-doenges/booknote/releases)).
 
-1. Download the APK on your Android phone and tap it.
+1. Download the APK on your Android phone (link above) and tap it.
 2. Android will probably ask for permission to install apps from this source —
    allow it. (If Play Protect warns about an unknown app, choose “Install
    anyway”.)

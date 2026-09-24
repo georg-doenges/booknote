@@ -538,11 +538,11 @@ abstract class AppLocalizations {
   /// **'Exportieren (Buch, Autor oder Bibliothek)'**
   String get bdExportTooltip;
 
-  /// No description provided for @bdMenuEdit.
+  /// No description provided for @bdEditBook.
   ///
   /// In de, this message translates to:
-  /// **'Titel / Autor bearbeiten'**
-  String get bdMenuEdit;
+  /// **'Titel, Autor, Sprache bearbeiten'**
+  String get bdEditBook;
 
   /// No description provided for @bdMenuRemoveCover.
   ///

@@ -72,23 +72,36 @@ class BookCoverTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: _textGap),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-            if (book.author != null)
-              Text(
-                book.author!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall
-                    ?.copyWith(color: scheme.onSurfaceVariant),
-                textAlign: TextAlign.center,
+            // Fester Platz für Titel und Autor, egal wie viele Zeilen es
+            // sind: Sonst bekäme das (Expanded) Cover mehr oder weniger Höhe,
+            // je nachdem, wie viel Text darunter steht.
+            SizedBox(
+              height: textBlockHeight(context),
+              child: Padding(
+                padding: const EdgeInsets.only(top: _textGap),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                      textAlign: TextAlign.center,
+                    ),
+                    if (book.author != null)
+                      Text(
+                        book.author!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall
+                            ?.copyWith(color: scheme.onSurfaceVariant),
+                        textAlign: TextAlign.center,
+                      ),
+                  ],
+                ),
               ),
+            ),
           ],
         ),
       ),

@@ -195,7 +195,7 @@
   "bdSortedByPage": "Sortiert nach Seite (tippen: chronologisch)",
   "bdSortedChrono": "Sortiert chronologisch (tippen: nach Seite)",
   "bdExportTooltip": "Exportieren (Buch, Autor oder Bibliothek)",
-  "bdMenuEdit": "Titel / Autor bearbeiten",
+  "bdEditBook": "Titel, Autor, Sprache bearbeiten",
   "bdMenuRemoveCover": "Cover entfernen",
   "bdMenuDelete": "Buch löschen",
   "bdNoNotes": "Noch keine Notizen zu diesem Buch.",

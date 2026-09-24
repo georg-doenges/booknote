@@ -324,7 +324,12 @@ test/
   wählt der Nutzer selbst.
 - App-Icon war zunächst offen (BACKLOG) – inzwischen gebaut, siehe unten.
 
-## Clean Mode, gleich hohe Kacheln, „Buch bearbeiten" — `0.1.0+28`
+## Clean Mode, gleich hohe Kacheln, „Buch bearbeiten" — `0.1.0+29`
+
+*Veröffentlichung:* Das APK liegt in den Releases stets unter dem festen Namen
+**`booknote.apk`**, damit die README auf
+`…/releases/latest/download/booknote.apk` verlinken kann (der Link zeigt immer auf
+die neueste Nicht-Pre-Release-Version). Bei jedem Release die Datei so benennen.
 
 Nutzerwunsch nach dem Gerätetest: (1) ein **Clean Mode**, der die Erklärungen
 ausblendet (der Standard bleibt: alles erklärt, für neue Nutzer); (2) die zwei
@@ -352,17 +357,31 @@ unterschiedlich hoch).
   `lib/app_scope.dart`; ohne `AppScope` (z.B. ein Widget für sich im Test) gilt
   der Normalfall. Neue Texte: `settingsCleanMode(Sub)`, `libraryEmptyShort`.
   README (en/de): ein Satz dazu.
-- **Kacheln gleich hoch.** Ursache war nicht das Raster (alle Zellen gleich hoch),
-  sondern `BoxFit.contain` bei dezentem Rahmen: Das Auge maß das Cover, und das
-  füllte die Fläche je nach Seitenverhältnis unterschiedlich, der Platzhalter
-  dagegen ganz. Jetzt: gefüllte Kartenfläche (`surfaceContainerLow`) hinter jedem
-  Cover und kräftigerer Rahmen (Alpha 0,3), sodass jede Kachel als gleiches
-  Rechteck gelesen wird; Zellen niedriger (Cover-Fläche **3:4** statt 2:3);
-  Platzhalter zurückhaltender (kleineres Icon, `labelMedium`, max. 4 Zeilen –
-  der Titel steht ohnehin darunter).
-- **„Buch bearbeiten":** Die Sprachwahl war da, aber der Dialog öffnete mit
-  Autofokus und Tastatur, die sie verdeckte. Kein Autofokus mehr; der Dialog
-  bleibt scrollbar.
+- **Kacheln gleich hoch.** Erste Vermutung (Cover mit anderem Seitenverhältnis
+  unter `BoxFit.contain`) war nur ein Nebeneffekt. **Eigentliche Ursache** (am
+  Gerät gefunden): Die Cover-Fläche ist `Expanded` und bekam, was der Text
+  darunter übrig ließ – drei Zeilen (2× Titel + Autor) drückten sie kleiner als
+  zwei; `BookCoverTile` gibt dem Text jetzt einen **festen Platz**
+  (`textBlockHeight`). Dazu, weiter sinnvoll: gefüllte Kartenfläche
+  (`surfaceContainerLow`) hinter jedem Cover und kräftigerer Rahmen (Alpha 0,3),
+  Zellen niedriger (Cover-Fläche **3:4** statt 2:3), zurückhaltender Platzhalter
+  (kleineres Icon, `labelMedium`, max. 4 Zeilen). Der Test misst jetzt die
+  Cover-Fläche selbst; der erste Test maß nur die Zelle und hätte den Fehler nie
+  gefunden.
+- **„Buch bearbeiten":** Zwei Gründe, warum die Sprachwahl nicht zu finden war:
+  Der Dialog öffnete mit Autofokus und Tastatur, die sie verdeckte (kein
+  Autofokus mehr, Dialog scrollbar) – und der Menüpunkt hinter ⋮ hieß „Titel /
+  Autor bearbeiten", ohne die Sprache zu nennen. Jetzt steht in der Kopfzeile der
+  Buch-Details **Autor · Sprache** und ein **sichtbarer Stift** in der AppBar
+  („Titel, Autor, Sprache bearbeiten"); der Menüpunkt hinter ⋮ entfällt. Neben
+  vier Symbolen blieb für den Titel in der AppBar kein Platz (nur die ersten
+  Buchstaben) – deshalb steht die AppBar nur noch aus Pfeil und Symbolen, und
+  Titel (zwei Zeilen, `titleLarge`) samt „Autor · Sprache" darunter im Inhalt
+  (`_BookHeader`).
+- **Aufnahme-Screen im Clean Mode:** Der Aufnahme-Knopf saß links, weil die Spalte
+  ohne die breiten Hinweistexte nur so breit war wie ihr breitestes Element und
+  im Scroll-Bereich links ausgerichtet wird. Jetzt `minWidth` = volle Breite.
+  Lehre: Ein „Element ausblenden" kann Layout ändern, das an ihm hing.
 - **Prüfung:** `flutter analyze` sauber; Debug-Build läuft. Neue Tests
   (`localized_screens_test`: Clean Mode je Bildschirm, Autofokus;
   `app_settings_test`; `book_cover_tile_test`: gleiche Höhe, Kartenfläche, 3:4)

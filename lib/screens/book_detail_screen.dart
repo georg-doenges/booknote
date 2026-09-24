@@ -125,22 +125,16 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           return const Scaffold(body: SizedBox.shrink());
         }
         return Scaffold(
+          // Nur Zurück-Pfeil und Symbole: Titel und Autor stehen darunter,
+          // sonst bleibt neben vier Symbolen kein Platz für sie.
           appBar: AppBar(
-            title: book == null
-                ? const SizedBox.shrink()
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(book.title, overflow: TextOverflow.ellipsis),
-                      if (book.author != null)
-                        Text(
-                          book.author!,
-                          overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall,
-                        ),
-                    ],
-                  ),
             actions: [
+              if (book != null)
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined),
+                  tooltip: context.l10n.bdEditBook,
+                  onPressed: () => _editBook(book),
+                ),
               IconButton(
                 icon: Icon(
                   _sort == NoteSort.page
@@ -164,17 +158,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               if (book != null)
                 PopupMenuButton<String>(
                   onSelected: (v) => switch (v) {
-                    'edit' => _editBook(book),
                     'cover' => _changeCover(book),
                     'nocover' => _removeCover(book),
                     'delete' => _deleteBook(book),
                     _ => null,
                   },
                   itemBuilder: (_) => [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Text(context.l10n.bdMenuEdit),
-                    ),
                     PopupMenuItem(
                       value: 'cover',
                       child: Text(context.l10n.searchChangeCoverTitle),
@@ -193,39 +182,47 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
             ],
           ),
-          body: StreamBuilder<List<Note>>(
-            stream: scope.notes.watchBySource(widget.bookId, sort: _sort),
-            builder: (context, snap) {
-              if (snap.hasError) {
-                return Center(
-                  child: Text(context.l10n.commonError('${snap.error}')),
-                );
-              }
-              final notes = snap.data;
-              if (notes == null) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (notes.isEmpty) {
-                return Center(child: Text(context.l10n.bdNoNotes));
-              }
-              return ListView.builder(
-                // Unten Platz für System-Navigationsleiste und FAB.
-                padding: EdgeInsets.fromLTRB(
-                  0,
-                  BooknoteTheme.gap8,
-                  0,
-                  BooknoteTheme.gap8 +
-                      BooknoteTheme.fabSafeBottom +
-                      MediaQuery.paddingOf(context).bottom,
+          body: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (book != null) _BookHeader(book: book),
+              Expanded(
+                child: StreamBuilder<List<Note>>(
+                  stream: scope.notes.watchBySource(widget.bookId, sort: _sort),
+                  builder: (context, snap) {
+                    if (snap.hasError) {
+                      return Center(
+                        child: Text(context.l10n.commonError('${snap.error}')),
+                      );
+                    }
+                    final notes = snap.data;
+                    if (notes == null) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (notes.isEmpty) {
+                      return Center(child: Text(context.l10n.bdNoNotes));
+                    }
+                    return ListView.builder(
+                      // Unten Platz für System-Navigationsleiste und FAB.
+                      padding: EdgeInsets.fromLTRB(
+                        0,
+                        BooknoteTheme.gap8,
+                        0,
+                        BooknoteTheme.gap8 +
+                            BooknoteTheme.fabSafeBottom +
+                            MediaQuery.paddingOf(context).bottom,
+                      ),
+                      itemCount: notes.length,
+                      itemBuilder: (_, i) => NoteTile(
+                        note: notes[i],
+                        onTap: () => _editNote(notes[i]),
+                        onDelete: () => _deleteNote(notes[i]),
+                      ),
+                    );
+                  },
                 ),
-                itemCount: notes.length,
-                itemBuilder: (_, i) => NoteTile(
-                  note: notes[i],
-                  onTap: () => _editNote(notes[i]),
-                  onDelete: () => _deleteNote(notes[i]),
-                ),
-              );
-            },
+              ),
+            ],
           ),
           floatingActionButton: book == null
               ? null
@@ -240,6 +237,48 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 ),
         );
       },
+    );
+  }
+}
+
+/// Titel, Autor und Sprache des Buchs unter der AppBar – in der Größe, die der
+/// Titel früher in der Leiste hatte. Die Sprache steht hier sichtbar; der Stift
+/// in der AppBar ändert sie.
+class _BookHeader extends StatelessWidget {
+  const _BookHeader({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    final text = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        BooknoteTheme.gap16,
+        BooknoteTheme.gap4,
+        BooknoteTheme.gap16,
+        BooknoteTheme.gap8,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            book.title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: text.titleLarge,
+          ),
+          Text(
+            [
+              if (book.author != null) book.author!,
+              book.language.label,
+            ].join(' · '),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: text.labelSmall,
+          ),
+        ],
+      ),
     );
   }
 }

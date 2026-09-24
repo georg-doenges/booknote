@@ -2,6 +2,9 @@
 
 [English](README.md) · **Deutsch**
 
+**Ausprobieren? Android:** [APK herunterladen](https://github.com/georg-doenges/booknote/releases/latest/download/booknote.apk), öffnen und den
+Schritten unter [Installation](#installation-apk) folgen.
+
 Lesenotizen per Sprache erfassen — **niederschwellig, mit ein paar Klicks.**
 
 Die Idee: Während du liest, hast du Booknote schnell zur Hand. Buch antippen
@@ -32,10 +35,11 @@ steht weiter unten.
 
 ## Installation (APK)
 
-Das fertige APK zum Installieren gibt es unter
-[Releases](https://github.com/georg-doenges/booknote/releases) dieses Repos.
+**Direkter Download der neuesten Version: [booknote.apk](https://github.com/georg-doenges/booknote/releases/latest/download/booknote.apk)**
+(ältere Versionen unter
+[Releases](https://github.com/georg-doenges/booknote/releases)).
 
-1. APK auf dem Android-Gerät herunterladen und antippen.
+1. APK auf dem Android-Gerät herunterladen (Link oben) und antippen.
 2. Android fragt vermutlich nach der Erlaubnis, Apps aus dieser Quelle zu
    installieren — zulassen. (Warnt Play Protect vor einer unbekannten App:
    „Trotzdem installieren“.)

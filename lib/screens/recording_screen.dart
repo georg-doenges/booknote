@@ -273,7 +273,13 @@ class _RecordingScreenState extends State<RecordingScreen> {
               child: LayoutBuilder(
                 builder: (context, c) => SingleChildScrollView(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: c.maxHeight),
+                    // Volle Breite: Sonst ist die Spalte nur so breit wie ihr
+                    // breitestes Element und sitzt links (im Clean Mode fehlen
+                    // die breiten Hinweistexte).
+                    constraints: BoxConstraints(
+                      minWidth: c.maxWidth,
+                      minHeight: c.maxHeight,
+                    ),
                     child: IntrinsicHeight(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,

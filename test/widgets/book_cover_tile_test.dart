@@ -183,18 +183,30 @@ void main() {
       },
     );
 
-    testWidgets('alle Kacheln sind gleich hoch – mit/ohne Autor, kurzer/langer '
-        'Titel', (tester) async {
+    testWidgets('Cover-Fläche ist immer gleich hoch – egal, wie viele Zeilen '
+        'Text darunter stehen', (tester) async {
       await pumpGrid(tester, [
         _book(),
         _book(author: null),
         _book(title: 'Kurz'),
         _book(title: 'Sehr langer Titel ' * 8),
       ]);
+      // Gemessen wird die Cover-Fläche (der Rahmen), nicht die Zelle: Ein
+      // `Expanded`-Cover bekam früher mehr Höhe, wenn darunter weniger Text
+      // stand (1 Zeile Titel, kein Autor …).
       final heights = {
         for (final tile in tester.widgetList(find.byType(BookCoverTile)))
-          tester.getSize(find.byWidget(tile)).height,
+          tester
+              .getSize(
+                find.descendant(
+                  of: find.byWidget(tile),
+                  matching: find.byType(FramedCover),
+                ),
+              )
+              .height
+              .toStringAsFixed(2),
       };
+      expect(tester.widgetList(find.byType(FramedCover)), hasLength(4));
       expect(heights, hasLength(1));
     });
 

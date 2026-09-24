@@ -281,7 +281,7 @@ class AppLocalizationsFr extends AppLocalizations {
   String get bdExportTooltip => 'Exporter (livre, auteur ou bibliothèque)';
 
   @override
-  String get bdMenuEdit => 'Modifier le titre / l’auteur';
+  String get bdEditBook => 'Modifier titre, auteur, langue';
 
   @override
   String get bdMenuRemoveCover => 'Retirer la couverture';

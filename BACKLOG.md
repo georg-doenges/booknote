@@ -38,12 +38,13 @@ Custom-Themes). Alles hier ist Kür.
   `README.fr.md`.
 - **„Feinheiten"-Runde** – der Nutzer sammelt noch kleinere Punkte. Vorgemerkt
   für die **nächste Code-Änderung** (Gerätetest 24.09.2026) – beide sind in
-  `0.1.0+28` umgesetzt, am Gerät aber noch nicht bestätigt:
-  - ~~**„Buch bearbeiten": Sprachwahl nicht zu finden.**~~ → kein Autofokus mehr
-    (die Tastatur verdeckte die Sprachwahl unter dem Autor).
-  - ~~**Kacheln der Bibliothek wirken unterschiedlich hoch.**~~ → gefüllte
-    Kartenfläche + kräftigerer Rahmen hinter jedem Cover, Zellen 3:4, ruhigerer
-    Platzhalter. Ursprüngliche Analyse: Alle Zellen sind
+  `0.1.0+29` umgesetzt (siehe PROGRESS.md):
+  - ~~**„Buch bearbeiten": Sprachwahl nicht zu finden.**~~ → sichtbarer Stift +
+    Sprache in der Kopfzeile der Buch-Details, kein Autofokus mehr im Dialog.
+  - ~~**Kacheln der Bibliothek wirken unterschiedlich hoch.**~~ → fester Platz
+    für den Text unter dem Cover (die Cover-Fläche war `Expanded` und wurde von
+    der Zeilenzahl beeinflusst), dazu Kartenfläche, Zellen 3:4, ruhigerer
+    Platzhalter. Erste (unvollständige) Analyse: Alle Zellen sind
     exakt gleich hoch (`CoverGridDelegate`), aber der Rahmen ist so dezent, dass
     das Auge das Bild misst: Ein Cover mit anderem Seitenverhältnis füllt die
     2:3-Fläche unter `BoxFit.contain` nur zum Teil, der Platzhalter ohne Cover

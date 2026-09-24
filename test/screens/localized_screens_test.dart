@@ -5,6 +5,7 @@ import 'package:booknote/app_scope.dart';
 import 'package:booknote/l10n/l10n.dart';
 import 'package:booknote/models/models.dart';
 import 'package:booknote/repositories/repositories.dart';
+import 'package:booknote/screens/book_detail_screen.dart';
 import 'package:booknote/screens/book_search_screen.dart';
 import 'package:booknote/screens/library_sync_sheet.dart';
 import 'package:booknote/screens/library_screen.dart';
@@ -14,6 +15,7 @@ import 'package:booknote/screens/theme_catalog_screen.dart';
 import 'package:booknote/services/services.dart';
 import 'package:booknote/widgets/book_edit_dialog.dart';
 import 'package:booknote/widgets/note_tile.dart';
+import 'package:booknote/widgets/record_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -557,6 +559,36 @@ void main() {
     });
   });
 
+  testWidgets('Buch-Details: Sprache in der Kopfzeile, sichtbarer Stift '
+      'ändert sie', (tester) async {
+    final h = _Harness();
+    deviceLanguage(tester, [const Locale('de')]);
+    await h.init(tester);
+    final books = InMemoryBookRepository(h.store);
+    final book = await books.create(
+      title: 'Buch',
+      author: 'Autorin',
+      language: AppLanguage.french,
+    );
+    await h.pump(tester, BookDetailScreen(bookId: book.id));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Autorin · Français'), findsOneWidget);
+    // Der Stift steht offen in der Leiste (nicht hinter ⋮) und sagt, was er tut.
+    await tester.tap(find.byTooltip('Titel, Autor, Sprache bearbeiten'));
+    await tester.pumpAndSettle();
+    expect(find.text('Sprache dieses Buchs'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'English'));
+    await tester.pump();
+    await tester.tap(find.text('Speichern'));
+    await tester.pumpAndSettle();
+
+    expect((await books.getById(book.id))!.language, AppLanguage.english);
+    expect(find.text('Autorin · English'), findsOneWidget);
+    await h.dispose(tester);
+  });
+
   group('Clean Mode', () {
     final de = lookupAppLocalizations(const Locale('de'));
 
@@ -623,6 +655,27 @@ void main() {
       }
       await h.dispose(tester);
     });
+
+    for (final clean in [false, true]) {
+      testWidgets('Aufnahme (Clean Mode ${clean ? 'an' : 'aus'}): der Knopf '
+          'bleibt in der Mitte', (tester) async {
+        final h = _Harness();
+        deviceLanguage(tester, [const Locale('de')]);
+        await h.init(tester);
+        await h.settings.setCleanMode(clean);
+        final book = await InMemoryBookRepository(h.store)
+            .create(title: 'Buch');
+        await h.pump(tester, RecordingScreen(book: book));
+        await tester.pumpAndSettle();
+
+        // Ohne die breiten Hinweistexte war die Spalte nur so breit wie ihr
+        // breitestes Element und saß links.
+        final button = tester.getCenter(find.byType(RecordButton));
+        final screen = tester.getSize(find.byType(Scaffold));
+        expect(button.dx, closeTo(screen.width / 2, 1));
+        await h.dispose(tester);
+      });
+    }
 
     testWidgets('Buchsuche: ohne Beispiele und Hinweise, Sprachwahl bleibt', (
       tester,
