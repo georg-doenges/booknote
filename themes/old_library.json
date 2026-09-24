@@ -3,7 +3,11 @@
   "formatVersion": 1,
   "id": "old_library",
   "name": "Old Library",
-  "description": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+  "description": {
+    "de": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+    "en": "Parchment, leather and burgundy – with a serif typeface.",
+    "fr": "Parchemin, cuir et bordeaux – avec une police à empattements."
+  },
   "revision": 2,
   "brightness": "light",
   "seed": "#9C4B3A",

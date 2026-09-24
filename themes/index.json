@@ -6,14 +6,73 @@
       "id": "blue_gold",
       "name": "Blue Gold",
       "brightness": "dark",
-      "revision": 2,
+      "revision": 3,
       "file": "blue_gold.json",
       "description": "Nachtblau mit goldenem Akzent.",
+      "descriptions": {
+        "de": "Nachtblau mit goldenem Akzent.",
+        "en": "Midnight blue with a golden accent.",
+        "fr": "Bleu nuit avec un accent doré."
+      },
       "swatch": {
         "surface": "#0E1A2C",
-        "primary": "#C6A052"
+        "primary": "#BD9B5E"
       },
       "logo": "previews/blue_gold.png"
+    },
+    {
+      "id": "book_cloth",
+      "name": "Book Cloth",
+      "brightness": "dark",
+      "revision": 1,
+      "file": "book_cloth.json",
+      "description": "Flaschengrünes Buchleinen mit feinem Webmuster und korallenrotem Akzent.",
+      "descriptions": {
+        "de": "Flaschengrünes Buchleinen mit feinem Webmuster und korallenrotem Akzent.",
+        "en": "Bottle-green book cloth with a fine woven texture and a coral accent.",
+        "fr": "Toile de reliure vert bouteille, fine trame tissée et accent corail."
+      },
+      "swatch": {
+        "surface": "#13352F",
+        "primary": "#F79D7B"
+      },
+      "logo": "previews/book_cloth.png"
+    },
+    {
+      "id": "clean_slate",
+      "name": "Clean Slate",
+      "brightness": "light",
+      "revision": 1,
+      "file": "clean_slate.json",
+      "description": "Weiß, feine Grautöne und ein ruhiges Stahlblau – viel Luft.",
+      "descriptions": {
+        "de": "Weiß, feine Grautöne und ein ruhiges Stahlblau – viel Luft.",
+        "en": "White, fine greys and a calm steel blue – lots of air.",
+        "fr": "Blanc, gris fins et un bleu acier discret – beaucoup d’air."
+      },
+      "swatch": {
+        "surface": "#FFFFFF",
+        "primary": "#3A6088"
+      },
+      "logo": "previews/clean_slate.png"
+    },
+    {
+      "id": "graphite",
+      "name": "Graphite",
+      "brightness": "dark",
+      "revision": 1,
+      "file": "graphite.json",
+      "description": "Neutrales Dunkelgrau mit einem frischen Mintgrün.",
+      "descriptions": {
+        "de": "Neutrales Dunkelgrau mit einem frischen Mintgrün.",
+        "en": "Neutral dark grey with a fresh mint green.",
+        "fr": "Gris foncé neutre avec un vert menthe frais."
+      },
+      "swatch": {
+        "surface": "#121417",
+        "primary": "#4FE3B8"
+      },
+      "logo": "previews/graphite.png"
     },
     {
       "id": "old_library",
@@ -22,11 +81,34 @@
       "revision": 2,
       "file": "old_library.json",
       "description": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+      "descriptions": {
+        "de": "Pergament, Leder und Bordeaux – mit Serifenschrift.",
+        "en": "Parchment, leather and burgundy – with a serif typeface.",
+        "fr": "Parchemin, cuir et bordeaux – avec une police à empattements."
+      },
       "swatch": {
         "surface": "#FBF4E4",
         "primary": "#9C4B3A"
       },
       "logo": "previews/old_library.png"
+    },
+    {
+      "id": "sundown",
+      "name": "Sundown",
+      "brightness": "dark",
+      "revision": 1,
+      "file": "sundown.json",
+      "description": "Tiefes Pflaumenviolett mit Orange und Pink – kräftig und trotzdem gut lesbar.",
+      "descriptions": {
+        "de": "Tiefes Pflaumenviolett mit Orange und Pink – kräftig und trotzdem gut lesbar.",
+        "en": "Deep plum with orange and pink – bold, yet easy to read.",
+        "fr": "Prune profond, orange et rose – éclatant, mais toujours lisible."
+      },
+      "swatch": {
+        "surface": "#2A1233",
+        "primary": "#FF8A3D"
+      },
+      "logo": "previews/sundown.png"
     }
   ]
 }

@@ -35,19 +35,37 @@ beschränkt, weil sie als Dateiname dient.
 
 1. Theme-Datei `themes/<id>.json` anlegen (Format unten). `id` ist hier Pflicht,
    muss dem Dateinamen entsprechen und darf nur `a-z`, `0-9`, `_` enthalten.
-   Optional: `description` (eine Zeile für den Katalog) und `revision`.
+   Optional: `description` (eine Zeile für den Katalog, am besten je Sprache
+   `de`/`en`/`fr`) und `revision`. Ein Schema mit Bild (`logo`, `background`)
+   bekommt es per Skript eingebettet (siehe unten).
 2. Katalog neu erzeugen (im Projektordner):
    ```bash
    dart run tool/build_theme_index.dart
    ```
    Das schreibt `themes/index.json` und je Theme mit `logo` die Vorschau
-   `themes/previews/<id>.png` (aus dem eingebetteten Logo).
+   `themes/previews/<id>.png` (aus dem eingebetteten Logo). Im Index steht die
+   Beschreibung doppelt: `description` als **einfacher Text** (deutsch) und
+   `descriptions` je Sprache. Das ist Absicht: Apps bis 0.1.0+26 lesen
+   `description` nur als Text – ein Sprach-Objekt dort würde ihren Katalog
+   unbrauchbar machen. Neuere Apps nehmen `descriptions`. (In der Theme-Datei
+   selbst darf `description` weiter ein Objekt sein; der Index-Bau übersetzt.)
 3. Committen und auf `main` pushen. Die App sieht es beim nächsten Öffnen des
    Katalogs – kein neues APK nötig.
 
 Der Test `test/themes_catalog_test.dart` schlägt an, wenn `index.json` nicht zu den
 Theme-Dateien passt, wenn eine Datei kein gültiges Theme ist oder wenn ein Theme
 eine Schrift nennt, die nicht im APK steckt.
+
+### Aktueller Katalog
+
+| Schema | Look | Besonderheit |
+|---|---|---|
+| Blue Gold | Nachtblau, mattes Altgold | Schrift Tinos, Logo in Altgold |
+| Old Library | Pergament, Leder, Bordeaux | Schrift Tinos |
+| Clean Slate | Weiß, feine Grautöne, Stahlblau | luftig; alle Flächen bewusst neutral |
+| Sundown | Pflaumenviolett, Orange, Pink | Farbe auf den großen Flächen |
+| Book Cloth | Flaschengrünes Buchleinen, Koralle | Gewebe-Hintergrund (Kachel) |
+| Graphite | Neutrales Dunkelgrau, Mintgrün | für alle, die Braun nicht mögen |
 
 ### Schema überarbeiten
 
@@ -63,7 +81,11 @@ kein „Aktualisieren" an), Skript erneut laufen lassen, pushen.
   "id": "blue_gold",            // optional; sonst aus dem Namen abgeleitet.
                                 // Im Katalog Pflicht (= Dateiname ohne .json)
   "name": "Blue Gold",          // Pflicht, wird in den Einstellungen angezeigt
-  "description": "Nachtblau mit goldenem Akzent.",  // optional, nur Katalog-Zeile
+  "description": {              // optional, nur Katalog-Zeile: ein Text für alle
+    "de": "Nachtblau mit goldenem Akzent.",   // Sprachen oder je Sprache (de/en/fr);
+    "en": "Midnight blue with a golden accent.",  // fehlt die App-Sprache, gilt
+    "fr": "Bleu nuit avec un accent doré."        // English, sonst Deutsch
+  },
   "revision": 2,                // optional (Standard 1): Inhaltsstand, bei jeder
                                 // Änderung hochzählen → „Aktualisieren" im Katalog
   "brightness": "dark",         // "dark" | "light" – Grundhelligkeit
@@ -133,6 +155,42 @@ Farben als `#RRGGBB` oder `#AARRGGBB`.
 - `onSurfaceVariant` = gedämpfter Text (Datumsangaben, Erklärtexte).
 - `error` klar vom `primary` unterscheidbar wählen.
 
+### Rezepte (aus den ersten Katalog-Schemata)
+
+- **Luftig/„clean":** *alle* `surfaceContainer*`-Rollen ausdrücklich als
+  Neutralgrau setzen (sonst mischt Material 3 Farbe hinein), Karten kaum dunkler
+  als `surface`, `outlineVariant` sehr hell (Trennlinien), aber `outline` auf ca.
+  3:1 zu `surface`, weil Eingabefelder ihn als Rahmen nutzen. Nur **ein** Akzent.
+  Abstände und Layout kann ein Schema nicht ändern – Weißraum entsteht nur über
+  Farben.
+- **Kräftig, aber lesbar:** die Farbe auf die *großen* Flächen legen (`surface`,
+  Karten), nicht nur auf Akzente – Tequila Sunrise scheiterte daran, dass sie zu
+  spärlich saß. Dafür ein tiefer Grund mit hellem Text (Kontrast ≥ 7:1).
+- **Kontrast:** `test/themes_catalog_test.dart` prüft für jedes Katalog-Schema
+  die wichtigen Text-/Flächenpaare (WCAG ≥ 4,5:1, Fließtext ≥ 7:1). Ein neues
+  Schema, das daran scheitert, ist zu schwach lesbar.
+
+## Hintergrund-Muster (Kachel)
+
+`background` mit `"fit": "tile"` wiederholt ein kleines PNG. Die App zeichnet die
+Kachel **1 Pixel = 1 dp** und vergrößert sie auf dem Handy weich (2,5–3,5×); feine
+Muster brauchen deshalb keine hohe Auflösung, wirken aber weich. Das Bild liegt als
+data-URI in der Theme-Datei (Limit 8 MB, sinnvoll sind < 100 KB).
+
+Für Gewebe gibt es einen Generator: `node tool/weave_tile.js out.png --warp
+"#RRGGBB" --weft "#RRGGBB" …` (Leinwandbindung, Fadenabstand, Streuung,
+`--seed` für Wiederholbarkeit; nutzt das `sharp` aus `assets/icon`). Book Cloth
+entstand mit `--pitch 5 --size 120 --warp "#173F37" --weft "#123530"
+--jitter 0.08 --relief 0.6 --slub 0.05 --seed 11`. Regeln:
+
+- `surface` des Themes = mittlere Farbe der Kachel (das Skript nennt sie), damit
+  die undurchsichtige AppBar zum Muster passt.
+- Text steht teils direkt auf dem Muster (Einstellungen): der **hellste Texel**
+  muss noch ≥ 7:1 zu `onSurface` und ≥ 4,5:1 zu `onSurfaceVariant` haben (das
+  Skript nennt hellsten und dunkelsten Texel).
+- Karten und Dialoge sind deckend (`surfaceContainer*`), das Muster stört dort nie.
+- Nach jeder Änderung `revision` hochzählen.
+
 ## Wo die Dateien liegen
 
 - Installierte Schemata liegen auf dem Gerät als `<App-Dokumente>/themes/<id>.json`
@@ -158,10 +216,12 @@ Standard-Farbschema** (System/Hell/Dunkel), unabhängig vom gewählten
 Custom-Theme. Jedes Custom-Theme kann stattdessen sein eigenes, passend
 eingefärbtes Logo im `logo`-Feld mitbringen – sichtbar als Vorschau in der
 Liste der installierten Schemata und im Katalog (dort als `previews/<id>.png`).
-Alle drei (Braun/Blue Gold/Old Library) sind dieselbe Grafik, nur umgefärbt
+Alle (Braun und jedes Katalog-Schema) sind dieselbe Grafik, nur umgefärbt
 (`assets/icon/recolor.js`: pro Pixel dem nächsten von vier Referenzfarben
 zuordnen und dorthin verschieben – Kanten und Bézier-Formen bleiben exakt
-erhalten).
+erhalten). Für ein neues Schema dort eine Palette (`bg`/`outline`/`accent`/`dark`)
+eintragen, `node recolor.js` laufen lassen, das Ergebnis auf 256 px verkleinern
+und als data-URI in `logo` einbetten.
 
 ## Schriftart pro Theme
 
@@ -172,7 +232,7 @@ jedes Theme-File zu packen. **Ein Schema aus dem Katalog kann also keine neue
 Schrift mitbringen;** dafür braucht es ein App-Update. Aktuell im APK:
 **Tinos** (Google, [SIL Open Font License 1.1](assets/fonts/OFL.txt), metrisch
 mit Times New Roman kompatibel; `assets/fonts/Tinos-*.ttf`), genutzt vom
-„Old Library"-Theme. Ein Theme mit unbekanntem `font`-Namen verliert dadurch
+„Old Library"- und „Blue Gold"-Theme. Ein Theme mit unbekanntem `font`-Namen verliert dadurch
 nichts – die App fällt lautlos auf die Systemschrift zurück (der Test
 `themes_catalog_test.dart` fängt das für Katalog-Themes vorher ab).
 

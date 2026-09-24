@@ -51,7 +51,7 @@ ThemeIndexBuild buildThemeIndex(Directory themesDir) {
     if (name.isEmpty) throw FormatException('$fileName: "name" fehlt.');
 
     final revision = decoded['revision'];
-    final description = (decoded['description'] as String?)?.trim() ?? '';
+    final descriptions = _descriptions(decoded['description']);
     final colors =
         (decoded['colors'] as Map?)?.cast<String, Object?>() ?? const {};
     final surface = colors['surface'];
@@ -66,7 +66,11 @@ ThemeIndexBuild buildThemeIndex(Directory themesDir) {
       'brightness': decoded['brightness'] == 'light' ? 'light' : 'dark',
       'revision': revision is int && revision >= 1 ? revision : 1,
       'file': fileName,
-      'description': ?(description.isEmpty ? null : description),
+      // `description` bleibt ein einfacher Text (deutsch), weil ältere App-
+      // Versionen (bis 0.1.0+26) nur so etwas lesen; `descriptions` trägt die
+      // Sprachen für neuere.
+      'description': ?_fallbackDescription(descriptions),
+      'descriptions': ?(descriptions.length > 1 ? descriptions : null),
       'swatch': {'surface': ?surface, 'primary': ?primary},
       'logo': ?(logo == null ? null : 'previews/$id.png'),
     });
@@ -83,6 +87,31 @@ ThemeIndexBuild buildThemeIndex(Directory themesDir) {
     'themes': entries,
   }, previews);
 }
+
+/// `"Text"` oder `{"de": "…", "en": "…", "fr": "…"}` → Text je Sprache; ein
+/// einfacher Text steht unter `''` (gilt für alle Sprachen). Leere Angaben
+/// entfallen.
+Map<String, String> _descriptions(Object? raw) {
+  if (raw is String) return raw.trim().isEmpty ? {} : {'': raw.trim()};
+  if (raw is Map) {
+    return {
+      for (final e in raw.entries)
+        if (e.key is String &&
+            e.value is String &&
+            (e.value as String).trim().isNotEmpty)
+          e.key as String: (e.value as String).trim(),
+    };
+  }
+  return {};
+}
+
+/// Der eine Text für Leser, die keine Sprachen kennen: Deutsch (die älteren
+/// App-Versionen sind rein deutsch), sonst Englisch, sonst irgendein Text.
+String? _fallbackDescription(Map<String, String> descriptions) =>
+    descriptions['de'] ??
+    descriptions[''] ??
+    descriptions['en'] ??
+    descriptions.values.firstOrNull;
 
 Uint8List? _decodeDataUri(Object? value) {
   if (value is! String || value.isEmpty) return null;

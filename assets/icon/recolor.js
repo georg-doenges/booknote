@@ -10,8 +10,10 @@
 // - default_brown → auf 1024 skalieren als icon_legacy.png, Rahmen
 //   wegschneiden + neu zentrieren als icon_foreground.png (Basis für
 //   `flutter_launcher_icons`, siehe pubspec.yaml).
-// - blue_gold / old_library → auf ~256px verkleinern, als Base64 in das
-//   `logo`-Feld der jeweiligen `themes/*.json` einbetten.
+// - alle anderen (Themes) → auf 256px verkleinern, als Base64 in das
+//   `logo`-Feld der jeweiligen `themes/*.json` einbetten (`themes/index.json` +
+//   Vorschauen danach mit `dart run tool/build_theme_index.dart` erneuern).
+//   Die Palette hier muss zu `accent`/`surface` des Themes passen.
 const sharp = require('sharp');
 const path = require('path');
 
@@ -82,8 +84,8 @@ const PALETTES = {
   blue_gold: {
     bg: [0x0e, 0x1a, 0x2c],
     outline: [0x8f, 0xa0, 0xbf],
-    accent: [0xc6, 0xa0, 0x52],
-    dark: [0x24, 0x19, 0x00],
+    accent: [0xbd, 0x9b, 0x5e],
+    dark: [0x22, 0x1b, 0x0d],
   },
   default_brown: {
     bg: [0x2e, 0x20, 0x18],
@@ -96,6 +98,30 @@ const PALETTES = {
     outline: [0x3b, 0x2a, 0x18],
     accent: [0x9c, 0x4b, 0x3a],
     dark: [0x24, 0x15, 0x05],
+  },
+  clean_slate: {
+    bg: [0xf1, 0xf4, 0xf7],
+    outline: [0x1b, 0x24, 0x30],
+    accent: [0x3a, 0x60, 0x88],
+    dark: [0x0c, 0x12, 0x1a],
+  },
+  sundown: {
+    bg: [0x2a, 0x12, 0x33],
+    outline: [0xf3, 0xb5, 0xcf],
+    accent: [0xff, 0x8a, 0x3d],
+    dark: [0x14, 0x06, 0x1a],
+  },
+  book_cloth: {
+    bg: [0x14, 0x36, 0x30],
+    outline: [0xb9, 0xcb, 0xb8],
+    accent: [0xf7, 0x9d, 0x7b],
+    dark: [0x08, 0x1e, 0x1a],
+  },
+  graphite: {
+    bg: [0x12, 0x14, 0x17],
+    outline: [0x9b, 0xa3, 0xad],
+    accent: [0x4f, 0xe3, 0xb8],
+    dark: [0x06, 0x08, 0x09],
   },
 };
 
